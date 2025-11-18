@@ -228,7 +228,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file.
 
 ## 👥 Authors
 
-- **R-Type Team** - Epitech Nancy 2025
+- **R-Type Team** - Epitech Nantes 2025
 
 ## 🙏 Acknowledgments
 
