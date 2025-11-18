@@ -1,0 +1,71 @@
+.
+├── assets
+│   ├── configs
+│   ├── fonts
+│   ├── music
+│   ├── sounds
+│   └── sprites
+├── bs
+│   ├── a.out
+│   ├── entity.hpp
+│   ├── EntityManager.cpp
+│   ├── main.cpp
+│   └── Makefile
+├── client
+│   ├── include
+│   ├── input
+│   ├── src
+│   │   └── main.cpp
+│   ├── ui
+│   └── CMakeLists.txt
+├── cmake
+├── docs
+│   ├── CONTRIBUTING.md
+│   └── protocol.md
+├── engine
+│   ├── audio
+│   │   ├── include
+│   │   └── src
+│   ├── core
+│   │   ├── include
+│   │   └── src
+│   ├── ecs
+│   │   ├── include
+│   │   ├── src
+│   │   └── CMakeLists.txt
+│   ├── net
+│   │   ├── include
+│   │   └── src
+│   ├── render
+│   │   ├── include
+│   │   └── src
+│   ├── utils
+│   │   ├── include
+│   │   └── src
+│   └── README.md
+├── examples
+├── scripts
+│   └── bootstrap.sh
+├── server
+│   ├── game_logic
+│   ├── include
+│   ├── instances
+│   ├── src
+│   │   └── main.cpp
+│   └── CMakeLists.txt
+├── tests
+│   ├── ecs
+│   │   ├── test_entity.cpp
+│   │   ├── test_registry.cpp
+│   │   └── test_sparse_array.cpp
+│   ├── CMakeLists.txt
+│   └── README.md
+├── third_party
+├── tools
+├── ARCHITECTURE.md
+├── CMakeLists.txt
+├── conanfile.txt
+├── README.md
+└── tree.txt
+
+45 directories, 24 files

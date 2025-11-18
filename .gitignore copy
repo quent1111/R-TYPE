@@ -1,0 +1,50 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+bin/
+lib/
+
+# Binaries and executables
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.dylib
+r-type_server
+r-type_client
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+CMakeUserPresets.json
+
+# Conan
+conan_toolchain.cmake
+conan_paths.cmake
+conanbuildinfo.*
+conaninfo.txt
+graph_info.json
+*.pyc
+
+# vcpkg
+vcpkg_installed/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
