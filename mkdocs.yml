@@ -1,0 +1,96 @@
+site_name: R-TYPE Documentation
+site_description: Documentation for the R-TYPE game project - A networked multiplayer game built with C++
+site_author: R-TYPE Team
+repo_url: https://github.com/quent1111/R-TYPE
+repo_name: quent1111/R-TYPE
+
+# Theme configuration
+theme:
+  name: material
+  palette:
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+  language: en
+
+# Extensions
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+# Plugins
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Building: getting-started/building.md
+  - Architecture:
+      - Overview: architecture/overview.md
+      - ECS System: architecture/ecs.md
+      - Network: architecture/network.md
+      - Game Engine: architecture/engine.md
+  - Developer Guide:
+      - Contributing: developer-guide/contributing.md
+      - Code Style: developer-guide/code-style.md
+      - Git Workflow: developer-guide/git-workflow.md
+      - Testing: developer-guide/testing.md
+  - API Reference:
+      - Client API: api/client.md
+      - Server API: api/server.md
+      - Engine API: api/engine.md
+  - Scripts: scripts/index.md
+
+# Extra configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/quent1111/R-TYPE
+  version:
+    provider: mike
+
+# Copyright
+copyright: Copyright &copy; 2025 R-TYPE Team

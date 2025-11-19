@@ -1,5 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I.
+CXXFLAGS = -std=c++17 -Wall -Wextra -I. -I/opt/homebrew/include
+LDFLAGS = -L/opt/homebrew/lib
 SFML_FLAGS = -lsfml-graphics -lsfml-window -lsfml-system
 
 # Targets
@@ -22,11 +23,11 @@ all: $(TARGET_DEMO) $(TARGET_FINAL)
 
 # Build demo_ecs
 $(TARGET_DEMO): $(DEMO_OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET_DEMO) $(DEMO_OBJS) $(SFML_FLAGS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET_DEMO) $(DEMO_OBJS) $(LDFLAGS) $(SFML_FLAGS)
 
 # Build final_demo
 $(TARGET_FINAL): $(FINAL_OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET_FINAL) $(FINAL_OBJS) $(SFML_FLAGS)
+	$(CXX) $(CXXFLAGS) -o $(TARGET_FINAL) $(FINAL_OBJS) $(LDFLAGS) $(SFML_FLAGS)
 
 # Build example_systems
 $(TARGET_EXAMPLE): $(EXAMPLE_OBJS)
