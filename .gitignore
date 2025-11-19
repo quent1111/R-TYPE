@@ -48,3 +48,7 @@ vcpkg_installed/
 # Temporary files
 *.tmp
 *.bak
+
+# Documentation build
+site/
+.cache/

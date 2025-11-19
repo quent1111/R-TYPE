@@ -8,6 +8,8 @@ This directory contains utility scripts for the R-TYPE project. Below is a compr
 
 - [Setup & Installation](#setup--installation)
   - [install-hooks.sh](#install-hookssh)
+- [Documentation](#documentation)
+  - [docs.sh](#docssh)
 - [Code Quality](#code-quality)
   - [format.sh](#formatsh)
 
@@ -65,6 +67,86 @@ After cloning the repository, run:
 ```
 
 This ensures everyone has the same quality standards enforced automatically.
+
+---
+
+## Documentation
+
+### `docs.sh`
+
+**Purpose:** Build and serve project documentation using MkDocs with Material theme.
+
+**Location:** `scripts/docs.sh`
+
+**Requirements:**
+- Python 3.8+
+- pip3
+
+#### Commands
+
+| Command | Description |
+|---------|-------------|
+| `serve` | Start development server (default) |
+| `build` | Build static site |
+| `deploy` | Deploy to GitHub Pages |
+| `install` | Install MkDocs dependencies |
+| `clean` | Remove built documentation |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `-p, --port PORT` | Port for dev server (default: 8000) |
+| `-a, --addr ADDR` | Address to bind (default: 127.0.0.1) |
+| `-h, --help` | Show help message |
+
+#### Examples
+
+```bash
+# First time setup - install dependencies
+./scripts/docs.sh install
+
+# Start development server (live reload)
+./scripts/docs.sh serve
+
+# Serve on custom port
+./scripts/docs.sh serve -p 9000
+
+# Build static site
+./scripts/docs.sh build
+
+# Deploy to GitHub Pages
+./scripts/docs.sh deploy
+
+# Clean built files
+./scripts/docs.sh clean
+```
+
+#### Documentation Structure
+
+The documentation source is in `docs/`:
+- `index.md` - Home page
+- `getting-started/` - Installation and quickstart
+- `architecture/` - System architecture
+- `developer-guide/` - Contributing and coding standards
+- `api/` - API reference
+
+#### Editing Documentation
+
+1. Edit markdown files in `docs/`
+2. Run `./scripts/docs.sh serve` to preview changes
+3. Documentation auto-reloads on file changes
+4. Visit http://localhost:8000
+
+#### Theme and Features
+
+The documentation uses **Material for MkDocs** with:
+- ✅ Dark/Light mode toggle
+- ✅ Search functionality
+- ✅ Code syntax highlighting
+- ✅ Mobile-responsive design
+- ✅ Git revision dates
+- ✅ Navigation tabs
 
 ---
 
