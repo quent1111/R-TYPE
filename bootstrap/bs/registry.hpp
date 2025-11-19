@@ -21,11 +21,11 @@ private:
 	// Base class for type-erasure of sparse_array<T>
 	class component_array_base {
 	public:
-		virtual ~component_array_base() = default;
+		virtual ~component_array_base() noexcept = default;
 		// Remove component for a given entity (used when killing entity)
 		virtual void erase_entity(entity_t entity) = 0;
 		// Get size of the array
-		virtual std::size_t size() const = 0;
+		virtual std::size_t size() const noexcept = 0;
 	};
 
 
@@ -36,10 +36,10 @@ private:
 		sparse_array<Component> data;
 
 		void erase_entity(entity_t entity) override {
-			data.erase(entity);
+			data.erase(static_cast<std::size_t>(entity));
 		}
 
-		std::size_t size() const override {
+		std::size_t size() const noexcept override {
 			return data.size();
 		}
 	};
@@ -74,7 +74,7 @@ public:
 		_components_arrays[type_idx] = std::move(wrapper);
 		// Create and store erase function for this component type
 		_erase_functions[type_idx] = [](registry& reg, entity_t const& entity) {
-			reg.get_components<Component>().erase(entity);
+			reg.get_components<Component>().erase(static_cast<std::size_t>(entity));
 		};
 		return ref;
 	}
@@ -121,7 +121,7 @@ public:
 	}
 
 	// Get the entity that will be created next (useful for pre-allocation)
-	entity_t entity_from_index(std::size_t idx) const
+	constexpr entity_t entity_from_index(std::size_t idx) const noexcept
 	{
 		return entity(idx);
 	}
@@ -143,21 +143,21 @@ public:
 	add_component(entity_t entity, Component&& component)
 	{
 		using ComponentType = std::remove_reference_t<Component>;
-		return get_components<ComponentType>().insert_at(entity, std::forward<Component>(component));
+		return get_components<ComponentType>().insert_at(static_cast<std::size_t>(entity), std::forward<Component>(component));
 	}
 
 	// Emplace a component for an entity
 	template <typename Component, typename... Params>
 	typename sparse_array<Component>::reference_type emplace_component(entity_t entity, Params&&... params)
 	{
-		return get_components<Component>().emplace_at(entity, std::forward<Params>(params)...);
+		return get_components<Component>().emplace_at(static_cast<std::size_t>(entity), std::forward<Params>(params)...);
 	}
 
 	// Remove a specific component from an entity
 	template <typename Component>
 	void remove_component(entity_t entity)
 	{
-		get_components<Component>().erase(entity);
+		get_components<Component>().erase(static_cast<std::size_t>(entity));
 	}
 
 	// Check if an entity has a specific component
@@ -170,22 +170,23 @@ public:
 			return false;
 		auto* wrapper = static_cast<component_array<Component>*>(it->second.get());
 		auto const& components = wrapper->data;
-		if (entity >= components.size())
+		std::size_t idx = static_cast<std::size_t>(entity);
+		if (idx >= components.size())
 			return false;
-		return components[entity].has_value();
+		return components[idx].has_value();
 	}
 
 	// Get a component for an entity (non-const) - returns optional reference
 	template <typename Component>
 	typename sparse_array<Component>::reference_type get_component(entity_t entity)
 	{
-		return get_components<Component>()[entity];
+		return get_components<Component>()[static_cast<std::size_t>(entity)];
 	}
 
 	// Get a component for an entity (const) - returns optional reference
 	template <typename Component>
 	typename sparse_array<Component>::const_reference_type get_component(entity_t entity) const
 	{
-		return get_components<Component>()[entity];
+		return get_components<Component>()[static_cast<std::size_t>(entity)];
 	}
 };

@@ -11,17 +11,17 @@ class entity {
 
 public:
 	// Conversion operators
-	operator std::size_t() const { return _id; }
+	constexpr explicit operator std::size_t() const noexcept { return _id; }
 	// Comparison operators
-	bool operator==(entity const& other) const { return _id == other._id; }
-	bool operator!=(entity const& other) const { return _id != other._id; }
-	bool operator<(entity const& other) const { return _id < other._id; }
+	constexpr bool operator==(entity const& other) const noexcept { return _id == other._id; }
+	constexpr bool operator!=(entity const& other) const noexcept { return _id != other._id; }
+	constexpr bool operator<(entity const& other) const noexcept { return _id < other._id; }
 	// Get the raw ID
-	std::size_t id() const { return _id; }
+	constexpr std::size_t id() const noexcept { return _id; }
 
 private:
 	// Private constructor - only registry can create entities via friend
-	explicit entity(std::size_t id) : _id(id) {}
+	constexpr explicit entity(std::size_t id) noexcept : _id(id) {}
 	std::size_t _id;
 };
 

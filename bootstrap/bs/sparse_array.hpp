@@ -43,16 +43,16 @@ public:
 	}
 
 	// iterators
-	iterator begin() { return _data.begin(); }
-	const_iterator begin() const { return _data.begin(); }
-	const_iterator cbegin() const { return _data.cbegin(); }
+	iterator begin() noexcept { return _data.begin(); }
+	const_iterator begin() const noexcept { return _data.begin(); }
+	const_iterator cbegin() const noexcept { return _data.cbegin(); }
 
-	iterator end() { return _data.end(); }
-	const_iterator end() const { return _data.end(); }
-	const_iterator cend() const { return _data.cend(); }
+	iterator end() noexcept { return _data.end(); }
+	const_iterator end() const noexcept { return _data.end(); }
+	const_iterator cend() const noexcept { return _data.cend(); }
 
 	// capacity
-	size_type size() const { return _data.size(); }
+	size_type size() const noexcept { return _data.size(); }
 
 	// insert at position (lvalue) - returns reference to the optional
 	reference_type insert_at(size_type pos, Component const& value)
@@ -104,7 +104,7 @@ public:
 	}
 
 	// get_index using std::addressof to find by address, not by value comparison
-	size_type get_index(value_type const& v) const
+	size_type get_index(value_type const& v) const noexcept
 	{
 		// Find by address comparison - we're looking for the address of the optional itself
 		const void* target_addr = std::addressof(v);
