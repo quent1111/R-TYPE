@@ -1,0 +1,124 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ main, develop, Architecture ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Conan
+      run: |
+        pip install conan
+        conan profile detect --force
+
+    - name: Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-${{ hashFiles('**/conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-
+
+    - name: Install system dependencies (Linux)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libopenal-dev \
+          libflac-dev libvorbis-dev
+
+    - name: Install dependencies with Conan
+      run: |
+        conan install . --output-folder=build --build=missing -s build_type=Release
+
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. \
+          -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release -j$(nproc)
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure -C Release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: r-type-linux
+        path: |
+          build/bin/r-type_server
+          build/bin/r-type_client
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Conan
+      run: |
+        pip install conan
+        conan profile detect --force
+
+    - name: Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-${{ hashFiles('**/conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-
+
+    - name: Install dependencies with Conan
+      run: |
+        conan install . --output-folder=build --build=missing -s build_type=Release
+
+    - name: Configure CMake
+      run: |
+        cd build
+        cmake .. `
+          -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake `
+          -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: |
+        cd build
+        cmake --build . --config Release
+
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure -C Release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: r-type-windows
+        path: |
+          build/bin/Release/r-type_server.exe
+          build/bin/Release/r-type_client.exe

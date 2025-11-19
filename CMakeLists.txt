@@ -1,0 +1,56 @@
+cmake_minimum_required(VERSION 3.20)
+project(r-type VERSION 1.0.0 LANGUAGES CXX)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
+include(Platform)
+include(CompilerOptions)
+include(CompilerWarnings)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build (Debug, Release, RelWithDebInfo)" FORCE)
+endif()
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+file(MAKE_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+# Find packages installed by Conan
+find_package(SFML REQUIRED COMPONENTS graphics window system audio)
+find_package(asio REQUIRED)
+find_package(GTest REQUIRED)
+
+include_directories(${CMAKE_SOURCE_DIR})
+
+add_library(project_warnings INTERFACE)
+set_project_warnings(project_warnings)
+
+add_library(project_options INTERFACE)
+target_compile_features(project_options INTERFACE cxx_std_20)
+
+add_subdirectory(engine)
+add_subdirectory(server)
+add_subdirectory(client)
+
+enable_testing()
+add_subdirectory(tests)
+
+# Print configuration summary
+message(STATUS "==========================================")
+message(STATUS "R-Type Project Configuration v${PROJECT_VERSION}")
+message(STATUS "==========================================")
+message(STATUS "CMake version: ${CMAKE_VERSION}")
+message(STATUS "Platform: ${PLATFORM_NAME}")
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
+message(STATUS "C++ standard: C++${CMAKE_CXX_STANDARD}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "Output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+message(STATUS "==========================================")
+message(STATUS "Dependencies:")
+message(STATUS "  - SFML: ${SFML_VERSION}")
+message(STATUS "  - Asio: ${asio_VERSION}")
+message(STATUS "  - GTest: ${GTest_VERSION}")
+message(STATUS "==========================================")
