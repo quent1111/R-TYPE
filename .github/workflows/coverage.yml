@@ -24,9 +24,9 @@ jobs:
       run: |
         pip install conan
         conan profile detect --force
-        # Configure Conan for better network resilience
-        conan config set core.download:retry=5
-        conan config set core.download:retry_wait=10
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        echo "core.download:retry=5" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
         
     - name:  Cache Conan packages
       uses: actions/cache@v4

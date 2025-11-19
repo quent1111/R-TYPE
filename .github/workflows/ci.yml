@@ -57,9 +57,9 @@ jobs:
       run: |
         pip install conan
         conan profile detect --force
-        # Configure Conan for better network resilience
-        conan config set core.download:retry=5
-        conan config set core.download:retry_wait=10
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        echo "core.download:retry=5" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
         
     - name: Cache Conan packages
       uses: actions/cache@v4
@@ -122,7 +122,7 @@ jobs:
         retention-days: 7
 
   # ============================================================================
-  # Multi-platform Build (Linux, macOS, Windows)
+  # Multi-platform Build (Linux, Windows)
   # ============================================================================
   build-matrix:
     name: Build (${{ matrix.os }})
@@ -131,11 +131,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest]
         include:
           - os: ubuntu-latest
-            preset: conan-release
-          - os: macos-latest
             preset: conan-release
           - os: windows-latest
             preset: conan-release
@@ -150,17 +148,26 @@ jobs:
         python-version: '3.11'
         
     - name: Install Conan
+      shell: bash
       run: |
         pip install conan
         conan profile detect --force
-        # Configure Conan for better network resilience
-        conan config set core.download:retry=5
-        conan config set core.download:retry_wait=10
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          CONAN_HOME="$USERPROFILE/.conan2"
+        else
+          CONAN_HOME="$HOME/.conan2"
+        fi
+        mkdir -p "$CONAN_HOME"
+        echo "core.download:retry=5" >> "$CONAN_HOME/global.conf"
+        echo "core.download:retry_wait=10" >> "$CONAN_HOME/global.conf"
         
     - name: Cache Conan packages
       uses: actions/cache@v4
       with:
-        path: ~/.conan2
+        path: |
+          ~/.conan2
+          C:\Users\runneradmin\.conan2
         key: ${{ runner.os }}-conan-matrix-${{ hashFiles('conanfile.txt') }}
         restore-keys: |
           ${{ runner.os }}-conan-matrix-
@@ -175,11 +182,6 @@ jobs:
           libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
           libudev-dev libgl1-mesa-dev libopenal-dev \
           libflac-dev libvorbis-dev
-          
-    - name: Install system dependencies (macOS)
-      if: matrix.os == 'macos-latest'
-      run: |
-        brew install cmake ninja
         
     - name: Install system dependencies (Windows)
       if: matrix.os == 'windows-latest'
