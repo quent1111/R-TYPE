@@ -1,45 +1,25 @@
 /**
  * @file test_sanity.cpp
  * @brief Sanity test to verify the build system and test framework are working
+ * 
+ * This is a minimal test that ensures:
+ * - CMake configuration is correct
+ * - Google Test is properly linked
+ * - The test infrastructure can compile and run
+ * 
+ * @note This test should ALWAYS pass. If it fails, the build system is broken.
  */
 
 #include <gtest/gtest.h>
 
 /**
- * @brief Basic sanity test
+ * @brief Minimal sanity check
  * 
- * This test verifies that:
- * - The build system is properly configured
- * - Google Test is correctly linked
- * - The test infrastructure is functional
+ * Verifies that the test framework is functional.
+ * This test intentionally has no real logic - it just needs to compile and run.
  */
-TEST(SanityTest, BasicAssertion) {
-    EXPECT_EQ(1 + 1, 2);
-    EXPECT_TRUE(true);
-    EXPECT_FALSE(false);
-}
-
-/**
- * @brief Test that strings work
- */
-TEST(SanityTest, StringComparison) {
-    std::string hello = "Hello";
-    std::string world = "World";
-    
-    EXPECT_EQ(hello, "Hello");
-    EXPECT_NE(hello, world);
-    EXPECT_EQ(hello + " " + world, "Hello World");
-}
-
-/**
- * @brief Test that basic math works
- */
-TEST(SanityTest, BasicMath) {
-    EXPECT_EQ(2 * 2, 4);
-    EXPECT_GT(5, 3);
-    EXPECT_LT(3, 5);
-    EXPECT_GE(5, 5);
-    EXPECT_LE(3, 3);
+TEST(SanityTest, FrameworkWorks) {
+    EXPECT_TRUE(true) << "If this fails, something is very wrong!";
 }
 
 /**
