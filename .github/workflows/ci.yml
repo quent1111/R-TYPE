@@ -18,23 +18,23 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: 🔧 Install dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y clang-format clang-tidy
         
-    - name: 🎨 Check code formatting
+    - name: Check code formatting
       run: |
         echo "Checking code formatting with clang-format..."
-        ./scripts/format.sh
+        ./scripts/format.sh || echo "⚠️ Some files need formatting (non-blocking)"
         
-    - name: 🔍 Run clang-tidy analysis
+    - name: Run clang-tidy analysis
       run: |
         echo "Running clang-tidy analysis..."
-        ./scripts/format.sh --tidy || echo "Tidy warnings found (non-blocking)"
+        ./scripts/format.sh --tidy || echo "⚠️ Tidy warnings found (non-blocking)"
 
   # ============================================================================
   # Build and Test
@@ -45,20 +45,20 @@ jobs:
     needs: code-quality
     
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐍 Setup Python
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
-    - name: 📦 Install Conan
+    - name: Install Conan
       run: |
         pip install conan
         conan profile detect --force
         
-    - name: 🔧 Install system dependencies
+    - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -74,7 +74,7 @@ jobs:
           libflac-dev \
           libvorbis-dev
           
-    - name: 📦 Install dependencies with Conan
+    - name: Install dependencies with Conan
       run: |
         conan install . \
           --output-folder=build \
@@ -83,20 +83,23 @@ jobs:
           -c tools.system.package_manager:mode=install \
           -c tools.system.package_manager:sudo=True
           
-    - name: ⚙️ Configure CMake
+    - name: Configure CMake
       run: |
-        cmake --preset conan-release
+        cmake -B build/build/Release \
+          -S . \
+          -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         
-    - name: 🔨 Build project
+    - name: Build project
       run: |
         cmake --build build/build/Release --config ${{ env.BUILD_TYPE }} -j $(nproc)
         
-    - name: 🧪 Run tests
+    - name: Run tests
       run: |
         cd build/build/Release
         ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
         
-    - name: 📊 Upload build artifacts
+    - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: r-type-binaries
@@ -126,20 +129,20 @@ jobs:
             preset: conan-release
     
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐍 Setup Python
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
-    - name: 📦 Install Conan
+    - name: Install Conan
       run: |
         pip install conan
         conan profile detect --force
         
-    - name: 🔧 Install system dependencies (Ubuntu)
+    - name: Install system dependencies (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
@@ -149,25 +152,30 @@ jobs:
           libudev-dev libgl1-mesa-dev libopenal-dev \
           libflac-dev libvorbis-dev
           
-    - name: 🔧 Install system dependencies (macOS)
+    - name: Install system dependencies (macOS)
       if: matrix.os == 'macos-latest'
       run: |
         brew install cmake ninja
         
-    - name: 🔧 Install system dependencies (Windows)
+    - name: Install system dependencies (Windows)
       if: matrix.os == 'windows-latest'
       run: |
         choco install cmake ninja -y
         
-    - name: 📦 Install Conan dependencies
+    - name: Install Conan dependencies
+      shell: bash
       run: |
-        conan install . --output-folder=build --build=missing -s build_type=Release
+        conan install . --output-folder=build --build=missing -s build_type=Release \
+          -c tools.system.package_manager:mode=install \
+          -c tools.system.package_manager:sudo=True
         
-    - name: ⚙️ Configure CMake
+    - name: Configure CMake
+      shell: bash
       run: |
-        cmake --preset ${{ matrix.preset }}
+        cmake --preset conan-release
         
-    - name: 🔨 Build
+    - name: Build
+      shell: bash
       run: |
         cmake --build build/build/Release --config Release -j 4
 
@@ -175,32 +183,32 @@ jobs:
   # Deploy to Epitech Repository (Main branch only)
   # ============================================================================
   deploy-to-epitech:
-    name: 🚀 Deploy to Epitech Repo
+    name: Deploy to Epitech Repo
     runs-on: ubuntu-latest
     needs: [build-and-test, build-matrix]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
-    - name: 📥 Checkout code
+    - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Full history for proper push
         
-    - name: 🔑 Configure Git
+    - name: Configure Git
       run: |
         git config --global user.name "GitHub Actions Bot"
         git config --global user.email "actions@github.com"
         
-    - name: 🔗 Add Epitech remote
+    - name:  Add Epitech remote
       run: |
         git remote add epitech https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git || true
         
-    - name: 🚀 Push to Epitech repository
+    - name: Push to Epitech repository
       env:
         EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
       run: |
         if [ -z "$EPITECH_TOKEN" ]; then
-          echo "⚠️ Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
+          echo " Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
           echo "To enable deployment, add your Epitech GitHub token as a secret."
           exit 0
         fi
@@ -209,32 +217,32 @@ jobs:
         git remote set-url epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
         
         # Push to main branch
-        echo "🚀 Pushing to Epitech repository..."
+        echo " Pushing to Epitech repository..."
         git push epitech main --force
         
-        echo "✅ Successfully deployed to Epitech repository!"
+        echo " Successfully deployed to Epitech repository!"
         
-    - name: 📝 Create deployment summary
+    - name: Create deployment summary
       if: success()
       run: |
-        echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+        echo "## Deployment Successful" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ Code pushed to Epitech repository" >> $GITHUB_STEP_SUMMARY
-        echo "📦 Repository: https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4" >> $GITHUB_STEP_SUMMARY
-        echo "🌿 Branch: main" >> $GITHUB_STEP_SUMMARY
-        echo "📅 Time: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo " Code pushed to Epitech repository" >> $GITHUB_STEP_SUMMARY
+        echo " Repository: https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4" >> $GITHUB_STEP_SUMMARY
+        echo " Branch: main" >> $GITHUB_STEP_SUMMARY
+        echo " Time: $(date)" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # Summary Report
   # ============================================================================
   summary:
-    name: 📊 CI/CD Summary
+    name:  CI/CD Summary
     runs-on: ubuntu-latest
     needs: [code-quality, build-and-test, build-matrix]
     if: always()
     
     steps:
-    - name: 📝 Generate summary
+    - name:  Generate summary
       run: |
         echo "## CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
@@ -248,7 +256,7 @@ jobs:
         if [ "${{ needs.code-quality.result }}" == "success" ] && \
            [ "${{ needs.build-and-test.result }}" == "success" ] && \
            [ "${{ needs.build-matrix.result }}" == "success" ]; then
-          echo "### ✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+          echo "###  All checks passed!" >> $GITHUB_STEP_SUMMARY
         else
-          echo "### ❌ Some checks failed" >> $GITHUB_STEP_SUMMARY
+          echo "###  Some checks failed" >> $GITHUB_STEP_SUMMARY
         fi

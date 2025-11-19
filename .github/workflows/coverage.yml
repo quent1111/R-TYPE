@@ -8,24 +8,24 @@ on:
 
 jobs:
   coverage:
-    name: 📊 Generate Coverage Report
+    name:  Generate Coverage Report
     runs-on: ubuntu-latest
     
     steps:
-    - name: 📥 Checkout code
+    - name:  Checkout code
       uses: actions/checkout@v4
       
-    - name: 🐍 Setup Python
+    - name:  Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
-    - name: 📦 Install Conan
+    - name:  Install Conan
       run: |
         pip install conan
         conan profile detect --force
         
-    - name: 🔧 Install dependencies
+    - name:  Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -34,7 +34,7 @@ jobs:
           libudev-dev libgl1-mesa-dev libopenal-dev \
           libflac-dev libvorbis-dev
           
-    - name: 📦 Install Conan dependencies (Debug)
+    - name:  Install Conan dependencies (Debug)
       run: |
         conan install . \
           --output-folder=build \
@@ -43,22 +43,22 @@ jobs:
           -c tools.system.package_manager:mode=install \
           -c tools.system.package_manager:sudo=True
           
-    - name: ⚙️ Configure with coverage
+    - name:  Configure with coverage
       run: |
         cmake --preset conan-debug \
           -DCMAKE_CXX_FLAGS="--coverage -g -O0" \
           -DCMAKE_C_FLAGS="--coverage -g -O0"
         
-    - name: 🔨 Build
+    - name:  Build
       run: |
         cmake --build build/build/Debug --config Debug -j $(nproc)
         
-    - name: 🧪 Run tests
+    - name:  Run tests
       run: |
         cd build/build/Debug
         ctest --output-on-failure -C Debug
         
-    - name: 📊 Generate coverage report
+    - name:  Generate coverage report
       run: |
         cd build/build/Debug
         
@@ -77,21 +77,21 @@ jobs:
           --title "R-TYPE Code Coverage" \
           --legend
         
-    - name: 📤 Upload coverage to Codecov
+    - name:  Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
         files: build/build/Debug/coverage.info
         fail_ci_if_error: false
         verbose: true
         
-    - name: 📊 Upload coverage HTML
+    - name: Upload coverage HTML
       uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: build/build/Debug/coverage_html
         retention-days: 30
         
-    - name: 💬 Comment coverage summary
+    - name:  Comment coverage summary
       if: github.event_name == 'pull_request'
       uses: actions/github-script@v7
       with:
@@ -102,5 +102,5 @@ jobs:
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: '📊 **Coverage Report Generated**\n\nView the detailed coverage report in the artifacts section.'
+            body: ' **Coverage Report Generated**\n\nView the detailed coverage report in the artifacts section.'
           })
