@@ -221,10 +221,22 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release
         fi
         
+        # Detect the actual build directory created by CMake
+        if [ -d "build/build/Release" ]; then
+          BUILD_DIR="build/build/Release"
+        elif [ -d "build" ] && [ -f "build/CMakeCache.txt" ]; then
+          BUILD_DIR="build"
+        else
+          # Find any directory with CMakeCache.txt
+          BUILD_DIR=$(find build -name "CMakeCache.txt" -exec dirname {} \; | head -n 1)
+        fi
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+        echo "Detected build directory: $BUILD_DIR"
+        
     - name: Build
       shell: bash
       run: |
-        cmake --build build/build/Release --config Release -j 4
+        cmake --build $BUILD_DIR --config Release -j 4
 
   # ============================================================================
   # Deploy to Epitech Repository (Main branch only)
