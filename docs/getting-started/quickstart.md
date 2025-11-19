@@ -1,26 +1,84 @@
 # Quick Start
 
-Get up and running with R-TYPE in minutes!
+Get up and running with R-TYPE in **under 1 minute**!
 
-## Running the Game
+## ⚡ Ultra-Fast Start
+
+=== "Linux/macOS"
+
+    ```bash
+    # 1. Clone the repository
+    git clone https://github.com/quent1111/R-TYPE.git
+    cd R-TYPE
+    
+    # 2. Run server (everything auto-installs!)
+    ./r-type.sh server
+    ```
+
+=== "Windows"
+
+    ```cmd
+    REM 1. Clone the repository
+    git clone https://github.com/quent1111/R-TYPE.git
+    cd R-TYPE
+    
+    REM 2. Run server (everything auto-installs!)
+    r-type.bat server
+    ```
+
+!!! success "That's it!"
+    The `r-type.sh` script automatically:
+    
+    - ✅ Installs Conan package manager
+    - ✅ Downloads dependencies (SFML, Asio, GTest)
+    - ✅ Builds the server
+    - ✅ Launches it
+
+---
+
+## 🎮 Running the Game
 
 ### 1. Start the Server
 
-```bash
-cd build
-./r-type_server
-```
+=== "Quick Way (Recommended)"
+
+    ```bash
+    # Linux/macOS
+    ./r-type.sh server
+    
+    # Windows
+    r-type.bat server
+    ```
+
+=== "Manual Way"
+
+    ```bash
+    cd build
+    ./bin/r-type_server
+    ```
 
 The server will start and listen for client connections on the default port (usually 4242).
 
 ### 2. Start the Client
 
-In a new terminal:
+In a **new terminal**:
 
-```bash
-cd build
-./r-type_client
-```
+=== "Quick Way (Recommended)"
+
+    ```bash
+    # Linux/macOS
+    ./r-type.sh client
+    
+    # Windows
+    r-type.bat client
+    ```
+
+=== "Manual Way"
+
+    ```bash
+    cd build
+    ./bin/r-type_client
+    ```
 
 ### 3. Connect and Play!
 

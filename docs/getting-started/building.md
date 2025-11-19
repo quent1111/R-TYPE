@@ -1,6 +1,151 @@
 # Building R-TYPE
 
-Advanced build configurations and options for R-TYPE.
+This guide covers building R-TYPE from source.
+
+## ⚡ Quick Start (Recommended)
+
+The **easiest way** to build and run R-TYPE is using the unified script:
+
+=== "Linux/macOS"
+
+    ```bash
+    # Build and run server
+    ./r-type.sh server
+    
+    # Build and run client
+    ./r-type.sh client
+    
+    # Just build everything
+    ./r-type.sh build
+    
+    # Run tests
+    ./r-type.sh test
+    ```
+
+=== "Windows"
+
+    ```cmd
+    REM Build and run server
+    r-type.bat server
+    
+    REM Build and run client
+    r-type.bat client
+    
+    REM Just build everything
+    r-type.bat build
+    
+    REM Run tests
+    r-type.bat test
+    ```
+
+!!! success "Automatic Setup"
+    The `r-type.sh` and `r-type.bat` scripts automatically:
+    
+    - ✅ Install Conan package manager
+    - ✅ Download and build dependencies (SFML, Asio, GTest)
+    - ✅ Configure CMake with the correct toolchain
+    - ✅ Build the project in parallel
+    - ✅ Run the server or client
+
+---
+
+## 📖 All Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `build` | Build the entire project |
+| `client` | Build and run the client |
+| `server` | Build and run the server |
+| `test` | Run all tests with CTest |
+| `coverage` | Generate code coverage report (Linux/macOS) |
+| `valgrind` | Run server with Valgrind memory check (Linux) |
+| `clean` | Clean build directory |
+| `install` | Install dependencies only (no build) |
+| `rebuild` | Clean and rebuild from scratch |
+| `all` | Build + test + coverage |
+
+---
+
+## 🎛️ Build Options
+
+All commands support these options:
+
+| Option | Description |
+|--------|-------------|
+| `--debug` | Build in Debug mode (with symbols) |
+| `--release` | Build in Release mode (optimized, default) |
+| `--clean` | Clean before building |
+| `--verbose` | Show verbose build output |
+| `--jobs N` / `-j N` | Number of parallel jobs (default: CPU cores) |
+| `--help` / `-h` | Show help message |
+
+**Examples:**
+
+```bash
+# Debug build
+./r-type.sh build --debug
+
+# Clean rebuild with 8 parallel jobs
+./r-type.sh rebuild -j 8
+
+# Verbose Debug build
+./r-type.sh build --debug --verbose
+```
+
+---
+
+## 🔧 Manual Build (Advanced)
+
+If you prefer to build manually without the unified script:
+
+### Prerequisites
+
+- **CMake** 3.20+
+- **Python 3** + pip
+- **C++20 compiler** (GCC 10+, Clang 11+, MSVC 2019+)
+
+### Step 1: Install Conan
+
+```bash
+pip install conan
+conan profile detect --force
+```
+
+### Step 2: Install Dependencies
+
+```bash
+conan install . --output-folder=build --build=missing -s build_type=Release
+```
+
+This downloads and builds:
+- SFML 2.6.1 (graphics, window, audio)
+- Asio 1.30.2 (networking)
+- GTest 1.14.0 (testing)
+
+### Step 3: Configure CMake
+
+```bash
+cd build
+cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
+```
+
+### Step 4: Build
+
+```bash
+cmake --build . -j$(nproc)
+```
+
+### Step 5: Run
+
+```bash
+# Server
+./bin/r-type_server
+
+# Client (in another terminal)
+./bin/r-type_client
+```
+
+---
 
 ## Build Types
 

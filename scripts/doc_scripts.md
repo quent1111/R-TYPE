@@ -6,6 +6,8 @@ This directory contains utility scripts for the R-TYPE project. Below is a compr
 
 ## 📋 Table of Contents
 
+- [Build & Run](#build--run)
+  - [r-type.sh / r-type.bat](#r-typesh--r-typebat) ⭐ **Main Script**
 - [Setup & Installation](#setup--installation)
   - [install-hooks.sh](#install-hookssh)
 - [Documentation](#documentation)
@@ -14,6 +16,144 @@ This directory contains utility scripts for the R-TYPE project. Below is a compr
   - [format.sh](#formatsh)
 
 ---
+
+## Build & Run
+
+### `r-type.sh` / `r-type.bat`
+
+**⭐ Main project script for simplified build, run, and test workflows.**
+
+**Location:** `r-type.sh` (Linux/macOS) or `r-type.bat` (Windows)
+
+**Requirements:**
+- Python 3 + pip (for Conan)
+- CMake 3.20+
+- C++20 compiler (GCC 10+, Clang 11+, MSVC 2019+)
+
+**Note:** Conan is **automatically installed** if not found!
+
+#### What it does
+
+This unified script handles the entire project lifecycle:
+- 🔧 **Automatic dependency installation** via Conan
+- 🏗️ **CMake configuration** with proper toolchain
+- ⚡ **Parallel building** with optimized CPU usage
+- 🎮 **Run server or client** with one command
+- 🧪 **Testing** with CTest
+- 📊 **Code coverage** reports (Linux/macOS)
+- 🔍 **Memory leak detection** with Valgrind (Linux)
+
+#### Commands
+
+| Command | Description |
+|---------|-------------|
+| `build` | Build the entire project |
+| `client` | Build and run the client |
+| `server` | Build and run the server |
+| `test` | Run all tests with CTest |
+| `coverage` | Generate code coverage report (requires lcov) |
+| `valgrind` | Run server with Valgrind memory check |
+| `clean` | Clean build directory |
+| `install` | Install dependencies only (no build) |
+| `rebuild` | Clean and rebuild from scratch |
+| `all` | Build + run tests + generate coverage |
+
+#### Options
+
+| Option | Description |
+|--------|-------------|
+| `--debug` | Build in Debug mode (with symbols) |
+| `--release` | Build in Release mode (optimized, default) |
+| `--clean` | Clean before building |
+| `--verbose` | Show verbose build output |
+| `--jobs N` / `-j N` | Number of parallel jobs (default: CPU cores) |
+| `--help` / `-h` | Show help message |
+
+#### Examples
+
+**Quick Start:**
+```bash
+# Linux/macOS - Run server immediately
+./r-type.sh server
+
+# Windows - Run server immediately
+r-type.bat server
+```
+
+**Build Commands:**
+```bash
+# Build everything (Release mode)
+./r-type.sh build
+
+# Build in Debug mode
+./r-type.sh build --debug
+
+# Clean build from scratch
+./r-type.sh rebuild
+
+# Build with 8 parallel jobs
+./r-type.sh build -j 8
+
+# Verbose Debug build
+./r-type.sh build --debug --verbose
+```
+
+**Run Commands:**
+```bash
+# Run client
+./r-type.sh client
+
+# Run server
+./r-type.sh server
+
+# Run client in Debug mode
+./r-type.sh client --debug
+```
+
+**Testing & Quality:**
+```bash
+# Run all tests
+./r-type.sh test
+
+# Generate code coverage report
+./r-type.sh coverage
+
+# Run server with Valgrind (memory leak detection)
+./r-type.sh valgrind
+
+# Full quality check (build + test + coverage)
+./r-type.sh all
+```
+
+**Maintenance:**
+```bash
+# Install/update dependencies only
+./r-type.sh install
+
+# Clean build artifacts
+./r-type.sh clean
+
+# Full rebuild
+./r-type.sh rebuild
+```
+
+#### For New Contributors
+
+**First time setup:**
+```bash
+# 1. Clone repository
+git clone https://github.com/quent1111/R-TYPE.git
+cd R-TYPE
+
+# 2. Install Git hooks (code quality)
+./scripts/install-hooks.sh
+
+# 3. Run server (everything auto-installs!)
+./r-type.sh server
+```
+
+That's it! The script handles all dependencies automatically.
+
 
 ## Setup & Installation
 

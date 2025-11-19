@@ -51,82 +51,49 @@ This project was developed as part of the Advanced C++ curriculum at Epitech, de
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### ⚡ Ultra-Fast Start (Recommended)
 
-#### Required
-- **CMake** 3.20 or higher
-- **C++20 Compiler**:
-  - Linux: GCC 11+ or Clang 13+
-  - Windows: MSVC 2019+ (Visual Studio 2019 or newer)
-- **Package Manager**:
-  - [Conan](https://conan.io/) 2.0+ **OR**
-  - [Vcpkg](https://vcpkg.io/)
-
-#### Dependencies (automatically managed)
-- SFML 2.5+ (graphics, audio, window)
-- Asio 1.28+ (networking)
-- Google Test (testing framework)
-
-### 🐧 Building on Linux
 ```bash
-# Clone the repository
-git clone https://github.com/quent1111/r-type.git
-cd r-type
-
-# Install dependencies with Conan
-mkdir build && cd build
-conan install .. --output-folder=. --build=missing
-
-# Configure and build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release
-cmake --build . --config Release
-
-# Run tests (optional)
-ctest -C Release
-```
-
-### 🪟 Building on Windows
-```powershell
-# Clone the repository
-git clone https://github.com/quent1111/r-type.git
-cd r-type
-
-# Install dependencies with Conan
-mkdir build
-cd build
-conan install .. --output-folder=. --build=missing
-
-# Configure and build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=conan_toolchain.cmake -G "Visual Studio 17 2022"
-cmake --build . --config Release
-
-# Run tests (optional)
-ctest -C Release
-```
-
-### 🎯 Running the Game
-
-#### Start the Server
-```bash
-# Linux
-./build/bin/r-type_server
+# Linux/macOS
+./r-type.sh server
 
 # Windows
-.\build\bin\Release\r-type_server.exe
+r-type.bat server
 ```
 
-#### Start the Client(s)
+**That's it!** The script automatically:
+- ✅ Installs Conan package manager
+- ✅ Downloads and builds dependencies (SFML, Asio, GTest)
+- ✅ **Auto-installs system packages** (X11 libraries on Linux) - *may ask for sudo password*
+- ✅ Configures CMake with the right toolchain
+- ✅ Builds the server in parallel
+- ✅ Launches the server
+
+
+**In another terminal, run the client:**
 ```bash
-# Linux
-./build/bin/r-type_client
+# Linux/macOS
+./r-type.sh client
 
 # Windows
-.\build\bin\Release\r-type_client.exe
+r-type.bat client
 ```
 
-**Default Configuration:**
-- Server Port: `8080`
-- Max Players: `4`
+### 📖 All Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `./r-type.sh build` | Build the entire project |
+| `./r-type.sh client` | Build and run the client |
+| `./r-type.sh server` | Build and run the server |
+| `./r-type.sh test` | Run all tests |
+| `./r-type.sh coverage` | Generate code coverage (Linux/macOS) |
+| `./r-type.sh clean` | Clean build directory |
+| `./r-type.sh rebuild` | Clean and rebuild from scratch |
+
+**Options:** `--debug`, `--release`, `--clean`, `--verbose`, `-j N`
+
+📚 **Full build documentation:** [BUILD.md](BUILD.md)
 
 ---
 
