@@ -3,6 +3,7 @@
 #include "sparse_array.hpp"
 #include "entity.hpp"
 #include <unordered_map>
+#include <unordered_set>
 #include <typeindex>
 #include <memory>
 #include <any>
@@ -51,6 +52,8 @@ private:
 	// Entity management
 	std::size_t _next_entity_id = 0;
 	std::queue<std::size_t> _dead_entities;  // Pool of dead entity IDs for reuse
+	// Track which components each entity has (optimization for kill_entity)
+	std::unordered_map<std::size_t, std::unordered_set<std::type_index>> _entity_components;
 
 public:
 	// Default constructor
@@ -129,12 +132,24 @@ public:
 	// Kill an entity (removes all its components from all arrays and adds ID to dead pool)
 	void kill_entity(entity_t const& e)
 	{
-		// Use stored erase functions to remove from all component arrays
-		for (auto& [type_idx, erase_fn] : _erase_functions) {
-			erase_fn(*this, e);
+		std::size_t entity_id = e.id();
+		
+		// OPTIMIZATION: Only erase components that this entity actually has
+		auto it = _entity_components.find(entity_id);
+		if (it != _entity_components.end()) {
+			// Erase only the components this entity has
+			for (const auto& type_idx : it->second) {
+				auto erase_it = _erase_functions.find(type_idx);
+				if (erase_it != _erase_functions.end()) {
+					erase_it->second(*this, e);
+				}
+			}
+			// Clear the component tracking for this entity
+			_entity_components.erase(it);
 		}
+		
 		// Add entity ID to dead pool for reuse
-		_dead_entities.push(e.id());
+		_dead_entities.push(entity_id);
 	}
 
 	// Add a component to an entity (universal reference)
@@ -143,6 +158,11 @@ public:
 	add_component(entity_t entity, Component&& component)
 	{
 		using ComponentType = std::remove_reference_t<Component>;
+		std::type_index type_idx(typeid(ComponentType));
+		
+		// Track that this entity now has this component type
+		_entity_components[entity.id()].insert(type_idx);
+		
 		return get_components<ComponentType>().insert_at(static_cast<std::size_t>(entity), std::forward<Component>(component));
 	}
 
@@ -150,6 +170,11 @@ public:
 	template <typename Component, typename... Params>
 	typename sparse_array<Component>::reference_type emplace_component(entity_t entity, Params&&... params)
 	{
+		std::type_index type_idx(typeid(Component));
+		
+		// Track that this entity now has this component type
+		_entity_components[entity.id()].insert(type_idx);
+		
 		return get_components<Component>().emplace_at(static_cast<std::size_t>(entity), std::forward<Params>(params)...);
 	}
 
@@ -157,6 +182,18 @@ public:
 	template <typename Component>
 	void remove_component(entity_t entity)
 	{
+		std::type_index type_idx(typeid(Component));
+		
+		// Update tracking
+		auto it = _entity_components.find(entity.id());
+		if (it != _entity_components.end()) {
+			it->second.erase(type_idx);
+			// If entity has no more components, remove the entry
+			if (it->second.empty()) {
+				_entity_components.erase(it);
+			}
+		}
+		
 		get_components<Component>().erase(static_cast<std::size_t>(entity));
 	}
 
@@ -164,16 +201,13 @@ public:
 	template <typename Component>
 	bool has_component(entity_t entity) const
 	{
+		// OPTIMIZATION: Check tracking map first (single lookup)
+		auto it = _entity_components.find(entity.id());
+		if (it == _entity_components.end())
+			return false;
+		
 		std::type_index type_idx(typeid(Component));
-		auto it = _components_arrays.find(type_idx);
-		if (it == _components_arrays.end())
-			return false;
-		auto* wrapper = static_cast<component_array<Component>*>(it->second.get());
-		auto const& components = wrapper->data;
-		std::size_t idx = static_cast<std::size_t>(entity);
-		if (idx >= components.size())
-			return false;
-		return components[idx].has_value();
+		return it->second.find(type_idx) != it->second.end();
 	}
 
 	// Get a component for an entity (non-const) - returns optional reference
