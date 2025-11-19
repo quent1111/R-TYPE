@@ -24,6 +24,18 @@ jobs:
       run: |
         pip install conan
         conan profile detect --force
+        # Configure Conan for better network resilience
+        conan config set core.download:retry=5
+        conan config set core.download:retry_wait=10
+        
+    - name:  Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-coverage-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-coverage-
+          ${{ runner.os }}-conan-
         
     - name:  Install dependencies
       run: |
@@ -66,10 +78,11 @@ jobs:
         lcov --capture \
           --directory . \
           --output-file coverage.info \
+          --ignore-errors unused \
           --exclude '/usr/*' \
           --exclude '*/tests/*' \
-          --exclude '*/build/*' \
-          --exclude '*/.conan/*'
+          --exclude '*/.conan/*' \
+          --exclude '*/build/_deps/*'
         
         # Generate HTML report
         genhtml coverage.info \
