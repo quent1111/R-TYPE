@@ -1,8 +1,10 @@
 # R-Type
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/quent1111/r-type/build.yml?branch=main)
+![CI/CD](https://img.shields.io/github/actions/workflow/status/quent1111/R-TYPE/ci.yml?branch=main&label=CI/CD)
+![Tests](https://img.shields.io/github/actions/workflow/status/quent1111/R-TYPE/ci.yml?branch=main&label=tests)
+![Coverage](https://img.shields.io/github/actions/workflow/status/quent1111/R-TYPE/coverage.yml?branch=main&label=coverage)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20Windows-lightgrey)
+![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey)
 ![C++](https://img.shields.io/badge/C%2B%2B-20-blue.svg)
 
 > A modern, networked reimplementation of the classic R-Type shoot'em up game, built from scratch with a custom Entity-Component-System game engine.
