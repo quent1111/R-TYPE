@@ -3,7 +3,8 @@
 # R-TYPE Code Formatter and Linter Script
 # This script formats and analyzes C++ code using clang-format and clang-tidy
 
-set -e
+# NOTE: We don't use 'set -e' to allow checking all files even if some fail
+set -u  # Error on undefined variables
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -113,7 +114,7 @@ format_code() {
     
     if [[ ${#files[@]} -eq 0 ]]; then
         echo -e "${YELLOW}No C++ files found in specified directories${NC}"
-        return
+        return 0
     fi
     
     echo -e "${BLUE}=== Formatting C++ files ===${NC}"
@@ -123,7 +124,7 @@ format_code() {
     for file in "${files[@]}"; do
         if [[ "$MODE" == "format" ]]; then
             echo -e "${GREEN}Formatting:${NC} $file"
-            clang-format -i "$file"
+            clang-format -i "$file" || echo -e "${RED}Failed to format: $file${NC}"
             ((formatted++))
         else
             if ! clang-format --dry-run -Werror "$file" &> /dev/null; then
@@ -135,12 +136,15 @@ format_code() {
     
     if [[ "$MODE" == "format" ]]; then
         echo -e "\n${GREEN}✓ Formatted $formatted files${NC}"
+        return 0
     else
         if [[ $formatted -eq 0 ]]; then
             echo -e "\n${GREEN}✓ All files are properly formatted${NC}"
+            return 0
         else
             echo -e "\n${YELLOW}⚠ $formatted files need formatting${NC}"
             echo -e "Run with ${BLUE}-f${NC} to format them"
+            return 1
         fi
     fi
 }
@@ -152,7 +156,7 @@ run_tidy() {
     
     if [[ ${#files[@]} -eq 0 ]]; then
         echo -e "${YELLOW}No C++ files found in specified directories${NC}"
-        return
+        return 0
     fi
     
     echo -e "${BLUE}=== Running clang-tidy analysis ===${NC}"
@@ -164,11 +168,11 @@ run_tidy() {
             echo -e "${BLUE}Analyzing:${NC} $file"
             
             if [[ "$FIX" == true ]]; then
-                if ! clang-tidy -fix "$file" -- -std=c++17; then
+                if ! clang-tidy -fix "$file" -- -std=c++17 2>/dev/null; then
                     ((issues++))
                 fi
             else
-                if ! clang-tidy "$file" -- -std=c++17; then
+                if ! clang-tidy "$file" -- -std=c++17 2>/dev/null; then
                     ((issues++))
                 fi
             fi
@@ -177,11 +181,13 @@ run_tidy() {
     
     if [[ $issues -eq 0 ]]; then
         echo -e "\n${GREEN}✓ No issues found${NC}"
+        return 0
     else
         echo -e "\n${YELLOW}⚠ Found issues in $issues files${NC}"
         if [[ "$FIX" == false ]]; then
             echo -e "Run with ${BLUE}-x${NC} to auto-fix some issues"
         fi
+        return 1
     fi
 }
 
@@ -191,13 +197,23 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║   R-TYPE Code Formatter & Analyzer     ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════╝${NC}\n"
 
+FORMAT_EXIT=0
+TIDY_EXIT=0
+
 if [[ "$MODE" == "format" ]] || [[ "$TIDY" == false ]]; then
     format_code
+    FORMAT_EXIT=$?
     echo ""
 fi
 
 if [[ "$TIDY" == true ]]; then
     run_tidy
+    TIDY_EXIT=$?
 fi
 
 echo -e "\n${GREEN}Done!${NC}"
+
+# Exit with error if any check failed
+if [[ $FORMAT_EXIT -ne 0 ]] || [[ $TIDY_EXIT -ne 0 ]]; then
+    exit 1
+fi

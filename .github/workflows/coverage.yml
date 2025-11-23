@@ -1,0 +1,105 @@
+name: Code Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    name:  Generate Coverage Report
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name:  Checkout code
+      uses: actions/checkout@v4
+      
+    - name:  Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name:  Install Conan
+      run: |
+        pip install conan
+        conan profile detect --force
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        echo "core.download:retry=5" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
+        
+    - name:  Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-coverage-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-coverage-
+          ${{ runner.os }}-conan-
+        
+    - name:  Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake g++ lcov \
+          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libopenal-dev \
+          libflac-dev libvorbis-dev
+          
+    - name:  Install Conan dependencies (Debug)
+      run: |
+        conan install . \
+          --output-folder=build \
+          --build=missing \
+          -s build_type=Debug \
+          -c tools.system.package_manager:mode=install \
+          -c tools.system.package_manager:sudo=True
+          
+    - name:  Configure with coverage
+      run: |
+        cmake --preset conan-debug \
+          -DCMAKE_CXX_FLAGS="--coverage -g -O0" \
+          -DCMAKE_C_FLAGS="--coverage -g -O0"
+        
+    - name:  Build
+      run: |
+        cmake --build build/build/Debug --config Debug -j $(nproc)
+        
+    - name:  Run tests
+      run: |
+        cd build/build/Debug
+        ctest --output-on-failure -C Debug
+        
+    - name:  Generate coverage report
+      run: |
+        cd build/build/Debug
+        
+        # Capture coverage data
+        lcov --capture \
+          --directory . \
+          --output-file coverage.info \
+          --ignore-errors unused \
+          --exclude '/usr/*' \
+          --exclude '*/tests/*' \
+          --exclude '*/.conan/*' \
+          --exclude '*/build/_deps/*'
+        
+        # Generate HTML report
+        genhtml coverage.info \
+          --output-directory coverage_html \
+          --title "R-TYPE Code Coverage" \
+          --legend
+        
+    - name:  Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: build/build/Debug/coverage.info
+        fail_ci_if_error: false
+        verbose: true
+        
+    - name: Upload coverage HTML
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: build/build/Debug/coverage_html
+        retention-days: 30

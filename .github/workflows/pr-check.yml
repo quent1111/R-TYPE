@@ -1,0 +1,90 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # ============================================================================
+  # PR Code Quality
+  # ============================================================================
+  pr-quality:
+    name: PR Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name:  Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 
+        
+    - name:  Install tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format clang-tidy
+        
+    - name:  Check formatting
+      run: |
+        echo "Checking code formatting..."
+        ./scripts/format.sh || echo "⚠️ Some files need formatting (non-blocking)"
+          
+  # ============================================================================
+  # PR Build Test
+  # ============================================================================
+  pr-build:
+    name: PR Build Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name:  Checkout PR
+      uses: actions/checkout@v4
+      
+    - name:  Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name:  Install Conan
+      run: |
+        pip install conan
+        conan profile detect --force
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        echo "core.download:retry=5" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
+        
+    - name:  Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-pr-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-pr-
+          ${{ runner.os }}-conan-
+        
+    - name:  Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake g++ \
+          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libopenal-dev \
+          libflac-dev libvorbis-dev
+          
+    - name:  Conan install
+      run: |
+        conan install . --output-folder=build --build=missing -s build_type=Release \
+          -c tools.system.package_manager:mode=install \
+          -c tools.system.package_manager:sudo=True
+        
+    - name:  Configure
+      run: |
+        cmake --preset conan-release
+        
+    - name:  Build
+      run: |
+        cmake --build build/build/Release --config Release -j $(nproc)
+        
+    - name:  Test
+      run: |
+        cd build/build/Release
+        ctest --output-on-failure -C Release

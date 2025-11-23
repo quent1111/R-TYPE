@@ -1,0 +1,321 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, Architecture, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  # ============================================================================
+  # Code Quality Checks
+  # ============================================================================
+  code-quality:
+    name: Code Quality (clang-format & clang-tidy)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format clang-tidy
+        
+    - name: Check code formatting
+      run: |
+        echo "Checking code formatting with clang-format..."
+        ./scripts/format.sh || echo "⚠️ Some files need formatting (non-blocking)"
+        
+    - name: Run clang-tidy analysis
+      run: |
+        echo "Running clang-tidy analysis..."
+        ./scripts/format.sh --tidy || echo "⚠️ Tidy warnings found (non-blocking)"
+
+  # ============================================================================
+  # Build and Test
+  # ============================================================================
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Conan
+      run: |
+        pip install conan
+        conan profile detect --force
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        echo "core.download:retry=5" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
+        
+    - name: Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.conan2
+        key: ${{ runner.os }}-conan-build-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-build-
+          ${{ runner.os }}-conan-
+        
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          g++ \
+          libx11-dev \
+          libxrandr-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libudev-dev \
+          libgl1-mesa-dev \
+          libopenal-dev \
+          libflac-dev \
+          libvorbis-dev
+          
+    - name: Install dependencies with Conan
+      run: |
+        conan install . \
+          --output-folder=build \
+          --build=missing \
+          -s build_type=${{ env.BUILD_TYPE }} \
+          -c tools.system.package_manager:mode=install \
+          -c tools.system.package_manager:sudo=True
+          
+    - name: Configure CMake
+      run: |
+        cmake -B build/build/Release \
+          -S . \
+          -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+        
+    - name: Build project
+      run: |
+        cmake --build build/build/Release --config ${{ env.BUILD_TYPE }} -j $(nproc)
+        
+    - name: Run tests
+      run: |
+        cd build/build/Release
+        ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: r-type-binaries
+        path: |
+          build/build/Release/bin/r-type_server
+          build/build/Release/bin/r-type_client
+          build/build/Release/bin/test_*
+        retention-days: 7
+
+  # ============================================================================
+  # Multi-platform Build (Linux, Windows)
+  # ============================================================================
+  build-matrix:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: code-quality
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            preset: conan-release
+          - os: windows-latest
+            preset: conan-release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install Conan
+      shell: bash
+      run: |
+        pip install conan
+        conan profile detect --force
+        # Configure Conan for better network resilience (Conan 2.x syntax)
+        if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+          CONAN_HOME="$USERPROFILE/.conan2"
+        else
+          CONAN_HOME="$HOME/.conan2"
+        fi
+        mkdir -p "$CONAN_HOME"
+        echo "core.download:retry=5" >> "$CONAN_HOME/global.conf"
+        echo "core.download:retry_wait=10" >> "$CONAN_HOME/global.conf"
+        
+    - name: Cache Conan packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.conan2
+          C:\Users\runneradmin\.conan2
+        key: ${{ runner.os }}-conan-matrix-${{ hashFiles('conanfile.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-conan-matrix-
+          ${{ runner.os }}-conan-
+        
+    - name: Install system dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake ninja-build \
+          libx11-dev libxrandr-dev libxcursor-dev libxi-dev \
+          libudev-dev libgl1-mesa-dev libopenal-dev \
+          libflac-dev libvorbis-dev
+        
+    - name: Install system dependencies (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install cmake ninja -y
+        
+    - name: Install Conan dependencies
+      shell: bash
+      run: |
+        conan install . --output-folder=build --build=missing -s build_type=Release \
+          -c tools.system.package_manager:mode=install \
+          -c tools.system.package_manager:sudo=True
+        
+    - name: Configure CMake
+      shell: bash
+      run: |
+        # Try to find the right preset
+        if cmake --list-presets | grep -q "conan-release"; then
+          PRESET="conan-release"
+        elif cmake --list-presets | grep -q "conan-default"; then
+          PRESET="conan-default"
+        else
+          echo "Available presets:"
+          cmake --list-presets
+          echo "Using fallback configuration"
+          PRESET=""
+        fi
+        
+        if [ -n "$PRESET" ]; then
+          echo "Using preset: $PRESET"
+          cmake --preset $PRESET
+        else
+          # Fallback without preset
+          cmake -B build/build/Release \
+            -S . \
+            -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake \
+            -DCMAKE_BUILD_TYPE=Release
+        fi
+        
+        # Detect the actual build directory created by CMake
+        if [ -d "build/build/Release" ]; then
+          BUILD_DIR="build/build/Release"
+        elif [ -d "build" ] && [ -f "build/CMakeCache.txt" ]; then
+          BUILD_DIR="build"
+        else
+          # Find any directory with CMakeCache.txt
+          BUILD_DIR=$(find build -name "CMakeCache.txt" -exec dirname {} \; | head -n 1)
+        fi
+        echo "BUILD_DIR=$BUILD_DIR" >> $GITHUB_ENV
+        echo "Detected build directory: $BUILD_DIR"
+        
+    - name: Build
+      shell: bash
+      run: |
+        cmake --build $BUILD_DIR --config Release -j 4
+
+  # ============================================================================
+  # Deploy to Epitech Repository (Main branch only)
+  # ============================================================================
+  deploy-to-epitech:
+    name: Deploy to Epitech Repo
+    runs-on: ubuntu-latest
+    needs: [build-and-test, build-matrix]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Configure Git
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        
+    - name:  Add Epitech remote
+      run: |
+        git remote add epitech https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git || true
+        
+    - name: Push to Epitech repository
+      env:
+        EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
+      run: |
+        if [ -z "$EPITECH_TOKEN" ]; then
+          echo " Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
+          echo "To enable deployment, add your Epitech GitHub token as a secret."
+          exit 0
+        fi
+        
+        # Configure remote with token
+        git remote set-url epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
+        
+        # Push to main branch
+        echo " Pushing to Epitech repository..."
+        git push epitech main --force
+        
+        echo " Successfully deployed to Epitech repository!"
+        
+    - name: Create deployment summary
+      if: success()
+      run: |
+        echo "## Deployment Successful" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo " Code pushed to Epitech repository" >> $GITHUB_STEP_SUMMARY
+        echo " Repository: https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4" >> $GITHUB_STEP_SUMMARY
+        echo " Branch: main" >> $GITHUB_STEP_SUMMARY
+        echo " Time: $(date)" >> $GITHUB_STEP_SUMMARY
+
+  # ============================================================================
+  # Summary Report
+  # ============================================================================
+  summary:
+    name:  CI/CD Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-and-test, build-matrix]
+    if: always()
+    
+    steps:
+    - name:  Generate summary
+      run: |
+        echo "## CI/CD Pipeline Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Code Quality | ${{ needs.code-quality.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Build & Test | ${{ needs.build-and-test.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Multi-platform Build | ${{ needs.build-matrix.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ needs.code-quality.result }}" == "success" ] && \
+           [ "${{ needs.build-and-test.result }}" == "success" ] && \
+           [ "${{ needs.build-matrix.result }}" == "success" ]; then
+          echo "###  All checks passed!" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "###  Some checks failed" >> $GITHUB_STEP_SUMMARY
+        fi
