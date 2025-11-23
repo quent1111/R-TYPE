@@ -52,3 +52,6 @@ vcpkg_installed/
 # Documentation build
 site/
 .cache/
+
+B-CPP-500_rtype.pdf
+copilot-instructions.md
