@@ -54,6 +54,8 @@ private:
 	std::queue<std::size_t> _dead_entities;  // Pool of dead entity IDs for reuse
 	// Track which components each entity has (optimization for kill_entity)
 	std::unordered_map<std::size_t, std::unordered_set<std::type_index>> _entity_components;
+	// Systems storage: vector of functions that take registry& as parameter
+	std::vector<std::function<void(registry&)>> _systems;
 
 public:
 	// Default constructor
@@ -223,4 +225,41 @@ public:
 	{
 		return get_components<Component>()[static_cast<std::size_t>(entity)];
 	}
+
+	// =================== SYSTEMS ===================
+	
+	// Add a system to the registry
+	// The system function will be called with registry& and the requested component arrays
+	// Usage: reg.add_system<Position, Velocity>(my_system_function);
+	template <typename... Components, typename Function>
+	void add_system(Function&& f)
+	{
+		// Create a lambda that captures the function and calls it with the proper component arrays
+		auto system_wrapper = [func = std::forward<Function>(f)](registry& reg) {
+			// Get all the component arrays needed by the system
+			func(reg, reg.get_components<Components>()...);
+		};
+		
+		_systems.push_back(std::move(system_wrapper));
+	}
+	
+	// Alternative: take function by const reference (useful for function pointers)
+	template <typename... Components, typename Function>
+	void add_system(Function const& f)
+	{
+		auto system_wrapper = [func = f](registry& reg) {
+			func(reg, reg.get_components<Components>()...);
+		};
+		
+		_systems.push_back(std::move(system_wrapper));
+	}
+	
+	// Run all registered systems
+	void run_systems()
+	{
+		for (auto& system : _systems) {
+			system(*this);
+		}
+	}
 };
+
