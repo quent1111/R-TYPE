@@ -48,9 +48,13 @@ jobs:
       run: |
         pip install conan
         conan profile detect --force
+        # Add Conan Center remote explicitly for reliable SFML downloads
+        conan remote add conancenter https://center.conan.io --force
+        conan remote list
         # Configure Conan for better network resilience (Conan 2.x syntax)
-        echo "core.download:retry=5" >> ~/.conan2/global.conf
-        echo "core.download:retry_wait=10" >> ~/.conan2/global.conf
+        echo "core.download:retry=10" >> ~/.conan2/global.conf
+        echo "core.download:retry_wait=15" >> ~/.conan2/global.conf
+        echo "core.net.http:timeout=120" >> ~/.conan2/global.conf
         
     - name:  Cache Conan packages
       uses: actions/cache@v4
