@@ -1,0 +1,29 @@
+#include "entities/player_factory.hpp"
+#include "ecs/components.hpp"
+#include "components/game_components.hpp"
+
+entity createPlayer(registry& reg, float x, float y) {
+    entity player = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<controllable>();
+    reg.register_component<health>();
+    reg.register_component<weapon>();
+    reg.register_component<sprite_component>();
+    reg.register_component<collision_box>();
+    reg.register_component<player_tag>();
+    reg.register_component<bounded_movement>();
+
+    reg.add_component(player, position{x, y});
+    reg.add_component(player, velocity{0.0f, 0.0f});
+    reg.add_component(player, controllable{300.0f});
+    reg.add_component(player, health{100});
+    reg.add_component(player, weapon{3.0f, 600.0f, 20});
+    reg.add_component(player, sprite_component{"player.png", 64.0f, 64.0f, 0, 255, 0});
+    reg.add_component(player, collision_box{48.0f, 48.0f});
+    reg.add_component(player, player_tag{});
+    reg.add_component(player, bounded_movement{0.0f, 1920.0f, 0.0f, 1080.0f});
+
+    return player;
+}

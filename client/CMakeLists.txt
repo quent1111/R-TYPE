@@ -9,11 +9,11 @@ target_include_directories(r-type_client PRIVATE
 )
 
 target_link_libraries(r-type_client PRIVATE
+    game_logic
     r-type-engine
     project_options
     project_warnings
     sfml::sfml
-    asio::asio
 )
 
 link_platform_libraries(r-type_client)
