@@ -1,11 +1,12 @@
-#include "registry.hpp"
 #include "components.hpp"
+#include "registry.hpp"
 #include "systems.hpp"
+
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 
-int main()
-{
+int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "test_ecs");
     window.setFramerateLimit(60);
 
@@ -41,14 +42,12 @@ int main()
     sf::Clock clock;
 
     // Main game loop
-    while (window.isOpen())
-    {
+    while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
 
         // Event handling
         sf::Event event;
-        while (window.pollEvent(event))
-        {
+        while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
@@ -56,11 +55,11 @@ int main()
         }
 
         // Run systems in order
-        control_system(reg);           // Handle input
-        position_system(reg, dt);      // Update positions (with delta time)
+        control_system(reg);       // Handle input
+        position_system(reg, dt);  // Update positions (with delta time)
         // Rendering
         window.clear(sf::Color::Black);
-        draw_system(reg, window);      // Draw everything
+        draw_system(reg, window);  // Draw everything
         window.display();
     }
 

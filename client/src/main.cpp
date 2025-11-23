@@ -1,16 +1,18 @@
-#include <SFML/Graphics.hpp>
-#include <iostream>
-#include "ecs/registry.hpp"
-#include "ecs/components.hpp"
 #include "components/game_components.hpp"
+#include "ecs/components.hpp"
+#include "ecs/registry.hpp"
+#include "entities/enemy_factory.hpp"
+#include "entities/player_factory.hpp"
+#include "systems/cleanup_system.hpp"
+#include "systems/collision_system.hpp"
 #include "systems/input_system.hpp"
 #include "systems/movement_system.hpp"
 #include "systems/shooting_system.hpp"
-#include "systems/collision_system.hpp"
-#include "systems/cleanup_system.hpp"
-#include "entities/player_factory.hpp"
-#include "entities/enemy_factory.hpp"
 #include "texture_manager.hpp"
+
+#include <SFML/Graphics.hpp>
+
+#include <iostream>
 
 void explosionSystem(registry& reg, float dt) {
     auto& explosion_tags = reg.get_components<explosion_tag>();
@@ -67,20 +69,19 @@ void renderSystem(registry& reg, sf::RenderWindow& window, TextureManager& textu
                 texture.setSmooth(false);
 
                 sf::Sprite sprite(texture);
-                sprite.setTextureRect(sf::IntRect(sprite_comp.texture_rect_x,
-                                                   sprite_comp.texture_rect_y,
-                                                   sprite_comp.texture_rect_w,
-                                                   sprite_comp.texture_rect_h));
+                sprite.setTextureRect(
+                    sf::IntRect(sprite_comp.texture_rect_x, sprite_comp.texture_rect_y,
+                                sprite_comp.texture_rect_w, sprite_comp.texture_rect_h));
                 sprite.setScale(sprite_comp.scale, sprite_comp.scale);
-                sprite.setPosition(pos.x - (static_cast<float>(sprite_comp.texture_rect_w) * sprite_comp.scale / 2.0f),
-                                   pos.y - (static_cast<float>(sprite_comp.texture_rect_h) * sprite_comp.scale / 2.0f));
+                sprite.setPosition(pos.x - (static_cast<float>(sprite_comp.texture_rect_w) *
+                                            sprite_comp.scale / 2.0f),
+                                   pos.y - (static_cast<float>(sprite_comp.texture_rect_h) *
+                                            sprite_comp.scale / 2.0f));
 
                 window.draw(sprite);
-            } catch (const std::runtime_error& e) {
-            }
+            } catch (const std::runtime_error& e) {}
         }
     }
-
 }
 
 void renderUI(registry& reg, sf::RenderWindow& window, sf::Font& font) {
@@ -96,8 +97,7 @@ void renderUI(registry& reg, sf::RenderWindow& window, sf::Font& font) {
             health_bg.setFillColor(sf::Color(50, 50, 50));
             window.draw(health_bg);
 
-            sf::RectangleShape health_bar(
-                sf::Vector2f(200.0f * hp.health_percentage(), 20.0f));
+            sf::RectangleShape health_bar(sf::Vector2f(200.0f * hp.health_percentage(), 20.0f));
             health_bar.setPosition(10.0f, 10.0f);
             health_bar.setFillColor(sf::Color(0, 255, 0));
             window.draw(health_bar);
@@ -176,12 +176,14 @@ int main(int, char**) {
         window.clear(sf::Color(10, 10, 30));
 
         sf::Sprite bg_sprite1(bg_texture);
-        bg_sprite1.setTextureRect(sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
+        bg_sprite1.setTextureRect(
+            sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
         bg_sprite1.setPosition(-bg_scroll_offset, 0);
         window.draw(bg_sprite1);
 
         sf::Sprite bg_sprite2(bg_texture);
-        bg_sprite2.setTextureRect(sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
+        bg_sprite2.setTextureRect(
+            sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
         bg_sprite2.setPosition(window_width - bg_scroll_offset, 0);
         window.draw(bg_sprite2);
 

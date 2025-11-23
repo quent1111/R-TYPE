@@ -21,8 +21,8 @@ struct velocity {
 // Component: Makes an entity drawable with SFML
 struct drawable {
     sf::RectangleShape shape;
-    explicit drawable(sf::Vector2f size = sf::Vector2f(50.0f, 50.0f), sf::Color color = sf::Color::White)
-    {
+    explicit drawable(sf::Vector2f size = sf::Vector2f(50.0f, 50.0f),
+                      sf::Color color = sf::Color::White) {
         shape.setSize(size);
         shape.setFillColor(color);
     }
@@ -40,8 +40,9 @@ struct acceleration {
     float ay;
     float max_speed;  // Maximum speed limit
     float friction;   // Deceleration when no input (0.0 = no friction, 1.0 = instant stop)
-    
-    constexpr acceleration(float ax = 0.0f, float ay = 0.0f, float max_speed = 300.0f, float friction = 0.95f) noexcept
+
+    constexpr acceleration(float ax = 0.0f, float ay = 0.0f, float max_speed = 300.0f,
+                           float friction = 0.95f) noexcept
         : ax(ax), ay(ay), max_speed(max_speed), friction(friction) {}
 };
 
@@ -49,7 +50,7 @@ struct acceleration {
 struct looping {
     float screen_width;
     float screen_height;
-    
+
     constexpr looping(float width = 800.0f, float height = 600.0f) noexcept
         : screen_width(width), screen_height(height) {}
 };

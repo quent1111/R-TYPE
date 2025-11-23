@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 #include <string>
 #include <unordered_map>
@@ -12,7 +13,7 @@
  * preventing duplicate loading and memory waste.
  */
 class TextureManager {
-   public:
+public:
     /**
      * @brief Load a texture from file, or return cached version if already loaded
      * @param filepath Path to the texture file (relative to executable)
@@ -53,7 +54,9 @@ class TextureManager {
     /**
      * @brief Check if a texture is already loaded
      */
-    bool has(const std::string& filepath) const { return _textures.find(filepath) != _textures.end(); }
+    bool has(const std::string& filepath) const {
+        return _textures.find(filepath) != _textures.end();
+    }
 
     /**
      * @brief Remove a texture from cache
@@ -73,6 +76,6 @@ class TextureManager {
      */
     size_t size() const { return _textures.size(); }
 
-   private:
+private:
     std::unordered_map<std::string, sf::Texture> _textures;
 };
