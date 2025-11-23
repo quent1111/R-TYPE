@@ -11,6 +11,7 @@ add_library(game_logic STATIC
     src/entities/player_factory.cpp
     src/entities/enemy_factory.cpp
     src/entities/projectile_factory.cpp
+    src/entities/explosion_factory.cpp
 )
 
 target_include_directories(game_logic

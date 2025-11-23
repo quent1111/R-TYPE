@@ -10,9 +10,43 @@
 #include "systems/cleanup_system.hpp"
 #include "entities/player_factory.hpp"
 #include "entities/enemy_factory.hpp"
+#include "texture_manager.hpp"
 
-// Simple rendering system (client-side only)
-void renderSystem(registry& reg, sf::RenderWindow& window) {
+void explosionSystem(registry& reg, float dt) {
+    auto& explosion_tags = reg.get_components<explosion_tag>();
+
+    for (std::size_t i = 0; i < explosion_tags.size(); ++i) {
+        auto& explosion_opt = explosion_tags[i];
+        if (explosion_opt) {
+            explosion_opt.value().elapsed += dt;
+        }
+    }
+}
+
+void animationSystem(registry& reg, float dt) {
+    auto& animations = reg.get_components<animation_component>();
+    auto& sprites = reg.get_components<sprite_component>();
+
+    for (std::size_t i = 0; i < animations.size() && i < sprites.size(); ++i) {
+        auto& anim_opt = animations[i];
+        auto& sprite_opt = sprites[i];
+
+        if (anim_opt && sprite_opt) {
+            auto& anim = anim_opt.value();
+            auto& sprite = sprite_opt.value();
+
+            anim.update(dt);
+
+            const auto frame = anim.get_current_frame();
+            sprite.texture_rect_x = frame.left;
+            sprite.texture_rect_y = frame.top;
+            sprite.texture_rect_w = frame.width;
+            sprite.texture_rect_h = frame.height;
+        }
+    }
+}
+
+void renderSystem(registry& reg, sf::RenderWindow& window, TextureManager& textures) {
     auto& positions = reg.get_components<position>();
     auto& sprites = reg.get_components<sprite_component>();
 
@@ -22,30 +56,41 @@ void renderSystem(registry& reg, sf::RenderWindow& window) {
 
         if (pos_opt && sprite_opt) {
             auto& pos = pos_opt.value();
-            auto& sprite = sprite_opt.value();
+            auto& sprite_comp = sprite_opt.value();
 
-            // Create a simple colored rectangle as placeholder
-            sf::RectangleShape shape(sf::Vector2f(sprite.width, sprite.height));
-            shape.setPosition(pos.x, pos.y);
-            shape.setFillColor(sf::Color(sprite.r, sprite.g, sprite.b, sprite.a));
-            shape.setOrigin(sprite.width / 2.0f, sprite.height / 2.0f);
+            if (sprite_comp.texture_path.empty()) {
+                continue;
+            }
 
-            window.draw(shape);
+            try {
+                sf::Texture& texture = textures.load(sprite_comp.texture_path);
+                texture.setSmooth(false);
+
+                sf::Sprite sprite(texture);
+                sprite.setTextureRect(sf::IntRect(sprite_comp.texture_rect_x,
+                                                   sprite_comp.texture_rect_y,
+                                                   sprite_comp.texture_rect_w,
+                                                   sprite_comp.texture_rect_h));
+                sprite.setScale(sprite_comp.scale, sprite_comp.scale);
+                sprite.setPosition(pos.x - (static_cast<float>(sprite_comp.texture_rect_w) * sprite_comp.scale / 2.0f),
+                                   pos.y - (static_cast<float>(sprite_comp.texture_rect_h) * sprite_comp.scale / 2.0f));
+
+                window.draw(sprite);
+            } catch (const std::runtime_error& e) {
+            }
         }
     }
+
 }
 
-// Simple UI system
 void renderUI(registry& reg, sf::RenderWindow& window, sf::Font& font) {
     auto& healths = reg.get_components<health>();
     auto& player_tags = reg.get_components<player_tag>();
 
-    // Find player health
     for (std::size_t i = 0; i < healths.size() && i < player_tags.size(); ++i) {
         if (healths[i] && player_tags[i]) {
             auto& hp = healths[i].value();
 
-            // Draw health bar
             sf::RectangleShape health_bg(sf::Vector2f(200.0f, 20.0f));
             health_bg.setPosition(10.0f, 10.0f);
             health_bg.setFillColor(sf::Color(50, 50, 50));
@@ -57,7 +102,6 @@ void renderUI(registry& reg, sf::RenderWindow& window, sf::Font& font) {
             health_bar.setFillColor(sf::Color(0, 255, 0));
             window.draw(health_bar);
 
-            // Draw health text
             sf::Text health_text;
             health_text.setFont(font);
             health_text.setString("HP: " + std::to_string(hp.current) + " / " +
@@ -70,40 +114,28 @@ void renderUI(registry& reg, sf::RenderWindow& window, sf::Font& font) {
             break;
         }
     }
-
-    // Draw controls info
-    sf::Text controls;
-    controls.setFont(font);
-    controls.setString("WASD/Arrows: Move  |  Space: Shoot  |  ESC: Quit");
-    controls.setCharacterSize(16);
-    controls.setFillColor(sf::Color(200, 200, 200));
-    controls.setPosition(10.0f, window.getSize().y - 30.0f);
-    window.draw(controls);
 }
 
-int main(int argc, char* argv[]) {
-    std::cout << "R-Type Client starting..." << std::endl;
-
-    // Create window
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-Type - Solo Demo");
+int main(int, char**) {
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-Type");
     window.setFramerateLimit(60);
 
-    // Load font (fallback to default if not found)
     sf::Font font;
-    if (!font.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: Could not load font, UI text will not display" << std::endl;
-    }
+    font.loadFromFile("assets/fonts/arial.ttf");
 
-    // Create registry and setup game
     registry reg;
+    TextureManager textures;
 
-    std::cout << "Creating player..." << std::endl;
-    entity player = createPlayer(reg, 200.0f, 540.0f);
+    sf::Texture bg_texture;
+    bg_texture.loadFromFile("assets/bg.png");
+    bg_texture.setRepeated(true);
+    float bg_scroll_offset = 0.0f;
+    const float bg_scroll_speed = 50.0f;
+    const float window_width = 1920.0f;
+    const float window_height = 1080.0f;
 
-    std::cout << "Spawning enemy wave..." << std::endl;
+    createPlayer(reg, 200.0f, 540.0f);
     spawnEnemyWave(reg, 5);
-
-    std::cout << "Starting game loop..." << std::endl;
 
     sf::Clock clock;
     sf::Clock enemy_spawn_clock;
@@ -111,7 +143,6 @@ int main(int argc, char* argv[]) {
     while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
 
-        // Handle events
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
@@ -124,26 +155,40 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Spawn new enemies periodically
         if (enemy_spawn_clock.getElapsedTime().asSeconds() > 3.0f) {
             spawnEnemyWave(reg, 3);
             enemy_spawn_clock.restart();
         }
 
-        // Update game systems (order matters!)
         inputSystem(reg);
         shootingSystem(reg, dt);
         movementSystem(reg, dt);
         collisionSystem(reg);
+        explosionSystem(reg, dt);
         cleanupSystem(reg);
+        animationSystem(reg, dt);
 
-        // Render
-        window.clear(sf::Color(10, 10, 30));  // Dark blue background
-        renderSystem(reg, window);
+        bg_scroll_offset += bg_scroll_speed * dt;
+        if (bg_scroll_offset > window_width) {
+            bg_scroll_offset -= window_width;
+        }
+
+        window.clear(sf::Color(10, 10, 30));
+
+        sf::Sprite bg_sprite1(bg_texture);
+        bg_sprite1.setTextureRect(sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
+        bg_sprite1.setPosition(-bg_scroll_offset, 0);
+        window.draw(bg_sprite1);
+
+        sf::Sprite bg_sprite2(bg_texture);
+        bg_sprite2.setTextureRect(sf::IntRect(0, 0, static_cast<int>(window_width), static_cast<int>(window_height)));
+        bg_sprite2.setPosition(window_width - bg_scroll_offset, 0);
+        window.draw(bg_sprite2);
+
+        renderSystem(reg, window, textures);
         renderUI(reg, window, font);
         window.display();
     }
 
-    std::cout << "Client shutting down..." << std::endl;
     return 0;
 }

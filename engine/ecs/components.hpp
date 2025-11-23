@@ -3,18 +3,16 @@
 // Base ECS Components
 // These are generic, reusable components that can be used in any game
 
-// Component: 2D position of an entity
 struct position {
     float x;
     float y;
 
-    constexpr position(float x = 0.0f, float y = 0.0f) noexcept : x(x), y(y) {}
+    constexpr position(float pos_x = 0.0f, float pos_y = 0.0f) noexcept : x(pos_x), y(pos_y) {}
 };
 
-// Component: 2D velocity of an entity
 struct velocity {
     float vx;
     float vy;
 
-    constexpr velocity(float vx = 0.0f, float vy = 0.0f) noexcept : vx(vx), vy(vy) {}
+    constexpr velocity(float vel_x = 0.0f, float vel_y = 0.0f) noexcept : vx(vel_x), vy(vel_y) {}
 };

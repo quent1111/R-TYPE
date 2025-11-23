@@ -1,11 +1,13 @@
 #pragma once
 
+#include <SFML/Graphics.hpp>
 #include <string>
 #include <cstdint>
+#include <vector>
 
 struct controllable {
     float speed;
-    constexpr explicit controllable(float speed = 200.0f) noexcept : speed(speed) {}
+    constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}
 };
 
 struct health {
@@ -42,22 +44,57 @@ struct weapon {
 
 struct sprite_component {
     std::string texture_path;
-    float width;
-    float height;
-    uint8_t r, g, b, a;
+    int texture_rect_x;
+    int texture_rect_y;
+    int texture_rect_w;
+    int texture_rect_h;
+    float scale;
 
-    sprite_component(std::string path = "", float w = 50.0f, float h = 50.0f)
-        : texture_path(std::move(path)), width(w), height(h), r(255), g(255), b(255), a(255) {}
-
-    sprite_component(std::string path, float w, float h, uint8_t red, uint8_t green, uint8_t blue,
-                     uint8_t alpha = 255)
+    sprite_component(std::string path = "", int rect_x = 0, int rect_y = 0, int rect_w = 32,
+                     int rect_h = 16, float sprite_scale = 2.0f)
         : texture_path(std::move(path)),
-          width(w),
-          height(h),
-          r(red),
-          g(green),
-          b(blue),
-          a(alpha) {}
+          texture_rect_x(rect_x),
+          texture_rect_y(rect_y),
+          texture_rect_w(rect_w),
+          texture_rect_h(rect_h),
+          scale(sprite_scale) {}
+};
+
+struct animation_component {
+    std::vector<sf::IntRect> frames;
+    size_t current_frame;
+    float frame_duration;
+    float time_accumulator;
+    bool loop;
+
+    animation_component(std::vector<sf::IntRect> anim_frames = {}, float duration = 0.1f,
+                        bool should_loop = true)
+        : frames(std::move(anim_frames)),
+          current_frame(0),
+          frame_duration(duration),
+          time_accumulator(0.0f),
+          loop(should_loop) {}
+
+    void update(float dt) {
+        if (frames.empty()) return;
+
+        time_accumulator += dt;
+        if (time_accumulator >= frame_duration) {
+            time_accumulator -= frame_duration;
+            current_frame++;
+
+            if (current_frame >= frames.size()) {
+                current_frame = loop ? 0 : frames.size() - 1;
+            }
+        }
+    }
+
+    [[nodiscard]] sf::IntRect get_current_frame() const {
+        if (frames.empty()) {
+            return sf::IntRect{0, 0, 32, 16};
+        }
+        return frames[current_frame];
+    }
 };
 
 struct damage_on_contact {
@@ -84,6 +121,14 @@ struct player_tag {};
 struct enemy_tag {};
 
 struct projectile_tag {};
+
+struct explosion_tag {
+    float lifetime;
+    float elapsed;
+
+    constexpr explosion_tag(float life = 0.5f) noexcept
+        : lifetime(life), elapsed(0.0f) {}
+};
 
 struct bounded_movement {
     float min_x, max_x;

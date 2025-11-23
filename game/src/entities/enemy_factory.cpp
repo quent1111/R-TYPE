@@ -10,6 +10,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.register_component<velocity>();
     reg.register_component<health>();
     reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
     reg.register_component<collision_box>();
     reg.register_component<damage_on_contact>();
     reg.register_component<enemy_tag>();
@@ -17,8 +18,27 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
     reg.add_component(enemy, health{30});
-    reg.add_component(enemy, sprite_component{"enemy.png", 48.0f, 48.0f, 255, 0, 0});
-    reg.add_component(enemy, collision_box{40.0f, 40.0f});
+
+    sprite_component sprite;
+    sprite.texture_path = "assets/r-typesheet26.png";
+    sprite.texture_rect_x = 0;
+    sprite.texture_rect_y = 0;
+    sprite.texture_rect_w = 65;
+    sprite.texture_rect_h = 50;
+    sprite.scale = 1.5f;
+    reg.add_component(enemy, sprite);
+
+    animation_component anim;
+    anim.frames.push_back(sf::IntRect(0, 0, 65, 50));
+    anim.frames.push_back(sf::IntRect(65, 0, 65, 50));
+    anim.frames.push_back(sf::IntRect(130, 0, 65, 50));
+    anim.current_frame = 0;
+    anim.frame_duration = 0.15f;
+    anim.time_accumulator = 0.0f;
+    anim.loop = true;
+    reg.add_component(enemy, anim);
+
+    reg.add_component(enemy, collision_box{60.0f, 45.0f});
     reg.add_component(enemy, damage_on_contact{25, false});
     reg.add_component(enemy, enemy_tag{});
 
