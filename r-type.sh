@@ -231,6 +231,10 @@ install_dependencies() {
         "-c" "tools.system.package_manager:mode=install"
         "-c" "tools.system.package_manager:sudo=True"
     )
+    # Force freetype build on macOS ARM64 to avoid x86_64 binaries
+    if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "arm64" ]]; then
+        CONAN_ARGS+=("--build=freetype/*")
+    fi
     if [ "$VERBOSE" = true ]; then
         conan install . "${CONAN_ARGS[@]}"
     else

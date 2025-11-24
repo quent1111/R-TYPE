@@ -26,9 +26,32 @@ if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
 endif()
 
 # Find packages installed by Conan or system
-find_package(SFML REQUIRED COMPONENTS graphics window system audio)
+find_package(SFML QUIET COMPONENTS graphics window system audio)
+if(NOT SFML_FOUND)
+    # Fallback: try Conan-provided SFML with namespace
+    find_package(SFML REQUIRED COMPONENTS graphics window system audio CONFIG)
+endif()
 find_package(asio REQUIRED)
 find_package(GTest REQUIRED)
+
+# Create unified SFML interface library for compatibility
+if(TARGET sfml::sfml)
+    # Conan provides sfml::sfml
+    message(STATUS "Using Conan SFML targets (sfml::sfml)")
+    set(SFML_TARGETS sfml::sfml)
+elseif(TARGET sfml-graphics)
+    # System SFML (Homebrew on macOS)
+    message(STATUS "Using system SFML targets (sfml-graphics, etc.)")
+    add_library(sfml_unified INTERFACE)
+    target_link_libraries(sfml_unified INTERFACE 
+        sfml-graphics 
+        sfml-window 
+        sfml-system 
+        sfml-audio
+    )
+    add_library(sfml::sfml ALIAS sfml_unified)
+    set(SFML_TARGETS sfml::sfml)
+endif()
 
 include_directories(${CMAKE_SOURCE_DIR})
 

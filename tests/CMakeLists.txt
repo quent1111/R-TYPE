@@ -72,9 +72,7 @@ add_executable(test_render
 target_link_libraries(test_render PRIVATE
     r-type-engine
     gtest::gtest
-    sfml-graphics
-    sfml-window
-    sfml-system
+    sfml::sfml
     project_options
     project_warnings
 )
