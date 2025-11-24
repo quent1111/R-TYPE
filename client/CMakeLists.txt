@@ -13,7 +13,10 @@ target_link_libraries(r-type_client PRIVATE
     r-type-engine
     project_options
     project_warnings
-    sfml::sfml
+    sfml-graphics
+    sfml-window
+    sfml-system
+    sfml-audio
 )
 
 link_platform_libraries(r-type_client)

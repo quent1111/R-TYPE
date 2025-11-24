@@ -18,7 +18,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(MAKE_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-# Find packages installed by Conan
+# Add Homebrew paths for macOS ARM64
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+    include_directories(/opt/homebrew/include)
+    link_directories(/opt/homebrew/lib)
+endif()
+
+# Find packages installed by Conan or system
 find_package(SFML REQUIRED COMPONENTS graphics window system audio)
 find_package(asio REQUIRED)
 find_package(GTest REQUIRED)
