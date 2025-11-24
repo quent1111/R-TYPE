@@ -1,8 +1,13 @@
 [requires]
+sfml/2.6.1
 asio/1.30.2
 gtest/1.14.0
 
 [options]
+sfml/*:graphics=True
+sfml/*:window=True
+sfml/*:audio=True
+sfml/*:network=False
 
 [generators]
 CMakeDeps

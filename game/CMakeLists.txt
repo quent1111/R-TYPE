@@ -25,9 +25,7 @@ target_link_libraries(game_logic
         r-type-engine
         project_options
         project_warnings
-        sfml-graphics
-        sfml-window
-        sfml-system
+        sfml::sfml
 )
 
 target_compile_features(game_logic PUBLIC cxx_std_20)
