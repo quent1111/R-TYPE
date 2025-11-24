@@ -64,70 +64,111 @@ Learn more: [Network Architecture](network.md)
 
 ```
 R-TYPE/
-├── client/                 # Client-specific code
+├── client/                 # Client application
 │   ├── src/
-│   │   ├── main.cpp
-│   │   ├── game/          # Game logic
-│   │   ├── rendering/     # Rendering system
-│   │   └── ui/            # User interface
-│   └── include/
+│   │   └── main.cpp       # Client game loop with SFML rendering
+│   └── CMakeLists.txt
 │
-├── server/                 # Server-specific code
+├── server/                 # Server application  
 │   ├── src/
-│   │   ├── main.cpp
-│   │   ├── game/          # Server game logic
-│   │   └── network/       # Network handling
-│   └── include/
+│   │   └── main.cpp       # Server (planned for multiplayer)
+│   └── CMakeLists.txt
 │
-├── engine/                 # Shared game engine
-│   ├── src/
-│   │   ├── ecs/           # ECS implementation
-│   │   ├── physics/       # Physics system
-│   │   ├── rendering/     # Rendering core
-│   │   └── utils/         # Utilities
-│   └── include/
+├── engine/                 # Core ECS framework
+│   └── ecs/               # ECS implementation
+│       ├── entity.hpp     # Entity ID wrapper
+│       ├── registry.hpp   # Component coordinator
+│       ├── sparse_array.hpp  # Component storage
+│       ├── components.hpp # Base components (position, velocity, etc.)
+│       ├── zipper.hpp     # Multi-component iteration
+│       └── zipper_iterator.hpp
 │
-├── bootstrap/              # ECS bootstrap
-│   └── bs/                # ECS framework
-│       ├── entity.hpp
-│       ├── registry.hpp
-│       ├── sparse_array.hpp
-│       ├── components.hpp
-│       └── systems.hpp
+├── game/                   # Game logic library
+│   ├── include/
+│   │   ├── components/    # Game-specific components
+│   │   │   └── game_components.hpp  # health, sprite, animation, etc.
+│   │   ├── entities/      # Entity factories
+│   │   │   ├── player_factory.hpp
+│   │   │   ├── enemy_factory.hpp
+│   │   │   ├── projectile_factory.hpp
+│   │   │   └── explosion_factory.hpp
+│   │   └── systems/       # Game systems
+│   │       ├── input_system.hpp
+│   │       ├── movement_system.hpp
+│   │       ├── shooting_system.hpp
+│   │       ├── collision_system.hpp
+│   │       └── cleanup_system.hpp
+│   ├── src/               # Implementation files
+│   │   ├── components/
+│   │   ├── entities/
+│   │   └── systems/
+│   └── CMakeLists.txt
+│
+├── bootstrap/              # Legacy ECS demos (not used in main build)
+│   └── bs/                # Standalone ECS examples
 │
 ├── tests/                  # Test suites
-│   ├── unit/
-│   ├── integration/
-│   └── benchmark/
+│   ├── bootstrap/         # ECS unit tests
+│   ├── ecs/               # Engine tests
+│   ├── game/              # Game logic tests
+│   ├── network/           # Network tests (planned)
+│   └── integration/       # Integration tests
 │
-└── third_party/            # External dependencies
+├── assets/                 # Game assets
+│   ├── r-typesheet1.png   # Player, projectiles, explosions
+│   ├── r-typesheet26.png  # Enemy sprites
+│   ├── bg.png             # Scrolling background
+│   └── fonts/
+│
+└── third_party/            # External dependencies (via Conan)
 ```
 
 ## Data Flow
 
-### Game Loop (Client)
+### Current Game Loop (Singleplayer Client)
 
+```
+┌─────────────────────────────────────────┐
+│     Singleplayer Client Game Loop       │
+│                                         │
+│  1. Poll SFML Events (ESC to quit)      │
+│  2. Process Input (WASD movement)       │
+│  3. Update Shooting System              │
+│  4. Update Movement System              │
+│  5. Update Collision Detection          │
+│  6. Update Explosion Lifetimes          │
+│  7. Cleanup Dead Entities               │
+│  8. Update Sprite Animations            │
+│  9. Render Background (scrolling)       │
+│ 10. Render All Entities (sprites)       │
+│ 11. Render UI (health bar)              │
+│ 12. Display Frame (60 FPS)              │
+└─────────────────────────────────────────┘
+```
+
+### Planned Multiplayer Game Loop (Future)
+
+**Client:**
 ```
 ┌─────────────────────────────────────────┐
 │           Client Game Loop              │
 │                                         │
 │  1. Process Input                       │
-│  2. Update ECS Systems                  │
-│  3. Send Input to Server                │
-│  4. Receive Server Updates              │
-│  5. Interpolate/Predict                 │
+│  2. Send Input to Server (UDP)          │
+│  3. Receive Server Updates              │
+│  4. Interpolate/Predict State           │
+│  5. Update Local ECS Systems            │
 │  6. Render Frame                        │
 │  7. Handle Audio                        │
 └─────────────────────────────────────────┘
 ```
 
-### Game Loop (Server)
-
+**Server:**
 ```
 ┌─────────────────────────────────────────┐
 │           Server Game Loop              │
 │                                         │
-│  1. Receive Client Inputs               │
+│  1. Receive Client Inputs (UDP)         │
 │  2. Validate Inputs                     │
 │  3. Update ECS Systems                  │
 │  4. Run Game Logic                      │
@@ -219,14 +260,18 @@ Loading Thread:    Asset Streaming
 
 ## Dependencies
 
-### External Libraries
+### External Libraries (via Conan)
 
-- **SFML** - Graphics, window, input (optional)
-- **Boost.Asio** - Networking (alternative)
-- **JSON** - Configuration files
-- **Google Test** - Unit testing
+- **SFML 2.6.1** - Graphics, window, input, audio
+- **Asio 1.30.2** - Async networking (for future multiplayer)
+- **GTest 1.14.0** - Unit testing framework
 
-### Internal Libraries
+### Build Tools
+
+- **CMake 3.20+** - Build system
+- **Conan 2.x** - Package manager
+- **clang-format** - Code formatting
+- **clang-tidy** - Static analysis
 
 All core functionality is implemented in-house for maximum control and learning.
 

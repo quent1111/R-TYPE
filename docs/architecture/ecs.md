@@ -70,51 +70,108 @@ public:
 Components are plain data structures:
 
 ```cpp
-// Position component
-struct Position {
+// Base ECS components (engine/ecs/components.hpp)
+struct position {
     float x;
     float y;
+    constexpr position(float pos_x = 0.0f, float pos_y = 0.0f) noexcept 
+        : x(pos_x), y(pos_y) {}
 };
 
-// Velocity component
-struct Velocity {
-    float dx;
-    float dy;
+struct velocity {
+    float vx;
+    float vy;
+    constexpr velocity(float vel_x = 0.0f, float vel_y = 0.0f) noexcept 
+        : vx(vel_x), vy(vel_y) {}
 };
 
-// Sprite component
-struct Sprite {
+// Game-specific components (game/include/components/game_components.hpp)
+struct sprite_component {
     std::string texture_path;
-    int width;
-    int height;
+    int texture_rect_x;
+    int texture_rect_y;
+    int texture_rect_w;
+    int texture_rect_h;
+    float scale;
 };
 
-// Health component
-struct Health {
+struct animation_component {
+    std::vector<sf::IntRect> frames;
+    size_t current_frame;
+    float frame_duration;
+    float time_accumulator;
+    bool loop;
+    
+    void update(float dt);
+    sf::IntRect get_current_frame() const;
+};
+
+struct health {
     int current;
     int maximum;
+    bool is_dead() const { return current <= 0; }
+    float health_percentage() const;
 };
+
+struct explosion_tag {
+    float lifetime;
+    float elapsed;
+};
+
+// Entity tags
+struct player_tag {};
+struct enemy_tag {};
+struct projectile_tag {};
 ```
 
 ### System
 
-Systems contain game logic:
+Systems contain game logic and operate on entities with specific components:
 
 ```cpp
-class MovementSystem {
-public:
-    void update(Registry& registry, float deltaTime) {
-        auto& positions = registry.get_components<Position>();
-        auto& velocities = registry.get_components<Velocity>();
+// Movement System (game/src/systems/movement_system.cpp)
+void movementSystem(registry& reg, float dt) {
+    auto& positions = reg.get_components<position>();
+    auto& velocities = reg.get_components<velocity>();
+    
+    for (size_t i = 0; i < positions.size() && i < velocities.size(); ++i) {
+        if (positions[i] && velocities[i]) {
+            positions[i]->x += velocities[i]->vx * dt;
+            positions[i]->y += velocities[i]->vy * dt;
+        }
+    }
+}
+
+// Collision System (game/src/systems/collision_system.cpp)
+void collisionSystem(registry& reg) {
+    auto& positions = reg.get_components<position>();
+    auto& projectile_tags = reg.get_components<projectile_tag>();
+    auto& enemy_tags = reg.get_components<enemy_tag>();
+    auto& healths = reg.get_components<health>();
+    
+    // Check projectile-enemy collisions
+    for (size_t proj_id = 0; proj_id < positions.size(); ++proj_id) {
+        if (!positions[proj_id] || !projectile_tags[proj_id]) continue;
         
-        for (size_t i = 0; i < positions.size(); ++i) {
-            if (positions[i] && velocities[i]) {
-                positions[i]->x += velocities[i]->dx * deltaTime;
-                positions[i]->y += velocities[i]->dy * deltaTime;
+        for (size_t enemy_id = 0; enemy_id < positions.size(); ++enemy_id) {
+            if (!positions[enemy_id] || !enemy_tags[enemy_id]) continue;
+            
+            // Simple circle collision
+            float dx = positions[proj_id]->x - positions[enemy_id]->x;
+            float dy = positions[proj_id]->y - positions[enemy_id]->y;
+            float distance_sq = dx * dx + dy * dy;
+            
+            if (distance_sq < COLLISION_RADIUS_SQ) {
+                // Damage enemy
+                if (healths[enemy_id]) {
+                    healths[enemy_id]->current -= PROJECTILE_DAMAGE;
+                }
+                // Mark projectile for cleanup
+                healths[proj_id]->current = 0;
             }
         }
     }
-};
+}
 ```
 
 ## Registry
@@ -177,24 +234,32 @@ public:
 ### Creating Entities
 
 ```cpp
-Registry registry;
+registry reg;
 
 // Register components
-registry.register_component<Position>();
-registry.register_component<Velocity>();
-registry.register_component<Sprite>();
+reg.register_component<position>();
+reg.register_component<velocity>();
+reg.register_component<sprite_component>();
+reg.register_component<health>();
+reg.register_component<player_tag>();
 
-// Create player entity
-Entity player = registry.spawn_entity();
-registry.add_component(player, Position{100.0f, 100.0f});
-registry.add_component(player, Velocity{0.0f, 0.0f});
-registry.add_component(player, Sprite{"player.png", 32, 32});
+// Create player entity using factory
+entity player = createPlayer(reg, 200.0f, 540.0f);
 
-// Create enemy entity
-Entity enemy = registry.spawn_entity();
-registry.add_component(enemy, Position{500.0f, 300.0f});
-registry.add_component(enemy, Velocity{-50.0f, 0.0f});
-registry.add_component(enemy, Sprite{"enemy.png", 32, 32});
+// Alternatively, create manually
+entity enemy = reg.spawn_entity();
+reg.add_component(enemy, position{500.0f, 300.0f});
+reg.add_component(enemy, velocity{-100.0f, 0.0f});
+reg.add_component(enemy, sprite_component{
+    .texture_path = "assets/r-typesheet26.png",
+    .texture_rect_x = 0,
+    .texture_rect_y = 0,
+    .texture_rect_w = 65,
+    .texture_rect_h = 50,
+    .scale = 2.0f
+});
+reg.add_component(enemy, health{100, 100});
+reg.add_component(enemy, enemy_tag{});
 ```
 
 ### System Implementation
