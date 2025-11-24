@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 add_executable(r-type_server
     src/main.cpp
+    src/UDPServer.cpp
 )
 
 target_include_directories(r-type_server PRIVATE
