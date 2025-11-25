@@ -1,3 +1,8 @@
+#pragma once
+
+#include <mutex>
+#include <queue>
+
 template <typename T>
 class ThreadSafeQueue {
 private:

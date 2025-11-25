@@ -81,7 +81,6 @@ int main(int argc, char** argv) {
 
     try {
         asio::io_context io_context;
-        //Declarer les fonctions du bootstrap ici
         UDPServer server(io_context, port);
 
         std::thread network_thread(network_loop, std::ref(server));

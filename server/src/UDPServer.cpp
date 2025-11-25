@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include <iostream>
+
 UDPServer::UDPServer(asio::io_context& io_context, unsigned short port)
     : io_context_(io_context),
       work_guard_(io_context.get_executor()),
@@ -53,8 +55,6 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
 
                 register_client(remote_endpoint_);
                 input_queue_.push(packet);
-
-                // std::cout << "[Network] Received " << bytes_received << " bytes." << std::endl;
             } else {
                 std::cerr << "[Security] Ignored packet with bad Magic Number from "
                           << remote_endpoint_ << std::endl;
@@ -121,50 +121,7 @@ int UDPServer::register_client(const asio::ip::udp::endpoint& endpoint) {
     return client_id;
 }
 
-// Consolidated output pipeline: push outgoing packets into an output queue
-// and let the network loop process them with async_send_to. This prevents
-// concurrent async_send_to calls from different threads and centralizes
-// error handling.
-
-void UDPServer::queue_output_packet(const NetworkPacket& packet) {
-    output_queue_.push(packet);
-}
-
-void UDPServer::send_to_all(const std::vector<uint8_t>& data) {
-    std::lock_guard<std::mutex> lock(clients_mutex_);
-    for (const auto& [id, client] : clients_) {
-        NetworkPacket packet(data, client.endpoint);
-        queue_output_packet(packet);
-    }
-}
-
-void UDPServer::send_to_client(int client_id, const std::vector<uint8_t>& data) {
-    std::lock_guard<std::mutex> lock(clients_mutex_);
-    auto it = clients_.find(client_id);
-    if (it != clients_.end()) {
-        NetworkPacket packet(data, it->second.endpoint);
-        queue_output_packet(packet);
-    }
-}
-
-void UDPServer::send_to_endpoint(const asio::ip::udp::endpoint& endpoint,
-                                 const std::vector<uint8_t>& data) {
-    NetworkPacket packet(data, endpoint);
-    queue_output_packet(packet);
-}
-
-void UDPServer::process_output_queue() {
-    NetworkPacket packet;
-    while (output_queue_.try_pop(packet)) {
-        socket_.async_send_to(asio::buffer(packet.data), packet.sender,
-                              [](std::error_code ec, std::size_t /*bytes_sent*/) {
-                                  if (ec) {
-                                      std::cerr << "[Error] Send failed: " << ec.message()
-                                                << std::endl;
-                                  }
-                              });
-    }
-}
+void UDPServer::remove_inactive_clients(std::chrono::seconds timeout) {
     std::lock_guard<std::mutex> lock(clients_mutex_);
     auto now = std::chrono::steady_clock::now();
 
