@@ -1,4 +1,9 @@
-template<typename T>
+#pragma once
+
+#include <mutex>
+#include <queue>
+
+template <typename T>
 class ThreadSafeQueue {
 private:
     std::queue<T> queue_;
@@ -8,6 +13,11 @@ public:
     void push(const T& item) {
         std::lock_guard<std::mutex> lock(mutex_);
         queue_.push(item);
+    }
+
+    void push(T&& item) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        queue_.push(std::move(item));
     }
 
     bool try_pop(T& item) {

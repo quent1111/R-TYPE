@@ -1,10 +1,12 @@
+#include "NetworkPacket.hpp"
 #include "UDPServer.hpp"
+
+#include <csignal>
+
+#include <atomic>
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
-#include <atomic>
-#include <csignal>
-#include "NetworkPacket.hpp"
 
 std::atomic<bool> server_running{true};
 
@@ -16,56 +18,69 @@ void signal_handler(int signal) {
 }
 
 void game_loop(UDPServer& server) {
-    std::cout << "Game loop started" << std::endl;
+    std::cout << "[Core] Game loop started at 60 TPS (fixed timestep)" << std::endl;
 
-    auto last_update = std::chrono::steady_clock::now();
-    const std::chrono::milliseconds tick_duration(16); // FPS(60)
+    const double target_ticks_per_second = 60.0;
+    const std::chrono::duration<double> fixed_timestep(1.0 / target_ticks_per_second);
+    const double dt = 1.0 / target_ticks_per_second;
+
+    double broadcast_accumulator = 0.0;
+    double cleanup_accumulator = 0.0;
+    const double broadcast_interval = 10.0;
+    const double cleanup_interval = 30.0;
+
+    auto previous_time = std::chrono::steady_clock::now();
+    std::chrono::duration<double> lag(0.0);
 
     while (server_running) {
-        auto now = std::chrono::steady_clock::now();
-        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_update);
+        auto current_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed = current_time - previous_time;
+        previous_time = current_time;
+        lag += elapsed;
 
-        if (delta_time >= tick_duration) {
-            last_update = now;
-
+        while (lag >= fixed_timestep) {
             NetworkPacket packet;
             while (server.get_input_packet(packet)) {
-                std::cout << "[GAME] Processing packet from "
-                          << packet.sender.address().to_string()
-                          << ": " << packet.data.size() << " bytes" << std::endl;
-
                 if (!packet.data.empty()) {
-                    std::vector<uint8_t> response = packet.data;
-                    std::cout << packet.sender.address().to_string() << ":" << packet.sender.port() << std::endl;
-                    NetworkPacket response_packet(response, packet.sender);
-                    server.queue_output_packet(response_packet);
+                    NetworkPacket response_packet(packet.data, packet.sender);
+                    server.queue_output_packet(std::move(response_packet));
                 }
             }
-            static int counter = 0;
 
-            //Envoyer un message a tout le monde
-            if (++counter % 600 == 0) {
-                std::string msg = "[GAME] Message send to all clients";
+            broadcast_accumulator += dt;
+            if (broadcast_accumulator >= broadcast_interval) {
+                std::string msg = "[GAME] Broadcast message (10s)";
                 std::vector<uint8_t> broadcast_data(msg.begin(), msg.end());
                 server.send_to_all(broadcast_data);
-                std::cout << "[GAME] Sent broadcast to "
-                          << server.get_client_count() << " clients" << std::endl;
+                std::cout << "[GAME] Broadcast sent to " << server.get_client_count()
+                          << " client(s)" << std::endl;
+                broadcast_accumulator -= broadcast_interval;
             }
 
-            // Enlever les clients inactifs toutes les 50 secondes
-            if (counter % 3000 == 0) {
+            cleanup_accumulator += dt;
+            if (cleanup_accumulator >= cleanup_interval) {
                 server.remove_inactive_clients(std::chrono::seconds(30));
+                std::cout << "[GAME] Cleanup performed. Active clients: "
+                          << server.get_client_count() << std::endl;
+                cleanup_accumulator -= cleanup_interval;
             }
+
+            lag -= fixed_timestep;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        auto frame_end = std::chrono::steady_clock::now();
+        auto frame_duration = frame_end - current_time;
+        if (frame_duration < fixed_timestep) {
+            std::this_thread::sleep_for(fixed_timestep - frame_duration);
+        }
     }
-    std::cout << "Game loop stopped" << std::endl;
+    std::cout << "[Core] Game loop stopped" << std::endl;
 }
 
 void network_loop(UDPServer& server) {
-    std::cout << "Network loop started" << std::endl;
+    std::cout << "[Core] Network loop started" << std::endl;
     server.run_network_loop();
-    std::cout << "Network loop stopped" << std::endl;
+    std::cout << "[Core] Network loop stopped" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -77,19 +92,20 @@ int main(int argc, char** argv) {
         port = static_cast<unsigned short>(std::stoi(argv[1]));
     }
 
-    std::cout << "R-Type Server Starting" << std::endl;
+    std::cout << "R-Type Server Starting..." << std::endl;
     std::cout << "Port: " << port << std::endl;
 
     try {
         asio::io_context io_context;
-        //Declarer les fonctions du bootstrap ici
         UDPServer server(io_context, port);
+
         std::thread network_thread(network_loop, std::ref(server));
         std::thread game_thread(game_loop, std::ref(server));
         std::cout << "Server running... Press Ctrl+C to stop" << std::endl;
         game_thread.join();
         server.stop();
         network_thread.join();
+
         std::cout << "Server stopped successfully" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Server error: " << e.what() << std::endl;
