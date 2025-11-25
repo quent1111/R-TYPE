@@ -121,9 +121,10 @@ int UDPServer::register_client(const asio::ip::udp::endpoint& endpoint) {
     return client_id;
 }
 
-// Ensure we use a single, consistent output pipeline: queue packets and
-// process them from the network loop. This avoids racing async_send_to calls
-// from multiple threads and centralizes error handling.
+// Consolidated output pipeline: push outgoing packets into an output queue
+// and let the network loop process them with async_send_to. This prevents
+// concurrent async_send_to calls from different threads and centralizes
+// error handling.
 
 void UDPServer::queue_output_packet(const NetworkPacket& packet) {
     output_queue_.push(packet);

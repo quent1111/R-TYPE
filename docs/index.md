@@ -1,17 +1,18 @@
 # R-TYPE
 
-
+Welcome to the R-TYPE documentation!
 
 ---
 
 ##  About R-TYPE
 
-R-TYPE is a networked multiplayer game remake of the classic side-scrolling shooter. Built with modern C++ and a custom Entity Component System (ECS), this project demonstrates advanced game development techniques including:
+R-TYPE is a modern reimplementation of the classic side-scrolling shooter, currently featuring a fully playable singleplayer demo. Built with modern C++ and a custom Entity Component System (ECS), this project demonstrates advanced game development techniques including:
 
-- **Custom ECS Architecture** - Efficient entity management and component-based design
-- **Network Multiplayer** - UDP-based networking for real-time gameplay
-- **Cross-platform** - Runs on Windows, Linux, and macOS
-- **Modern C++17** - Clean, efficient, and maintainable codebase
+- **Custom ECS Architecture** - Efficient entity management with data-oriented design
+- **Sprite-Based Graphics** - SFML rendering with animated sprites and effects
+- **Cross-platform** - Runs on Windows, Linux, and macOS  
+- **Modern C++20** - Clean, efficient, and maintainable codebase
+- **Multiplayer Ready** - Network layer planned for future UDP-based gameplay
 
 ##  Quick Start
 
@@ -20,34 +21,45 @@ R-TYPE is a networked multiplayer game remake of the classic side-scrolling shoo
 git clone https://github.com/quent1111/R-TYPE.git
 cd R-TYPE
 
-# Install git hooks for code quality
-./scripts/install-hooks.sh
+# Build and run the client (auto-installs dependencies)
+./r-type.sh client
 
-# Build the project
-mkdir build && cd build
-cmake ..
-make
-
-# Run the server
-./r-type_server
-
-# Run the client (in another terminal)
+# Or manually build
+./r-type.sh build
+cd build/build/Release/bin
 ./r-type_client
 ```
+
+**Controls:** WASD to move, Space to shoot, ESC to exit
 
 For detailed installation instructions, see [Installation Guide](getting-started/installation.md).
 
 ##  Documentation
 
-- **[Getting Started](getting-started/installation.md)** - Install and run the game
+- **[Getting Started](getting-started/quickstart.md)** - Quick start guide
+- **[Building](getting-started/building.md)** - Detailed build instructions
 - **[Architecture](architecture/overview.md)** - Learn about the project structure
+- **[ECS System](architecture/ecs.md)** - Entity Component System deep dive
 - **[Developer Guide](developer-guide/contributing.md)** - Contribute to the project
-- **[API Reference](api/client.md)** - Detailed API documentation
 
 ##  Features
 
-- ✅ **Entity Component System (ECS)** - Flexible and performant game architecture
-- ✅ **Network Multiplayer** - Play with friends over the network
+### Current (Singleplayer Demo)
+- ✅ **Entity Component System (ECS)** - Custom implementation with sparse arrays
+- ✅ **Player Controls** - WASD movement with shooting mechanics
+- ✅ **Enemy System** - Automatic wave spawning with AI movement
+- ✅ **Collision Detection** - Projectile-enemy interactions
+- ✅ **Visual Effects** - Explosion animations on enemy destruction
+- ✅ **Sprite Animations** - Multi-frame animations for entities
+- ✅ **Health System** - Player health with UI display
+- ✅ **Scrolling Background** - Infinite parallax background
+
+### Planned Features
+- 🔜 **Network Multiplayer** - UDP-based client-server for 4 players
+- 🔜 **Power-ups** - Weapon upgrades and shields
+- 🔜 **Boss Enemies** - Multi-phase boss battles
+- 🔜 **Audio System** - Sound effects and background music
+- 🔜 **Score System** - Leaderboards and high scores
 - ✅ **Custom Game Engine** - Built from scratch for maximum control
 - ✅ **Modern Graphics** - Smooth rendering and visual effects
 - ✅ **Cross-platform Support** - Windows, Linux, macOS

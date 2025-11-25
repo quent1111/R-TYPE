@@ -76,27 +76,43 @@ In a **new terminal**:
 === "Manual Way"
 
     ```bash
-    cd build
-    ./bin/r-type_client
+    cd build/build/Release/bin
+    ./r-type_client
     ```
 
-### 3. Connect and Play!
+### 3. Play!
 
-- Enter the server IP address (use `localhost` for local testing)
-- Click "Connect"
-- Use arrow keys to move and space to shoot
+- Use **WASD** to move your spaceship
+- Press **Space** to shoot
+- Press **ESC** to exit
+- Destroy enemies to test the game mechanics
 
 ## Game Controls
 
 | Key | Action |
 |-----|--------|
-| ↑ ↓ ← → | Move spaceship |
-| Space | Shoot |
-| ESC | Pause / Menu |
+| **W** | Move up |
+| **A** | Move left |
+| **S** | Move down |
+| **D** | Move right |
+| **Space** | Shoot projectiles |
+| **ESC** | Exit game |
 
-## Playing with Friends
+## Current Features (Singleplayer Demo)
 
-### Host a Server
+- ✅ Player movement with WASD controls
+- ✅ Shooting system with animated projectiles
+- ✅ Enemies spawn automatically every 3 seconds
+- ✅ Collision detection between projectiles and enemies
+- ✅ Explosion effects when enemies are destroyed
+- ✅ Health system with UI health bar
+- ✅ Infinite scrolling background
+- ✅ Sprite-based graphics with animations
+
+!!! note "Multiplayer Coming Soon"
+    The current version is a singleplayer demo. Networked multiplayer is planned for a future release.
+
+## Playing with Friends (Planned)
 
 ```bash
 ./r-type_server --port 4242
@@ -162,6 +178,9 @@ Options:
   -v, --verbose           Verbose logging
   -h, --help              Show help message
 ```
+
+!!! info "Dual-Loop Architecture"
+    The server now uses a dual-loop architecture (game loop + network loop). Game logic places responses in an output queue, and the network loop (ASIO) performs UDP sends asynchronously — by default, responses are sent via unicast to the target client (no automatic global broadcast).
 
 ### Client Options
 
