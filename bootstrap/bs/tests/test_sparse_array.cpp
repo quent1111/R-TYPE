@@ -1,7 +1,9 @@
 #include "sparse_array.hpp"
+
+#include <cassert>
+
 #include <iostream>
 #include <string>
-#include <cassert>
 
 // Simple test component
 struct Position {
@@ -32,7 +34,7 @@ void test_basic_operations() {
     // Test operator[] access
     assert(positions[0].has_value());
     assert(positions[0]->x == 10.0f);
-    assert(positions[1].has_value() == false); // No component at index 1
+    assert(positions[1].has_value() == false);  // No component at index 1
     assert(positions[2].has_value());
     std::cout << "✓ operator[] works" << std::endl;
     // Test size
@@ -103,9 +105,10 @@ void test_iterators() {
             std::cout << "  Position at slot: x=" << opt->x << ", y=" << opt->y << std::endl;
         }
     }
-    assert(count == 5); // 0,1,2,3,4
-    assert(with_value == 3); // only 0,2,4 have values
-    std::cout << "✓ iterators work (total=" << count << ", with_value=" << with_value << ")" << std::endl;
+    assert(count == 5);       // 0,1,2,3,4
+    assert(with_value == 3);  // only 0,2,4 have values
+    std::cout << "✓ iterators work (total=" << count << ", with_value=" << with_value << ")"
+              << std::endl;
 }
 
 int main() {

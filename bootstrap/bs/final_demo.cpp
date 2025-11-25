@@ -1,11 +1,12 @@
-#include "registry.hpp"
 #include "components.hpp"
+#include "registry.hpp"
 #include "systems.hpp"
+
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 
-int main()
-{
+int main() {
     sf::RenderWindow window(sf::VideoMode(800, 600), "final demo");
     window.setFramerateLimit(60);
 
@@ -18,14 +19,14 @@ int main()
     reg.register_component<acceleration>();
     reg.register_component<looping>();
 
-
     // 1. FULLY MOVABLE ENTITY with acceleration (player with physics)
     auto player = reg.spawn_entity();
     reg.emplace_component<position>(player, 400.0f, 300.0f);
     reg.emplace_component<velocity>(player, 0.0f, 0.0f);
     reg.emplace_component<drawable>(player, sf::Vector2f(50.0f, 50.0f), sf::Color::Green);
     reg.emplace_component<controllable>(player, 500.0f);  // Acceleration rate
-    reg.emplace_component<acceleration>(player, 0.0f, 0.0f, 400.0f, 0.92f);  // max_speed=400, friction=0.92
+    reg.emplace_component<acceleration>(player, 0.0f, 0.0f, 400.0f,
+                                        0.92f);  // max_speed=400, friction=0.92
     reg.emplace_component<looping>(player, 800.0f, 600.0f);
 
     // 2. STATIC ENTITIES (obstacles)
@@ -63,20 +64,19 @@ int main()
     auto looper4 = reg.spawn_entity();
     reg.emplace_component<position>(looper4, 200.0f, 600.0f);
     reg.emplace_component<velocity>(looper4, 50.0f, -90.0f);  // Moving diagonal
-    reg.emplace_component<drawable>(looper4, sf::Vector2f(40.0f, 40.0f), sf::Color(255, 128, 0));  // Orange
+    reg.emplace_component<drawable>(looper4, sf::Vector2f(40.0f, 40.0f),
+                                    sf::Color(255, 128, 0));  // Orange
     reg.emplace_component<looping>(looper4, 800.0f, 600.0f);
 
     sf::Clock clock;
 
     // Main game loop
-    while (window.isOpen())
-    {
+    while (window.isOpen()) {
         float dt = clock.restart().asSeconds();
 
         // Event handling
         sf::Event event;
-        while (window.pollEvent(event))
-        {
+        while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
                 window.close();
             if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
@@ -89,7 +89,7 @@ int main()
         looping_system(reg);                   // Apply screen wrapping
         // Rendering
         window.clear(sf::Color::Black);
-        draw_system(reg, window);              // Draw everything
+        draw_system(reg, window);  // Draw everything
         window.display();
     }
 

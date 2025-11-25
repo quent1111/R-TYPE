@@ -1,15 +1,16 @@
 #pragma once
 
-#include "registry.hpp"
 #include "components.hpp"
+#include "registry.hpp"
+
 #include <SFML/Graphics.hpp>
-#include <iostream>
 #include <cmath>
+
+#include <iostream>
 
 // SYSTEM 1: position_system
 // Updates position based on velocity for all entities having both components
-void position_system(registry& reg, float dt)
-{
+void position_system(registry& reg, float dt) {
     auto& positions = reg.get_components<position>();
     auto& velocities = reg.get_components<velocity>();
 
@@ -32,8 +33,7 @@ void position_system(registry& reg, float dt)
 
 // SYSTEM 2: control_system
 // Sets velocity based on keyboard input for controllable entities
-void control_system(registry& reg)
-{
+void control_system(registry& reg) {
     auto& velocities = reg.get_components<velocity>();
     auto& controllables = reg.get_components<controllable>();
 
@@ -52,19 +52,19 @@ void control_system(registry& reg)
             vel.vy = 0.0f;
 
             // Set velocity based on keyboard input
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
                 vel.vx = -ctrl.speed;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
                 vel.vx = ctrl.speed;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
                 vel.vy = -ctrl.speed;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
                 vel.vy = ctrl.speed;
             }
@@ -74,8 +74,7 @@ void control_system(registry& reg)
 
 // SYSTEM 3: draw_system
 // Draws all entities with drawable and position components
-void draw_system(registry& reg, sf::RenderWindow& window)
-{
+void draw_system(registry& reg, sf::RenderWindow& window) {
     auto& positions = reg.get_components<position>();
     auto& drawables = reg.get_components<drawable>();
 
@@ -98,8 +97,7 @@ void draw_system(registry& reg, sf::RenderWindow& window)
 
 // EXAMPLE: logging_system (from subject example)
 // Logs position and velocity to stderr for debugging
-void logging_system(registry& reg)
-{
+void logging_system(registry& reg) {
     auto& positions = reg.get_components<position>();
     auto& velocities = reg.get_components<velocity>();
 
@@ -111,23 +109,22 @@ void logging_system(registry& reg)
             auto& pos = pos_opt.value();
             auto& vel = vel_opt.value();
 
-            std::cerr << "Entity " << i 
-                      << " - Position: (" << pos.x << ", " << pos.y << ")"
-                      << " - Velocity: (" << vel.vx << ", " << vel.vy << ")"
-                      << std::endl;
+            std::cerr << "Entity " << i << " - Position: (" << pos.x << ", " << pos.y << ")"
+                      << " - Velocity: (" << vel.vx << ", " << vel.vy << ")" << std::endl;
         }
     }
 }
 
 // SYSTEM 4: acceleration_control_system
-// Applies acceleration based on keyboard input for entities with controllable + acceleration + velocity
-void acceleration_control_system(registry& reg, float dt)
-{
+// Applies acceleration based on keyboard input for entities with controllable + acceleration +
+// velocity
+void acceleration_control_system(registry& reg, float dt) {
     auto& velocities = reg.get_components<velocity>();
     auto& controllables = reg.get_components<controllable>();
     auto& accelerations = reg.get_components<acceleration>();
 
-    for (std::size_t i = 0; i < velocities.size() && i < controllables.size() && i < accelerations.size(); ++i) {
+    for (std::size_t i = 0;
+         i < velocities.size() && i < controllables.size() && i < accelerations.size(); ++i) {
         auto& vel_opt = velocities[i];
         auto& ctrl_opt = controllables[i];
         auto& acc_opt = accelerations[i];
@@ -143,20 +140,20 @@ void acceleration_control_system(registry& reg, float dt)
 
             // Set acceleration based on keyboard input
             float accel_amount = ctrl.speed;  // Use speed as acceleration rate
-            
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) || 
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
                 acc.ax = -accel_amount;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
                 acc.ax = accel_amount;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
                 acc.ay = -accel_amount;
             }
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) || 
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down) ||
                 sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
                 acc.ay = accel_amount;
             }
@@ -186,8 +183,7 @@ void acceleration_control_system(registry& reg, float dt)
 
 // SYSTEM 5: looping_system
 // Makes entities wrap around screen boundaries
-void looping_system(registry& reg)
-{
+void looping_system(registry& reg) {
     auto& positions = reg.get_components<position>();
     auto& loopings = reg.get_components<looping>();
     auto& drawables = reg.get_components<drawable>();
@@ -203,7 +199,7 @@ void looping_system(registry& reg)
             // Get entity size (default to 50x50 if no drawable component)
             float entity_width = 50.0f;
             float entity_height = 50.0f;
-            
+
             if (i < drawables.size() && drawables[i]) {
                 auto& draw = drawables[i].value();
                 sf::Vector2f size = draw.shape.getSize();
