@@ -311,10 +311,16 @@ build_project() {
     local TARGET="${1:-all}"
     print_step "Building $TARGET ($BUILD_TYPE mode)..."
     local ACTUAL_BUILD_DIR="$BUILD_DIR"
-    if [ -f "CMakeUserPresets.json" ] && [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
+    if [ -f "CMakeUserPresets.json" ] && [ -d "$BUILD_DIR/build/$BUILD_TYPE" ] && [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
         ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    elif [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR"
     fi
-    cd "$ACTUAL_BUILD_DIR"
+
+    if ! cd "$ACTUAL_BUILD_DIR" 2>/dev/null; then
+        print_error "Could not change to build directory: $ACTUAL_BUILD_DIR"
+        exit 1
+    fi
     local BUILD_ARGS=(
         "--build" "."
         "--config" "$BUILD_TYPE"
