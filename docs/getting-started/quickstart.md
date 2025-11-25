@@ -179,6 +179,9 @@ Options:
   -h, --help              Show help message
 ```
 
+!!! info "Dual-Loop Architecture"
+    The server now uses a dual-loop architecture (game loop + network loop). Game logic places responses in an output queue, and the network loop (ASIO) performs UDP sends asynchronously — by default, responses are sent via unicast to the target client (no automatic global broadcast).
+
 ### Client Options
 
 ```bash

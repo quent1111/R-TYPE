@@ -1,6 +1,10 @@
 function(set_project_warnings target_name)
     option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" OFF)
 
+    if(CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${target_name} INTERFACE -isystem ${CONAN_INCLUDE_DIRS})
+    endif()
+
     set(MSVC_WARNINGS
         /W4
         /w14242
@@ -37,7 +41,6 @@ function(set_project_warnings target_name)
         -Wpedantic
         -Wconversion
         -Wsign-conversion
-        -Wnull-dereference
         -Wdouble-promotion
         -Wformat=2
     )
