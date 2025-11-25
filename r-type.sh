@@ -231,7 +231,6 @@ install_dependencies() {
         "-c" "tools.system.package_manager:mode=install"
         "-c" "tools.system.package_manager:sudo=True"
     )
-    # Force freetype build on macOS ARM64 to avoid x86_64 binaries
     if [[ "$OSTYPE" == "darwin"* ]] && [[ "$(uname -m)" == "arm64" ]]; then
         CONAN_ARGS+=("--build=freetype/*")
     fi
@@ -311,10 +310,30 @@ build_project() {
     local TARGET="${1:-all}"
     print_step "Building $TARGET ($BUILD_TYPE mode)..."
     local ACTUAL_BUILD_DIR="$BUILD_DIR"
-    if [ -f "CMakeUserPresets.json" ] && [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
-        ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    if [ -f "CMakeUserPresets.json" ]; then
+        if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+            ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+        else
+            print_warning "CMake presets detected but preset build directory is not configured. Attempting to configure presets..."
+            configure_cmake
+            if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+                ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+            else
+                print_error "Preset configuration failed. Run './r-type.sh rebuild' or configure manually."
+                exit 1
+            fi
+        fi
+    elif [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR"
+    else
+        print_error "No CMake cache found in build directories. Run './r-type.sh build' to configure." 
+        exit 1
     fi
-    cd "$ACTUAL_BUILD_DIR"
+
+    if ! cd "$ACTUAL_BUILD_DIR" 2>/dev/null; then
+        print_error "Could not change to build directory: $ACTUAL_BUILD_DIR"
+        exit 1
+    fi
     local BUILD_ARGS=(
         "--build" "."
         "--config" "$BUILD_TYPE"
@@ -502,7 +521,7 @@ parse_options() {
 
 main() {
     parse_options "$@"
-    COMMAND="${1:-build}"  # Global variable
+    COMMAND="${1:-build}"
     shift || true
     case "$COMMAND" in
         build)
