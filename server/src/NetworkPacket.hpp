@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <asio.hpp>
+
+#include <vector>
 
 struct NetworkPacket {
     std::vector<uint8_t> data;

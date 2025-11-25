@@ -1,4 +1,4 @@
-template<typename T>
+template <typename T>
 class ThreadSafeQueue {
 private:
     std::queue<T> queue_;

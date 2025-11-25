@@ -1,10 +1,12 @@
+#include "NetworkPacket.hpp"
 #include "UDPServer.hpp"
+
+#include <csignal>
+
+#include <atomic>
+#include <chrono>
 #include <iostream>
 #include <thread>
-#include <chrono>
-#include <atomic>
-#include <csignal>
-#include "NetworkPacket.hpp"
 
 std::atomic<bool> server_running{true};
 
@@ -16,56 +18,53 @@ void signal_handler(int signal) {
 }
 
 void game_loop(UDPServer& server) {
-    std::cout << "Game loop started" << std::endl;
+    std::cout << "[Core] Game loop started at 60 TPS" << std::endl;
 
-    auto last_update = std::chrono::steady_clock::now();
-    const std::chrono::milliseconds tick_duration(16); // FPS(60)
+    const double target_ticks_per_second = 60.0;
+    const std::chrono::duration<double> target_tick_duration(1.0 / target_ticks_per_second);
+    auto last_broadcast = std::chrono::steady_clock::now();
+    auto last_cleanup = std::chrono::steady_clock::now();
+
+    auto frame_start_time = std::chrono::steady_clock::now();
 
     while (server_running) {
-        auto now = std::chrono::steady_clock::now();
-        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_update);
-
-        if (delta_time >= tick_duration) {
-            last_update = now;
-
-            NetworkPacket packet;
-            while (server.get_input_packet(packet)) {
-                std::cout << "[GAME] Processing packet from "
-                          << packet.sender.address().to_string()
-                          << ": " << packet.data.size() << " bytes" << std::endl;
-
-                if (!packet.data.empty()) {
-                    std::vector<uint8_t> response = packet.data;
-                    std::cout << packet.sender.address().to_string() << ":" << packet.sender.port() << std::endl;
-                    NetworkPacket response_packet(response, packet.sender);
-                    server.queue_output_packet(response_packet);
-                }
-            }
-            static int counter = 0;
-
-            //Envoyer un message a tout le monde
-            if (++counter % 600 == 0) {
-                std::string msg = "[GAME] Message send to all clients";
-                std::vector<uint8_t> broadcast_data(msg.begin(), msg.end());
-                server.send_to_all(broadcast_data);
-                std::cout << "[GAME] Sent broadcast to "
-                          << server.get_client_count() << " clients" << std::endl;
-            }
-
-            // Enlever les clients inactifs toutes les 50 secondes
-            if (counter % 3000 == 0) {
-                server.remove_inactive_clients(std::chrono::seconds(30));
+        frame_start_time = std::chrono::steady_clock::now();
+        NetworkPacket packet;
+        while (server.get_input_packet(packet)) {
+            if (!packet.data.empty()) {
+                NetworkPacket response_packet(packet.data, packet.sender);
+                server.queue_output_packet(response_packet);
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        if (frame_start_time - last_broadcast > std::chrono::seconds(10)) {
+            std::string msg = "[GAME] Broadcast message (10s)";
+            std::vector<uint8_t> broadcast_data(msg.begin(), msg.end());
+            server.send_to_all(broadcast_data);
+
+            std::cout << "[GAME] Broadcast sent." << std::endl;
+            last_broadcast = frame_start_time;
+        }
+
+        if (frame_start_time - last_cleanup > std::chrono::seconds(30)) {
+            server.remove_inactive_clients(std::chrono::seconds(30));
+            std::cout << "[GAME] Cleanup performed." << std::endl;
+            last_cleanup = frame_start_time;
+        }
+
+        auto execution_time = std::chrono::steady_clock::now() - frame_start_time;
+        if (execution_time < target_tick_duration) {
+            auto time_to_sleep = target_tick_duration - execution_time;
+            std::this_thread::sleep_for(time_to_sleep);
+        }
     }
-    std::cout << "Game loop stopped" << std::endl;
+    std::cout << "[Core] Game loop stopped" << std::endl;
 }
 
 void network_loop(UDPServer& server) {
-    std::cout << "Network loop started" << std::endl;
+    std::cout << "[Core] Network loop started" << std::endl;
     server.run_network_loop();
-    std::cout << "Network loop stopped" << std::endl;
+    std::cout << "[Core] Network loop stopped" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -77,18 +76,20 @@ int main(int argc, char** argv) {
         port = static_cast<unsigned short>(std::stoi(argv[1]));
     }
 
-    std::cout << "R-Type Server Starting" << std::endl;
+    std::cout << "R-Type Server Starting..." << std::endl;
     std::cout << "Port: " << port << std::endl;
 
     try {
         asio::io_context io_context;
         UDPServer server(io_context, port);
+
         std::thread network_thread(network_loop, std::ref(server));
         std::thread game_thread(game_loop, std::ref(server));
         std::cout << "Server running... Press Ctrl+C to stop" << std::endl;
         game_thread.join();
         server.stop();
         network_thread.join();
+
         std::cout << "Server stopped successfully" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Server error: " << e.what() << std::endl;
