@@ -15,6 +15,11 @@ public:
         queue_.push(item);
     }
 
+    void push(T&& item) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        queue_.push(std::move(item));
+    }
+
     bool try_pop(T& item) {
         std::lock_guard<std::mutex> lock(mutex_);
         if (queue_.empty()) {

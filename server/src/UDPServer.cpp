@@ -45,16 +45,15 @@ void UDPServer::start_receive() {
 void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received > 0) {
         if (bytes_received >= 2) {
-            uint16_t magic_number;
-            std::memcpy(&magic_number, recv_buffer_.data(), sizeof(uint16_t));
-
+            uint16_t magic_number = static_cast<uint16_t>(recv_buffer_[0]) |
+                                    (static_cast<uint16_t>(recv_buffer_[1]) << 8);
             if (magic_number == 0xB542) {
                 std::vector<uint8_t> data(recv_buffer_.begin(),
                                           recv_buffer_.begin() + bytes_received);
-                NetworkPacket packet(data, remote_endpoint_);
+                NetworkPacket packet(std::move(data), remote_endpoint_);
 
                 register_client(remote_endpoint_);
-                input_queue_.push(packet);
+                input_queue_.push(std::move(packet));
             } else {
                 std::cerr << "[Security] Ignored packet with bad Magic Number from "
                           << remote_endpoint_ << std::endl;
@@ -69,8 +68,8 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     }
 }
 
-void UDPServer::queue_output_packet(const NetworkPacket& packet) {
-    asio::post(io_context_, [this, packet]() {
+void UDPServer::queue_output_packet(NetworkPacket packet) {
+    asio::post(io_context_, [this, packet = std::move(packet)]() {
         socket_.async_send_to(asio::buffer(packet.data), packet.sender,
                               [](std::error_code ec, std::size_t /*bytes_sent*/) {
                                   if (ec) {
@@ -166,6 +165,7 @@ void UDPServer::run_network_loop() {
 
 void UDPServer::stop() {
     running_ = false;
+    work_guard_.reset();
     io_context_.stop();
     socket_.close();
 }

@@ -49,7 +49,7 @@ public:
 
     // Interface Jeu
     bool get_input_packet(NetworkPacket& packet);
-    void queue_output_packet(const NetworkPacket& packet);
+    void queue_output_packet(NetworkPacket packet);
 
     size_t get_input_queue_size() const;
 
