@@ -30,7 +30,10 @@ private:
     sf::RenderWindow& m_window;
     std::unique_ptr<ui::MenuBackground> m_background;
     std::unique_ptr<ui::MenuTitle> m_title;
+    std::unique_ptr<ui::MenuFooter> m_footer;
     std::vector<std::unique_ptr<ui::Button>> m_buttons;
+    std::vector<std::unique_ptr<ui::CornerDecoration>> m_corners;
+    std::vector<std::unique_ptr<ui::SidePanel>> m_side_panels;
     std::string m_next_state;
     sf::Vector2f m_mouse_pos;
 };

@@ -3,6 +3,7 @@
 #include <SFML/Graphics.hpp>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace rtype::ui {
 
@@ -20,27 +21,45 @@ public:
     void set_colors(const sf::Color& normal, const sf::Color& hover, const sf::Color& pressed);
 
 private:
-    sf::RectangleShape m_shape;
+    sf::ConvexShape m_shape;
+    sf::ConvexShape m_inner_shape;
+    std::vector<sf::ConvexShape> m_glow_layers;
+    std::vector<sf::RectangleShape> m_side_lines;
+    std::vector<sf::CircleShape> m_corner_dots;
+    sf::RectangleShape m_scan_line;
     sf::Text m_text;
     sf::Font m_font;
     std::function<void()> m_callback;
+    sf::Vector2f m_position;
+    sf::Vector2f m_size;
     sf::Color m_normal_color{70, 70, 70};
     sf::Color m_hover_color{100, 100, 100};
     sf::Color m_pressed_color{50, 50, 50};
     bool m_is_hovered{false};
     bool m_is_pressed{false};
+    float m_hover_time{0.0f};
+    float m_scan_time{0.0f};
 };
 
 class MenuTitle {
 public:
     MenuTitle(const std::string& text, const sf::Vector2f& position, unsigned int size = 72);
 
+    void update(float dt);
     void render(sf::RenderWindow& window);
     void set_text(const std::string& text);
+    bool has_logo() const { return m_has_logo; }
 
 private:
     sf::Text m_text;
+    sf::Text m_shadow;
     sf::Font m_font;
+    sf::Texture m_logo_texture;
+    sf::Sprite m_logo_sprite;
+    sf::RectangleShape m_logo_glow;
+    bool m_has_logo{false};
+    float m_glow_time{0.0f};
+    std::vector<sf::CircleShape> m_particles;
 };
 
 class MenuBackground {
@@ -51,9 +70,75 @@ public:
     void render(sf::RenderWindow& window);
 
 private:
+    struct Star {
+        sf::Vector2f position;
+        float speed;
+        float size;
+        sf::Color color;
+    };
+
     sf::RectangleShape m_background;
-    sf::RectangleShape m_overlay;
-    float m_pulse_time{0.0f};
+    std::vector<Star> m_stars;
+    std::vector<sf::RectangleShape> m_grid_lines;
+    float m_time{0.0f};
+};
+
+class ParticleEffect {
+public:
+    ParticleEffect(const sf::Vector2f& position);
+
+    void update(float dt);
+    void render(sf::RenderWindow& window);
+    bool is_alive() const;
+
+private:
+    struct Particle {
+        sf::Vector2f position;
+        sf::Vector2f velocity;
+        float lifetime;
+        float max_lifetime;
+        sf::Color color;
+    };
+
+    std::vector<Particle> m_particles;
+};
+
+class MenuFooter {
+public:
+    MenuFooter(const sf::Vector2u& window_size);
+    void render(sf::RenderWindow& window);
+
+private:
+    sf::Text m_version_text;
+    sf::Text m_copyright_text;
+    sf::Font m_font;
+    std::vector<sf::RectangleShape> m_decorative_lines;
+};
+
+class CornerDecoration {
+public:
+    CornerDecoration(const sf::Vector2f& position, bool flip_x, bool flip_y);
+    void update(float dt);
+    void render(sf::RenderWindow& window);
+
+private:
+    std::vector<sf::RectangleShape> m_lines;
+    std::vector<sf::CircleShape> m_dots;
+    float m_glow_time{0.0f};
+};
+
+class SidePanel {
+public:
+    SidePanel(const sf::Vector2f& position, bool is_left);
+    void update(float dt);
+    void render(sf::RenderWindow& window);
+
+private:
+    std::vector<sf::RectangleShape> m_bars;
+    std::vector<sf::CircleShape> m_indicators;
+    sf::Text m_label;
+    sf::Font m_font;
+    float m_anim_time{0.0f};
 };
 
 } // namespace rtype::ui

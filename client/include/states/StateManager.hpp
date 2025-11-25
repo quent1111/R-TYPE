@@ -30,7 +30,6 @@ public:
 private:
     std::stack<std::unique_ptr<IState>> m_states;
     std::map<std::string, std::function<std::unique_ptr<IState>()>> m_factories;
-    
     std::string m_pending_transition;
     enum class TransitionType { None, Push, Pop, Change };
     TransitionType m_transition_type = TransitionType::None;
