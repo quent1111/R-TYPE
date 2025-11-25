@@ -87,9 +87,8 @@ void UDPServer::send_to_all(const std::vector<uint8_t>& data)
     }
 }
 
-
-    void UDPServer::send_to_client(int client_id, const std::vector<uint8_t>& data)
-    {
+void UDPServer::send_to_client(int client_id, const std::vector<uint8_t>& data)
+{
     std::lock_guard<std::mutex> lock(clients_mutex_);
     auto it = clients_.find(client_id);
     if (it != clients_.end()) {
@@ -134,6 +133,7 @@ void UDPServer::process_output_queue()
 {
     NetworkPacket packet;
     while (output_queue_.try_pop(packet)) {
+        // Implémenter protocole RFC
         send_to_endpoint(packet.sender, packet.data);
     }
 }

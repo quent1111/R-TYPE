@@ -60,6 +60,40 @@ UDP-based networking for real-time multiplayer:
 
 Learn more: [Network Architecture](network.md)
 
+### UDP Server (network thread)
+
+The network server now uses a dual-loop architecture: the game loop executes game logic while a separate network loop handles UDP I/O (ASIO) and packet sending. This separates deterministic game processing from asynchronous I/O operations.
+
+- Asynchronous packet reception via ASIO
+- Client registration and tracking (map id -> endpoint)
+- Thread-safe input queue (input_queue_) for the game loop
+- Thread-safe output queue (output_queue_) for sending responses
+- Output processing: targeted unicast sending to the sender's endpoint via `send_to_endpoint()` — global broadcast is no longer the default
+- `stop()` method available for cleanly shutting down the network loop
+
+Simplified API (extract):
+
+```cpp
+class UDPServer {
+public:
+    UDPServer(asio::io_context& io, unsigned short port);
+    ~UDPServer();
+
+    bool get_input_packet(NetworkPacket& packet);
+    void queue_output_packet(const NetworkPacket& packet);
+    void process_output_queue(); // sends unicast to packet.sender
+    void send_to_endpoint(const asio::ip::udp::endpoint& ep, const std::vector<uint8_t>& data);
+    void send_to_client(int client_id, const std::vector<uint8_t>& data);
+    void stop();
+};
+```
+
+Implications:
+
+- Game logic responses must be packaged in `NetworkPacket` including the recipient's `endpoint` (`packet.sender`) or client ID.
+- The network loop handles actual sending (calls to `socket_.async_send_to`); the game loop performs no blocking network operations.
+
+
 ## Project Structure
 
 ```
@@ -133,7 +167,8 @@ R-TYPE/
 │  4. Run Game Logic                      │
 │  5. Detect Collisions                   │
 │  6. Serialize State                     │
-│  7. Broadcast to Clients                │
+│  7. Enqueue responses to clients        │
+│     (unicast/targeted)                  │
 └─────────────────────────────────────────┘
 ```
 
@@ -212,7 +247,7 @@ Components are stored in `SparseArray` for:
 
 ```
 Main Thread:       Game Loop, Rendering
-Network Thread:    Send/Receive Packets
+Network Thread:    ASIO I/O (poll) + output queue processing
 Audio Thread:      Sound Processing
 Loading Thread:    Asset Streaming
 ```
