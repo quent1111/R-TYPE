@@ -77,9 +77,36 @@ private:
         sf::Color color;
     };
 
+    struct AnimatedShip {
+        sf::Sprite sprite;
+        std::vector<sf::IntRect> frames;
+        size_t current_frame;
+        float frame_duration;
+        float time_accumulator;
+        sf::Vector2f position;
+        sf::Vector2f velocity;
+        float scale;
+        float rotation_speed;
+    };
+
+    struct Asteroid {
+        sf::Sprite sprite;
+        sf::Vector2f position;
+        sf::Vector2f velocity;
+        float rotation;
+        float rotation_speed;
+        float scale;
+    };
+
     sf::RectangleShape m_background;
+    sf::Texture m_background_texture;
+    sf::Sprite m_background_sprite;
     std::vector<Star> m_stars;
-    std::vector<sf::RectangleShape> m_grid_lines;
+    std::vector<AnimatedShip> m_ships;
+    std::vector<sf::Texture> m_ship_textures;
+    std::vector<Asteroid> m_asteroids;
+    std::vector<sf::Texture> m_asteroid_textures;
+    sf::Vector2u m_window_size;
     float m_time{0.0f};
 };
 
