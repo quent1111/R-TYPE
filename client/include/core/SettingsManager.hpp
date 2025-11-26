@@ -17,6 +17,8 @@ public:
     bool save_to_file(const std::string& filename = "settings.ini");
     void set_resolution(unsigned int width, unsigned int height);
     sf::VideoMode get_resolution() const;
+    unsigned int get_resolution_width() const { return m_resolution_width; }
+    unsigned int get_resolution_height() const { return m_resolution_height; }
     void set_fullscreen(bool fullscreen);
     bool is_fullscreen() const { return m_fullscreen; }
     void set_vsync(bool vsync);

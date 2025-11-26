@@ -55,11 +55,11 @@ void SettingsManager::parse_line(const std::string& line) {
         } else if (key == "show_fps") {
             m_show_fps = (value == "true" || value == "1");
         } else if (key == "graphics_quality") {
-            m_graphics_quality = std::stoi(value);
+            m_graphics_quality = std::max(0, std::min(3, std::stoi(value)));
         } else if (key == "music_volume") {
-            m_music_volume = std::stoi(value);
+            m_music_volume = std::max(0, std::min(100, std::stoi(value)));
         } else if (key == "sfx_volume") {
-            m_sfx_volume = std::stoi(value);
+            m_sfx_volume = std::max(0, std::min(100, std::stoi(value)));
         }
     } catch (const std::invalid_argument& e) {
         std::cerr << "[SettingsManager] Warning: Invalid value for '" << key << "': '" << value
