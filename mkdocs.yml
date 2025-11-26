@@ -78,6 +78,7 @@ nav:
       - Code Style: developer-guide/code-style.md
       - Git Workflow: developer-guide/git-workflow.md
       - Testing: developer-guide/testing.md
+      - Technical Choices: developer-guide/technical-choices.md
   - API Reference:
       - Client API: api/client.md
       - Server API: api/server.md
