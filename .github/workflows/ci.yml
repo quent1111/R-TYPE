@@ -273,7 +273,7 @@ jobs:
         if [ "${{ needs.code-quality.result }}" == "success" ] && \
            [ "${{ needs.build-and-test.result }}" == "success" ] && \
            [ "${{ needs.build-matrix.result }}" == "success" ]; then
-          echo "###  All checks passed!" >> $GITHUB_STEP_SUMMARY
+          echo "###  All checks passed!!" >> $GITHUB_STEP_SUMMARY
         else
           echo "###  Some checks failed" >> $GITHUB_STEP_SUMMARY
         fi
