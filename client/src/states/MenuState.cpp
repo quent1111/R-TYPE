@@ -7,6 +7,12 @@ MenuState::MenuState(sf::RenderWindow& window) : m_window(window) {}
 
 void MenuState::on_enter() {
     std::cout << "[MenuState] Entering menu\n";
+    m_buttons.clear();
+    m_corners.clear();
+    m_side_panels.clear();
+    m_background.reset();
+    m_title.reset();
+    m_footer.reset();
     setup_ui();
 }
 

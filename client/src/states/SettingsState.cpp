@@ -70,45 +70,49 @@ void SettingsState::setup_ui() {
     if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
         std::cerr << "Warning: Could not load font for settings\n";
     }
-    float panel_width = 900.0f;
-    float panel_height = 600.0f;
+    float panel_width = std::min(900.0f, static_cast<float>(window_size.x) * 0.85f);
+    float panel_height = std::min(600.0f, static_cast<float>(window_size.y) * 0.75f);
     float panel_x = (static_cast<float>(window_size.x) - panel_width) / 2.0f;
-    float panel_y = 180.0f;
-    float line_height = 70.0f;
+    float panel_y = std::min(180.0f, static_cast<float>(window_size.y) * 0.15f);
+    float line_height = panel_height / 8.5f;
     std::vector<std::string> labels = {
         "Resolution:",
         "Fullscreen:",
         "VSync:",
-        "Graphics Quality:",
+        "Quality:",
         "Show FPS:",
-        "Music Volume:",
-        "SFX Volume:"
+        "Music:",
+        "SFX:"
     };
     m_settings_labels.clear();
     m_settings_values.clear();
+    unsigned int text_size = static_cast<unsigned int>(std::max(14.0f, std::min(28.0f, static_cast<float>(window_size.y) * 0.026f)));
+    float label_padding = panel_width * 0.04f;
+    float value_offset = panel_width * 0.35f;
+    float vertical_start_offset = line_height * 0.3f;
     for (size_t i = 0; i < labels.size(); ++i) {
         sf::Text label;
         label.setFont(m_font);
         label.setString(labels[i]);
-        label.setCharacterSize(28);
+        label.setCharacterSize(text_size);
         label.setFillColor(sf::Color(200, 200, 255));
-        label.setPosition(panel_x + 50.0f, panel_y + static_cast<float>(i) * line_height);
+        label.setPosition(panel_x + label_padding, panel_y + vertical_start_offset + static_cast<float>(i) * line_height);
         m_settings_labels.push_back(label);
         sf::Text value;
         value.setFont(m_font);
-        value.setCharacterSize(28);
+        value.setCharacterSize(text_size);
         value.setFillColor(sf::Color::White);
-        value.setPosition(panel_x + panel_width - 350.0f, panel_y + static_cast<float>(i) * line_height);
+        value.setPosition(panel_x + value_offset, panel_y + vertical_start_offset + static_cast<float>(i) * line_height);
         m_settings_values.push_back(value);
     }
     update_settings_display();
     m_buttons.clear();
-    float button_y = panel_y;
-    float button_x_left = panel_x + panel_width - 200.0f;
-    float button_x_right = panel_x + panel_width - 110.0f;
-    float small_button_width = 60.0f;
-    float small_button_height = 32.0f;
-    float toggle_button_width = 130.0f;
+    float button_y = panel_y + vertical_start_offset;
+    float button_x_left = panel_x + panel_width * 0.778f;
+    float button_x_right = panel_x + panel_width * 0.878f;
+    float small_button_width = std::max(40.0f, std::min(60.0f, panel_width * 0.067f));
+    float small_button_height = std::max(24.0f, std::min(32.0f, line_height * 0.46f));
+    float toggle_button_width = std::max(90.0f, std::min(130.0f, panel_width * 0.144f));
     auto res_left = std::make_unique<ui::Button>(
         sf::Vector2f(button_x_left, button_y + 5.0f),
         sf::Vector2f(small_button_width, small_button_height), "<");
@@ -203,10 +207,10 @@ void SettingsState::setup_ui() {
                           sf::Color(100, 150, 255));
     sfx_right->set_callback([this]() { change_volume("sfx", 10); });
     m_buttons.push_back(std::move(sfx_right));
-    float bottom_button_y = panel_y + panel_height + 50.0f;
-    float button_width = 180.0f;
-    float button_height = 50.0f;
-    float button_spacing = 30.0f;
+    float bottom_button_y = panel_y + panel_height + std::min(50.0f, static_cast<float>(window_size.y) * 0.05f);
+    float button_width = std::min(180.0f, panel_width * 0.25f);
+    float button_height = std::min(50.0f, static_cast<float>(window_size.y) * 0.06f);
+    float button_spacing = std::min(30.0f, panel_width * 0.05f);
     auto reset_btn = std::make_unique<ui::Button>(
         sf::Vector2f(static_cast<float>(window_size.x) / 2.0f - button_width * 1.5f - button_spacing, bottom_button_y),
         sf::Vector2f(button_width, button_height), "RESET");
