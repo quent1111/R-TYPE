@@ -52,7 +52,6 @@ private:
     int m_sfx_volume;
     int m_quality_index;
     std::vector<sf::VideoMode> m_available_resolutions;
-    sf::Font m_font;
     std::vector<sf::Text> m_settings_labels;
     std::vector<sf::Text> m_settings_values;
     bool m_window_settings_changed;

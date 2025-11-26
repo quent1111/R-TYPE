@@ -1,4 +1,5 @@
 #include "ui/MenuComponents.hpp"
+#include "core/FontManager.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -75,21 +76,20 @@ Button::Button(const sf::Vector2f& position, const sf::Vector2f& size,
     m_scan_line.setFillColor(sf::Color(100, 220, 255, 0));
     m_scan_line.setPosition(position + sf::Vector2f(15.0f, 0));
 
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: Could not load font for button\n";
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (font) {
+        m_text.setFont(*font);
+        m_text.setString(text);
+        m_text.setCharacterSize(24);
+        m_text.setFillColor(sf::Color(220, 220, 220));
+        m_text.setStyle(sf::Text::Bold);
+        m_text.setLetterSpacing(1.5f);
+
+        sf::FloatRect text_bounds = m_text.getLocalBounds();
+        m_text.setOrigin(text_bounds.left + text_bounds.width / 2.0f,
+                         text_bounds.top + text_bounds.height / 2.0f);
+        m_text.setPosition(position.x + size.x / 2.0f, position.y + size.y / 2.0f);
     }
-
-    m_text.setFont(m_font);
-    m_text.setString(text);
-    m_text.setCharacterSize(24);
-    m_text.setFillColor(sf::Color(220, 220, 220));
-    m_text.setStyle(sf::Text::Bold);
-    m_text.setLetterSpacing(1.5f);
-
-    sf::FloatRect text_bounds = m_text.getLocalBounds();
-    m_text.setOrigin(text_bounds.left + text_bounds.width / 2.0f,
-                     text_bounds.top + text_bounds.height / 2.0f);
-    m_text.setPosition(position.x + size.x / 2.0f, position.y + size.y / 2.0f);
 }
 
 void Button::handle_mouse_move(const sf::Vector2f& mouse_pos) {
@@ -237,32 +237,31 @@ MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position,
         m_logo_sprite.setScale(0.7f, 0.7f);
         m_logo_sprite.setPosition(position);
     }
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: Could not load font for title\n";
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (font) {
+        m_text.setFont(*font);
+        m_text.setString(text);
+        m_text.setCharacterSize(size);
+        m_text.setFillColor(sf::Color(100, 200, 255));
+        m_text.setStyle(sf::Text::Bold);
+        m_text.setOutlineThickness(3.0f);
+        m_text.setOutlineColor(sf::Color(0, 100, 200));
+
+        m_shadow.setFont(*font);
+        m_shadow.setString(text);
+        m_shadow.setCharacterSize(size);
+        m_shadow.setFillColor(sf::Color(0, 50, 100, 150));
+        m_shadow.setStyle(sf::Text::Bold);
+
+        sf::FloatRect bounds = m_text.getLocalBounds();
+        m_text.setOrigin(bounds.left + bounds.width / 2.0f,
+                         bounds.top + bounds.height / 2.0f);
+        m_text.setPosition(position);
+
+        m_shadow.setOrigin(bounds.left + bounds.width / 2.0f,
+                           bounds.top + bounds.height / 2.0f);
+        m_shadow.setPosition(position.x + 5.0f, position.y + 5.0f);
     }
-
-    m_text.setFont(m_font);
-    m_text.setString(text);
-    m_text.setCharacterSize(size);
-    m_text.setFillColor(sf::Color(100, 200, 255));
-    m_text.setStyle(sf::Text::Bold);
-    m_text.setOutlineThickness(3.0f);
-    m_text.setOutlineColor(sf::Color(0, 100, 200));
-
-    m_shadow.setFont(m_font);
-    m_shadow.setString(text);
-    m_shadow.setCharacterSize(size);
-    m_shadow.setFillColor(sf::Color(0, 50, 100, 150));
-    m_shadow.setStyle(sf::Text::Bold);
-
-    sf::FloatRect bounds = m_text.getLocalBounds();
-    m_text.setOrigin(bounds.left + bounds.width / 2.0f,
-                     bounds.top + bounds.height / 2.0f);
-    m_text.setPosition(position);
-
-    m_shadow.setOrigin(bounds.left + bounds.width / 2.0f,
-                       bounds.top + bounds.height / 2.0f);
-    m_shadow.setPosition(position.x + 5.0f, position.y + 5.0f);
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -590,25 +589,24 @@ bool ParticleEffect::is_alive() const {
 }
 
 MenuFooter::MenuFooter(const sf::Vector2u& window_size) {
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: Could not load font for footer\n";
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (font) {
+        m_version_text.setFont(*font);
+        m_version_text.setString("R-TYPE v1.0.0");
+        m_version_text.setCharacterSize(16);
+        m_version_text.setFillColor(sf::Color(100, 150, 200, 180));
+        m_version_text.setPosition(20.0f, static_cast<float>(window_size.y) - 30.0f);
+
+        m_copyright_text.setFont(*font);
+        m_copyright_text.setString("(C) 2025 - Epitech Project");
+        m_copyright_text.setCharacterSize(14);
+        m_copyright_text.setFillColor(sf::Color(80, 120, 160, 150));
+        sf::FloatRect bounds = m_copyright_text.getLocalBounds();
+        m_copyright_text.setPosition(
+            static_cast<float>(window_size.x) - bounds.width - 20.0f,
+            static_cast<float>(window_size.y) - 30.0f
+        );
     }
-
-    m_version_text.setFont(m_font);
-    m_version_text.setString("R-TYPE v1.0.0");
-    m_version_text.setCharacterSize(16);
-    m_version_text.setFillColor(sf::Color(100, 150, 200, 180));
-    m_version_text.setPosition(20.0f, static_cast<float>(window_size.y) - 30.0f);
-
-    m_copyright_text.setFont(m_font);
-    m_copyright_text.setString("(C) 2025 - Epitech Project");
-    m_copyright_text.setCharacterSize(14);
-    m_copyright_text.setFillColor(sf::Color(80, 120, 160, 150));
-    sf::FloatRect bounds = m_copyright_text.getLocalBounds();
-    m_copyright_text.setPosition(
-        static_cast<float>(window_size.x) - bounds.width - 20.0f,
-        static_cast<float>(window_size.y) - 30.0f
-    );
 
     sf::RectangleShape line;
     line.setSize(sf::Vector2f(static_cast<float>(window_size.x) - 40.0f, 1.0f));
@@ -681,15 +679,14 @@ void CornerDecoration::render(sf::RenderWindow& window) {
 }
 
 SidePanel::SidePanel(const sf::Vector2f& position, bool is_left) {
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
-        std::cerr << "Warning: Could not load font for side panel\n";
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (font) {
+        m_label.setFont(*font);
+        m_label.setString(is_left ? "SYS" : "PWR");
+        m_label.setCharacterSize(14);
+        m_label.setFillColor(sf::Color(100, 200, 255, 150));
+        m_label.setPosition(position + sf::Vector2f(is_left ? 10.0f : -30.0f, 10.0f));
     }
-
-    m_label.setFont(m_font);
-    m_label.setString(is_left ? "SYS" : "PWR");
-    m_label.setCharacterSize(14);
-    m_label.setFillColor(sf::Color(100, 200, 255, 150));
-    m_label.setPosition(position + sf::Vector2f(is_left ? 10.0f : -30.0f, 10.0f));
 
     for (int i = 0; i < 5; ++i) {
         sf::RectangleShape bar;

@@ -37,7 +37,6 @@ private:
     sf::Texture m_bg_texture;
     float m_bg_scroll_offset{0.0f};
     const float m_bg_scroll_speed{50.0f};
-    sf::Font m_font;
     sf::Clock m_enemy_spawn_clock;
     const float m_enemy_spawn_interval{3.0f};
     std::string m_next_state;

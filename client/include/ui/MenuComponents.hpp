@@ -28,7 +28,6 @@ private:
     std::vector<sf::CircleShape> m_corner_dots;
     sf::RectangleShape m_scan_line;
     sf::Text m_text;
-    sf::Font m_font;
     std::function<void()> m_callback;
     sf::Vector2f m_position;
     sf::Vector2f m_size;
@@ -53,7 +52,6 @@ public:
 private:
     sf::Text m_text;
     sf::Text m_shadow;
-    sf::Font m_font;
     sf::Texture m_logo_texture;
     sf::Sprite m_logo_sprite;
     sf::RectangleShape m_logo_glow;
@@ -138,7 +136,6 @@ public:
 private:
     sf::Text m_version_text;
     sf::Text m_copyright_text;
-    sf::Font m_font;
     std::vector<sf::RectangleShape> m_decorative_lines;
 };
 
@@ -164,7 +161,6 @@ private:
     std::vector<sf::RectangleShape> m_bars;
     std::vector<sf::CircleShape> m_indicators;
     sf::Text m_label;
-    sf::Font m_font;
     float m_anim_time{0.0f};
 };
 

@@ -23,6 +23,7 @@ link_platform_libraries(r-type_client_old)
 add_executable(r-type_client
     src/main_menu.cpp
     src/core/SettingsManager.cpp
+    src/core/FontManager.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
     src/states/SettingsState.cpp

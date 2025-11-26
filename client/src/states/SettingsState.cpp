@@ -1,5 +1,6 @@
 #include "states/SettingsState.hpp"
 #include "core/SettingsManager.hpp"
+#include "core/FontManager.hpp"
 #include <iostream>
 
 namespace rtype {
@@ -67,9 +68,13 @@ void SettingsState::setup_ui() {
     sf::Vector2f title_pos(static_cast<float>(window_size.x) / 2.0f, 100.0f);
     m_title = std::make_unique<ui::MenuTitle>("SETTINGS", title_pos, 60);
     std::cout << "[SettingsState] Title created\n";
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
+
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (!font) {
         std::cerr << "Warning: Could not load font for settings\n";
+        return;
     }
+
     float panel_width = std::min(900.0f, static_cast<float>(window_size.x) * 0.85f);
     float panel_height = std::min(600.0f, static_cast<float>(window_size.y) * 0.75f);
     float panel_x = (static_cast<float>(window_size.x) - panel_width) / 2.0f;
@@ -92,14 +97,14 @@ void SettingsState::setup_ui() {
     float vertical_start_offset = line_height * 0.3f;
     for (size_t i = 0; i < labels.size(); ++i) {
         sf::Text label;
-        label.setFont(m_font);
+        label.setFont(*font);
         label.setString(labels[i]);
         label.setCharacterSize(text_size);
         label.setFillColor(sf::Color(200, 200, 255));
         label.setPosition(panel_x + label_padding, panel_y + vertical_start_offset + static_cast<float>(i) * line_height);
         m_settings_labels.push_back(label);
         sf::Text value;
-        value.setFont(m_font);
+        value.setFont(*font);
         value.setCharacterSize(text_size);
         value.setFillColor(sf::Color::White);
         value.setPosition(panel_x + value_offset, panel_y + vertical_start_offset + static_cast<float>(i) * line_height);

@@ -1,6 +1,7 @@
 #include "states/GameState.hpp"
 #include "components/game_components.hpp"
 #include "core/SettingsManager.hpp"
+#include "core/FontManager.hpp"
 #include "ecs/components.hpp"
 #include "entities/enemy_factory.hpp"
 #include "entities/player_factory.hpp"
@@ -26,7 +27,8 @@ void GameState::on_exit() {
 }
 
 void GameState::init_game() {
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
+    const sf::Font* font = core::FontManager::instance().get_default_font();
+    if (!font) {
         std::cerr << "Warning: Could not load font for game UI\n";
     }
 
@@ -120,30 +122,36 @@ void GameState::render_ui(sf::RenderWindow& window) {
             health_bar.setFillColor(sf::Color(0, 255, 0));
             window.draw(health_bar);
 
-            sf::Text health_text;
-            health_text.setFont(m_font);
-            health_text.setString("HP: " + std::to_string(hp.current) + " / " +
-                                  std::to_string(hp.maximum));
-            health_text.setCharacterSize(18);
-            health_text.setFillColor(sf::Color::White);
-            health_text.setPosition(15.0f, 11.0f);
-            window.draw(health_text);
+            const sf::Font* font = core::FontManager::instance().get_default_font();
+            if (font) {
+                sf::Text health_text;
+                health_text.setFont(*font);
+                health_text.setString("HP: " + std::to_string(hp.current) + " / " +
+                                      std::to_string(hp.maximum));
+                health_text.setCharacterSize(18);
+                health_text.setFillColor(sf::Color::White);
+                health_text.setPosition(15.0f, 11.0f);
+                window.draw(health_text);
+            }
 
             break;
         }
     }
     auto& settings = SettingsManager::get_instance();
     if (settings.should_show_fps()) {
-        sf::Text fps_text;
-        fps_text.setFont(m_font);
-        fps_text.setString("FPS: " + std::to_string(static_cast<int>(m_fps)));
-        fps_text.setCharacterSize(20);
-        fps_text.setFillColor(sf::Color::Yellow);
-        fps_text.setOutlineColor(sf::Color::Black);
-        fps_text.setOutlineThickness(1.0f);
-        sf::FloatRect bounds = fps_text.getLocalBounds();
-        fps_text.setPosition(static_cast<float>(m_window.getSize().x) - bounds.width - 15.0f, 10.0f);
-        window.draw(fps_text);
+        const sf::Font* font = core::FontManager::instance().get_default_font();
+        if (font) {
+            sf::Text fps_text;
+            fps_text.setFont(*font);
+            fps_text.setString("FPS: " + std::to_string(static_cast<int>(m_fps)));
+            fps_text.setCharacterSize(20);
+            fps_text.setFillColor(sf::Color::Yellow);
+            fps_text.setOutlineColor(sf::Color::Black);
+            fps_text.setOutlineThickness(1.0f);
+            sf::FloatRect bounds = fps_text.getLocalBounds();
+            fps_text.setPosition(static_cast<float>(m_window.getSize().x) - bounds.width - 15.0f, 10.0f);
+            window.draw(fps_text);
+        }
     }
 }
 
