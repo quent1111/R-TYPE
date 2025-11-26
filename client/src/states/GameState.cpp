@@ -142,7 +142,7 @@ void GameState::render_ui(sf::RenderWindow& window) {
         fps_text.setOutlineColor(sf::Color::Black);
         fps_text.setOutlineThickness(1.0f);
         sf::FloatRect bounds = fps_text.getLocalBounds();
-        fps_text.setPosition(m_window.getSize().x - bounds.width - 15.0f, 10.0f);
+        fps_text.setPosition(static_cast<float>(m_window.getSize().x) - bounds.width - 15.0f, 10.0f);
         window.draw(fps_text);
     }
 }

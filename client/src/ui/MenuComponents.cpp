@@ -290,7 +290,6 @@ void MenuTitle::update(float dt) {
 
     if (m_has_logo) {
         float pulse = std::sin(m_glow_time * 1.5f) * 0.005f + 1.0f;
-        sf::FloatRect logo_bounds = m_logo_sprite.getLocalBounds();
         float base_scale = 0.7f;
         m_logo_sprite.setScale(base_scale * pulse, base_scale * pulse);
     }
@@ -388,7 +387,7 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
     for (int i = 0; i < 6; ++i) {
         AnimatedShip ship;
         int type = type_dist(gen);
-        ship.sprite.setTexture(m_ship_textures[type]);
+        ship.sprite.setTexture(m_ship_textures[static_cast<std::size_t>(type)]);
         if (type == 0) {
             ship.frames.push_back(sf::IntRect(99, 0, 33, 17));
             ship.frames.push_back(sf::IntRect(132, 0, 33, 17));
@@ -446,8 +445,8 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
         for (int i = 0; i < 8; ++i) {
             Asteroid asteroid;
             int tex_idx = texture_dist(gen);
-            asteroid.sprite.setTexture(m_asteroid_textures[tex_idx]);
-            auto tex_size = m_asteroid_textures[tex_idx].getSize();
+            asteroid.sprite.setTexture(m_asteroid_textures[static_cast<std::size_t>(tex_idx)]);
+            auto tex_size = m_asteroid_textures[static_cast<std::size_t>(tex_idx)].getSize();
             asteroid.sprite.setOrigin(static_cast<float>(tex_size.x) / 2.0f,
                                      static_cast<float>(tex_size.y) / 2.0f);
             asteroid.scale = asteroid_scale_dist(gen);

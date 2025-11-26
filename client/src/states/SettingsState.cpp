@@ -64,7 +64,7 @@ void SettingsState::setup_ui() {
     m_background = std::make_unique<ui::MenuBackground>(window_size);
     std::cout << "[SettingsState] Background created\n";
     std::cout << "[SettingsState] Creating title...\n";
-    sf::Vector2f title_pos(window_size.x / 2.0f, 100.0f);
+    sf::Vector2f title_pos(static_cast<float>(window_size.x) / 2.0f, 100.0f);
     m_title = std::make_unique<ui::MenuTitle>("SETTINGS", title_pos, 60);
     std::cout << "[SettingsState] Title created\n";
     if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
@@ -72,7 +72,7 @@ void SettingsState::setup_ui() {
     }
     float panel_width = 900.0f;
     float panel_height = 600.0f;
-    float panel_x = (window_size.x - panel_width) / 2.0f;
+    float panel_x = (static_cast<float>(window_size.x) - panel_width) / 2.0f;
     float panel_y = 180.0f;
     float line_height = 70.0f;
     std::vector<std::string> labels = {
@@ -92,13 +92,13 @@ void SettingsState::setup_ui() {
         label.setString(labels[i]);
         label.setCharacterSize(28);
         label.setFillColor(sf::Color(200, 200, 255));
-        label.setPosition(panel_x + 50.0f, panel_y + i * line_height);
+        label.setPosition(panel_x + 50.0f, panel_y + static_cast<float>(i) * line_height);
         m_settings_labels.push_back(label);
         sf::Text value;
         value.setFont(m_font);
         value.setCharacterSize(28);
         value.setFillColor(sf::Color::White);
-        value.setPosition(panel_x + panel_width - 350.0f, panel_y + i * line_height);
+        value.setPosition(panel_x + panel_width - 350.0f, panel_y + static_cast<float>(i) * line_height);
         m_settings_values.push_back(value);
     }
     update_settings_display();
@@ -208,7 +208,7 @@ void SettingsState::setup_ui() {
     float button_height = 50.0f;
     float button_spacing = 30.0f;
     auto reset_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(window_size.x / 2.0f - button_width * 1.5f - button_spacing, bottom_button_y),
+        sf::Vector2f(static_cast<float>(window_size.x) / 2.0f - button_width * 1.5f - button_spacing, bottom_button_y),
         sf::Vector2f(button_width, button_height), "RESET");
     reset_btn->set_colors(sf::Color(80, 80, 50, 200),
                           sf::Color(100, 100, 70, 255),
@@ -216,7 +216,7 @@ void SettingsState::setup_ui() {
     reset_btn->set_callback([this]() { on_reset_defaults_clicked(); });
     m_buttons.push_back(std::move(reset_btn));
     auto apply_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(window_size.x / 2.0f - button_width / 2.0f, bottom_button_y),
+        sf::Vector2f(static_cast<float>(window_size.x) / 2.0f - button_width / 2.0f, bottom_button_y),
         sf::Vector2f(button_width, button_height), "APPLY");
     apply_btn->set_colors(sf::Color(50, 100, 50, 200),
                           sf::Color(70, 130, 70, 255),
@@ -224,7 +224,7 @@ void SettingsState::setup_ui() {
     apply_btn->set_callback([this]() { on_apply_clicked(); });
     m_buttons.push_back(std::move(apply_btn));
     auto back_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(window_size.x / 2.0f + button_width / 2.0f + button_spacing, bottom_button_y),
+        sf::Vector2f(static_cast<float>(window_size.x) / 2.0f + button_width / 2.0f + button_spacing, bottom_button_y),
         sf::Vector2f(button_width, button_height), "BACK");
     back_btn->set_colors(sf::Color(80, 50, 50, 200),
                          sf::Color(120, 70, 70, 255),
@@ -235,14 +235,14 @@ void SettingsState::setup_ui() {
 
 void SettingsState::update_settings_display() {
     if (m_settings_values.size() >= 7) {
-        auto& res = m_available_resolutions[m_resolution_index];
+        auto& res = m_available_resolutions[static_cast<std::size_t>(m_resolution_index)];
         m_settings_values[0].setString(std::to_string(res.width) + "x" + std::to_string(res.height));
         m_settings_values[1].setString(m_fullscreen ? "ON" : "OFF");
         m_settings_values[1].setFillColor(m_fullscreen ? sf::Color(100, 255, 100) : sf::Color::White);
         m_settings_values[2].setString(m_vsync ? "ON" : "OFF");
         m_settings_values[2].setFillColor(m_vsync ? sf::Color(100, 255, 100) : sf::Color::White);
         std::vector<std::string> quality_names = {"LOW", "MEDIUM", "HIGH", "ULTRA"};
-        m_settings_values[3].setString(quality_names[m_quality_index]);
+        m_settings_values[3].setString(quality_names[static_cast<std::size_t>(m_quality_index)]);
         m_settings_values[4].setString(m_show_fps ? "ON" : "OFF");
         m_settings_values[4].setFillColor(m_show_fps ? sf::Color(100, 255, 100) : sf::Color::White);
         m_settings_values[5].setString(std::to_string(m_music_volume) + "%");
@@ -273,13 +273,13 @@ void SettingsState::toggle_show_fps() {
 void SettingsState::change_resolution(int direction) {
     m_resolution_index += direction;
     if (m_resolution_index < 0) {
-        m_resolution_index = m_available_resolutions.size() - 1;
+        m_resolution_index = static_cast<int>(m_available_resolutions.size()) - 1;
     } else if (m_resolution_index >= static_cast<int>(m_available_resolutions.size())) {
         m_resolution_index = 0;
     }
     m_window_settings_changed = true;
     update_settings_display();
-    auto& res = m_available_resolutions[m_resolution_index];
+    auto& res = m_available_resolutions[static_cast<std::size_t>(m_resolution_index)];
     std::cout << "[SettingsState] Resolution changed to: " << res.width << "x" << res.height << "\n";
 }
 
@@ -292,7 +292,7 @@ void SettingsState::change_quality(int direction) {
     }
     update_settings_display();
     std::vector<std::string> quality_names = {"Low", "Medium", "High", "Ultra"};
-    std::cout << "[SettingsState] Graphics quality changed to: " << quality_names[m_quality_index] << "\n";
+    std::cout << "[SettingsState] Graphics quality changed to: " << quality_names[static_cast<std::size_t>(m_quality_index)] << "\n";
 }
 
 void SettingsState::change_volume(const std::string& type, int direction) {
@@ -312,7 +312,7 @@ void SettingsState::change_volume(const std::string& type, int direction) {
 
 void SettingsState::recreate_window_with_settings() {
     std::cout << "[SettingsState] Recreating window with new settings...\n";
-    auto& res = m_available_resolutions[m_resolution_index];
+    auto& res = m_available_resolutions[static_cast<std::size_t>(m_resolution_index)];
     sf::Uint32 style = m_fullscreen ? sf::Style::Fullscreen : sf::Style::Close;
     m_window.close();
     m_window.create(sf::VideoMode(res.width, res.height), "R-Type", style);
@@ -329,7 +329,7 @@ void SettingsState::recreate_window_with_settings() {
 void SettingsState::on_apply_clicked() {
     std::cout << "[SettingsState] Applying settings...\n";
     auto& settings = SettingsManager::get_instance();
-    auto& res = m_available_resolutions[m_resolution_index];
+    auto& res = m_available_resolutions[static_cast<std::size_t>(m_resolution_index)];
     settings.set_resolution(res.width, res.height);
     settings.set_fullscreen(m_fullscreen);
     settings.set_vsync(m_vsync);
@@ -426,7 +426,7 @@ void SettingsState::render(sf::RenderWindow& window) {
     sf::Vector2u window_size = window.getSize();
     float panel_width = 900.0f;
     float panel_height = 600.0f;
-    float panel_x = (window_size.x - panel_width) / 2.0f;
+    float panel_x = (static_cast<float>(window_size.x) - panel_width) / 2.0f;
     float panel_y = 180.0f;
     sf::RectangleShape panel(sf::Vector2f(panel_width, panel_height));
     panel.setPosition(panel_x, panel_y);

@@ -44,9 +44,9 @@ void SettingsManager::parse_line(const std::string& line) {
     std::string value = trim(line.substr(pos + 1));
 
     if (key == "resolution_width") {
-        m_resolution_width = std::stoi(value);
+        m_resolution_width = static_cast<unsigned int>(std::stoi(value));
     } else if (key == "resolution_height") {
-        m_resolution_height = std::stoi(value);
+        m_resolution_height = static_cast<unsigned int>(std::stoi(value));
     } else if (key == "fullscreen") {
         m_fullscreen = (value == "true" || value == "1");
     } else if (key == "vsync") {
