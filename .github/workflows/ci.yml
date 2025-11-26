@@ -222,45 +222,32 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
 
       - name: Configure Git
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
 
-      - name: Debug token presence
-        env:
-          EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
-        run: |
-          if [ -z "$EPITECH_TOKEN" ]; then
-            echo "❌ Token is empty or not set"
-            exit 1
-          fi
-          echo "✅ Token is present (length: ${#EPITECH_TOKEN})"
-          # Affiche les 4 premiers caractères pour vérifier
-          echo "Token starts with: ${EPITECH_TOKEN:0:4}..."
-
       - name: Push to Epitech repository
         env:
           EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
         run: |
-          if [ -z "$EPITECH_TOKEN" ]; then
-            echo "⚠️ Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
-            exit 0
-          fi
-          # Configuration du remote avec le token
-          echo "🔧 Configuring remote..."
-          git remote add epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
-          # Test de connectivité
-          echo "🔍 Testing repository access..."
-          git ls-remote epitech &> /dev/null || {
-            echo "❌ Error: Cannot access Epitech repository. Check token permissions."
-            exit 1
-          }
+          # Utiliser GIT_ASKPASS pour passer le token
+          echo "echo \$EPITECH_TOKEN" > /tmp/git-askpass.sh
+          chmod +x /tmp/git-askpass.sh
+          export GIT_ASKPASS=/tmp/git-askpass.sh
+          export GIT_USERNAME=x-access-token
+          
+          # Add remote
+          git remote add epitech https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
+          
           # Push
           echo "📤 Pushing to Epitech repository..."
           git push epitech main --force
-          echo "✅ Successfully deployed to Epitech repository!"
+          
+          # Cleanup
+          rm /tmp/git-askpass.sh
 
       - name: Create deployment summary
         if: success()
