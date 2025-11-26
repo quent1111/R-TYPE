@@ -228,6 +228,18 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
 
+      - name: Debug token presence
+        env:
+          EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$EPITECH_TOKEN" ]; then
+            echo "❌ Token is empty or not set"
+            exit 1
+          fi
+          echo "✅ Token is present (length: ${#EPITECH_TOKEN})"
+          # Affiche les 4 premiers caractères pour vérifier
+          echo "Token starts with: ${EPITECH_TOKEN:0:4}..."
+
       - name: Push to Epitech repository
         env:
           EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
