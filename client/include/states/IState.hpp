@@ -9,7 +9,6 @@ namespace rtype {
 class IState {
 public:
     virtual ~IState() = default;
-
     virtual void on_enter() = 0;
     virtual void on_exit() = 0;
     virtual void handle_event(const sf::Event& event) = 0;

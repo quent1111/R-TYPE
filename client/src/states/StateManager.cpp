@@ -1,5 +1,4 @@
 #include "states/StateManager.hpp"
-
 #include <iostream>
 
 namespace rtype {

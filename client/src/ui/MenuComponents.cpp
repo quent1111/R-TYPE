@@ -81,7 +81,7 @@ Button::Button(const sf::Vector2f& position, const sf::Vector2f& size,
 
     m_text.setFont(m_font);
     m_text.setString(text);
-    m_text.setCharacterSize(34);
+    m_text.setCharacterSize(24);
     m_text.setFillColor(sf::Color(220, 220, 220));
     m_text.setStyle(sf::Text::Bold);
     m_text.setLetterSpacing(1.5f);
@@ -340,18 +340,14 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
 
     if (m_background_texture.loadFromFile("assets/galaxie.jpg")) {
         m_background_sprite.setTexture(m_background_texture);
-        
         sf::Vector2u tex_size = m_background_texture.getSize();
         float scale_x = static_cast<float>(window_size.x) / static_cast<float>(tex_size.x);
         float scale_y = static_cast<float>(window_size.y) / static_cast<float>(tex_size.y);
         float scale = std::max(scale_x, scale_y);
-        
         m_background_sprite.setScale(scale, scale);
-        
         float offset_x = (static_cast<float>(window_size.x) - static_cast<float>(tex_size.x) * scale) / 2.0f;
         float offset_y = (static_cast<float>(window_size.y) - static_cast<float>(tex_size.y) * scale) / 2.0f;
         m_background_sprite.setPosition(offset_x, offset_y);
-        
         sf::Color tint = sf::Color::White;
         tint.a = 200;
         m_background_sprite.setColor(tint);
@@ -375,6 +371,7 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
     }
 
     m_ship_textures.resize(2);
+    m_ship_textures.reserve(2);
     if (!m_ship_textures[0].loadFromFile("assets/r-typesheet1.png") ||
         !m_ship_textures[1].loadFromFile("assets/r-typesheet26.png")) {
         std::cerr << "Warning: Failed to load ship textures\n";
@@ -391,9 +388,7 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
     for (int i = 0; i < 6; ++i) {
         AnimatedShip ship;
         int type = type_dist(gen);
-        
         ship.sprite.setTexture(m_ship_textures[type]);
-        
         if (type == 0) {
             ship.frames.push_back(sf::IntRect(99, 0, 33, 17));
             ship.frames.push_back(sf::IntRect(132, 0, 33, 17));
@@ -403,29 +398,22 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
             ship.frames.push_back(sf::IntRect(65, 0, 65, 50));
             ship.frames.push_back(sf::IntRect(130, 0, 65, 50));
         }
-        
         ship.current_frame = 0;
         ship.frame_duration = 0.12f;
         ship.time_accumulator = 0.0f;
         ship.sprite.setTextureRect(ship.frames[0]);
-        
         auto rect = ship.frames[0];
-        ship.sprite.setOrigin(static_cast<float>(rect.width) / 2.0f, 
+        ship.sprite.setOrigin(static_cast<float>(rect.width) / 2.0f,
                               static_cast<float>(rect.height) / 2.0f);
-        
         ship.scale = scale_dist(gen);
         ship.sprite.setScale(ship.scale, ship.scale);
-        
         std::uniform_real_distribution<float> start_x_dist(-200.0f, static_cast<float>(window_size.x));
         ship.position = sf::Vector2f(start_x_dist(gen), y_dist(gen));
         ship.sprite.setPosition(ship.position);
-        
         ship.velocity = sf::Vector2f(speed_x_dist(gen), speed_y_dist(gen));
         ship.rotation_speed = rot_dist(gen);
-        
         sf::Uint8 alpha = static_cast<sf::Uint8>(alpha_dist(gen));
         ship.sprite.setColor(sf::Color(255, 255, 255, alpha));
-        
         m_ships.push_back(ship);
     }
 
@@ -437,10 +425,13 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
         "assets/Asteroids/Asteroid_5.png"
     };
 
+    m_asteroid_textures.reserve(asteroid_files.size());
     for (const auto& file : asteroid_files) {
         sf::Texture tex;
         if (tex.loadFromFile(file)) {
             m_asteroid_textures.push_back(std::move(tex));
+        } else {
+            std::cerr << "Warning: Could not load asteroid texture: " << file << "\n";
         }
     }
 
@@ -456,25 +447,19 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
             Asteroid asteroid;
             int tex_idx = texture_dist(gen);
             asteroid.sprite.setTexture(m_asteroid_textures[tex_idx]);
-            
             auto tex_size = m_asteroid_textures[tex_idx].getSize();
             asteroid.sprite.setOrigin(static_cast<float>(tex_size.x) / 2.0f,
                                      static_cast<float>(tex_size.y) / 2.0f);
-            
             asteroid.scale = asteroid_scale_dist(gen);
             asteroid.sprite.setScale(asteroid.scale, asteroid.scale);
-            
             std::uniform_real_distribution<float> start_x_dist(-150.0f, static_cast<float>(window_size.x));
             asteroid.position = sf::Vector2f(start_x_dist(gen), y_dist(gen));
             asteroid.sprite.setPosition(asteroid.position);
-            
             asteroid.velocity = sf::Vector2f(asteroid_speed_x_dist(gen), asteroid_speed_y_dist(gen));
             asteroid.rotation = 0.0f;
             asteroid.rotation_speed = asteroid_rot_dist(gen);
-            
             sf::Uint8 alpha = static_cast<sf::Uint8>(asteroid_alpha_dist(gen));
             asteroid.sprite.setColor(sf::Color(255, 255, 255, alpha));
-            
             m_asteroids.push_back(asteroid);
         }
     }
@@ -513,7 +498,6 @@ void MenuBackground::update(float dt) {
             std::uniform_real_distribution<float> y_dist(0.0f, static_cast<float>(m_window_size.y));
             std::uniform_real_distribution<float> speed_x_dist(80.0f, 200.0f);
             std::uniform_real_distribution<float> speed_y_dist(-30.0f, 30.0f);
-            
             ship.position = sf::Vector2f(-200.0f, y_dist(gen));
             ship.velocity = sf::Vector2f(speed_x_dist(gen), speed_y_dist(gen));
             ship.sprite.setRotation(0.0f);
@@ -534,7 +518,6 @@ void MenuBackground::update(float dt) {
             std::uniform_real_distribution<float> y_dist(0.0f, static_cast<float>(m_window_size.y));
             std::uniform_real_distribution<float> speed_x_dist(15.0f, 40.0f);
             std::uniform_real_distribution<float> speed_y_dist(-8.0f, 8.0f);
-            
             asteroid.position = sf::Vector2f(-200.0f, y_dist(gen));
             asteroid.velocity = sf::Vector2f(speed_x_dist(gen), speed_y_dist(gen));
             asteroid.rotation = 0.0f;
@@ -544,7 +527,6 @@ void MenuBackground::update(float dt) {
 
 void MenuBackground::render(sf::RenderWindow& window) {
     window.draw(m_background);
-    
     if (m_background_texture.getSize().x > 0) {
         window.draw(m_background_sprite);
     }

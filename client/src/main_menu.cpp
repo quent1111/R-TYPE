@@ -1,18 +1,34 @@
+#include "core/SettingsManager.hpp"
 #include "states/GameState.hpp"
 #include "states/MenuState.hpp"
+#include "states/SettingsState.hpp"
 #include "states/StateManager.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <iostream>
 
 int main(int, char**) {
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-Type");
+    auto& settings = rtype::SettingsManager::get_instance();
+    settings.load_from_file("settings.ini");
+
+    sf::VideoMode mode = settings.get_resolution();
+    sf::Uint32 style = settings.is_fullscreen() ? sf::Style::Fullscreen : sf::Style::Close;
+    sf::RenderWindow window(mode, "R-Type", style);
+    window.setVerticalSyncEnabled(settings.is_vsync_enabled());
     window.setFramerateLimit(60);
+
+    std::cout << "[R-Type] Window created with resolution: "
+              << mode.width << "x" << mode.height
+              << " (Fullscreen: " << (settings.is_fullscreen() ? "ON" : "OFF") << ")\n";
 
     rtype::StateManager state_manager;
 
     state_manager.register_state("menu", [&window]() {
         return std::make_unique<rtype::MenuState>(window);
+    });
+
+    state_manager.register_state("settings", [&window]() {
+        return std::make_unique<rtype::SettingsState>(window);
     });
 
     state_manager.register_state("game", [&window]() {

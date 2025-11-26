@@ -29,6 +29,7 @@ private:
     void explosion_system(float dt);
     void animation_system(float dt);
     void render_system(sf::RenderWindow& window);
+    void update_fps(float dt);
 
     sf::RenderWindow& m_window;
     registry m_registry;
@@ -41,6 +42,9 @@ private:
     const float m_enemy_spawn_interval{3.0f};
     std::string m_next_state;
     bool m_paused{false};
+    float m_fps{0.0f};
+    float m_fps_update_time{0.0f};
+    int m_frame_count{0};
 };
 
 } // namespace rtype

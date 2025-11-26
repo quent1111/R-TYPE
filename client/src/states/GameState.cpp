@@ -1,6 +1,6 @@
 #include "states/GameState.hpp"
-
 #include "components/game_components.hpp"
+#include "core/SettingsManager.hpp"
 #include "ecs/components.hpp"
 #include "entities/enemy_factory.hpp"
 #include "entities/player_factory.hpp"
@@ -63,8 +63,8 @@ void GameState::update(float dt) {
     }
 
     run_systems(dt);
-
     update_background(dt);
+    update_fps(dt);
 }
 
 void GameState::render(sf::RenderWindow& window) {
@@ -132,22 +132,29 @@ void GameState::render_ui(sf::RenderWindow& window) {
             break;
         }
     }
+    auto& settings = SettingsManager::get_instance();
+    if (settings.should_show_fps()) {
+        sf::Text fps_text;
+        fps_text.setFont(m_font);
+        fps_text.setString("FPS: " + std::to_string(static_cast<int>(m_fps)));
+        fps_text.setCharacterSize(20);
+        fps_text.setFillColor(sf::Color::Yellow);
+        fps_text.setOutlineColor(sf::Color::Black);
+        fps_text.setOutlineThickness(1.0f);
+        sf::FloatRect bounds = fps_text.getLocalBounds();
+        fps_text.setPosition(m_window.getSize().x - bounds.width - 15.0f, 10.0f);
+        window.draw(fps_text);
+    }
 }
 
 
 void GameState::run_systems(float dt) {
     inputSystem(m_registry);
-
     shootingSystem(m_registry, dt);
-
     movementSystem(m_registry, dt);
-
     collisionSystem(m_registry);
-
     explosion_system(dt);
-
     cleanupSystem(m_registry);
-
     animation_system(dt);
 }
 
@@ -221,6 +228,16 @@ void GameState::render_system(sf::RenderWindow& window) {
             } catch (const std::runtime_error&) {
             }
         }
+    }
+}
+
+void GameState::update_fps(float dt) {
+    m_frame_count++;
+    m_fps_update_time += dt;
+    if (m_fps_update_time >= 0.5f) {
+        m_fps = static_cast<float>(m_frame_count) / m_fps_update_time;
+        m_frame_count = 0;
+        m_fps_update_time = 0.0f;
     }
 }
 

@@ -1,5 +1,4 @@
 #include "states/MenuState.hpp"
-
 #include <iostream>
 
 namespace rtype {
