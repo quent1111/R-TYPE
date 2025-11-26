@@ -238,14 +238,11 @@ jobs:
           chmod +x /tmp/git-askpass.sh
           export GIT_ASKPASS=/tmp/git-askpass.sh
           export GIT_USERNAME=x-access-token
-          
           # Add remote
           git remote add epitech https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
-          
           # Push
-          echo "📤 Pushing to Epitech repository..."
+          echo " Pushing to Epitech repository..."
           git push epitech main --force
-          
           # Cleanup
           rm /tmp/git-askpass.sh
 
