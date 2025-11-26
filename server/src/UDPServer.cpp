@@ -120,19 +120,22 @@ int UDPServer::register_client(const asio::ip::udp::endpoint& endpoint) {
     return client_id;
 }
 
-void UDPServer::remove_inactive_clients(std::chrono::seconds timeout) {
+std::vector<int> UDPServer::remove_inactive_clients(std::chrono::seconds timeout) {
     std::lock_guard<std::mutex> lock(clients_mutex_);
+    std::vector<int> removed_ids;
     auto now = std::chrono::steady_clock::now();
 
     for (auto it = clients_.begin(); it != clients_.end();) {
         auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_seen);
         if (elapsed > timeout) {
             std::cout << "[Network] Client timed out: ID=" << it->first << std::endl;
+            removed_ids.push_back(it->first);
             it = clients_.erase(it);
         } else {
             ++it;
         }
     }
+    return removed_ids;
 }
 
 bool UDPServer::get_input_packet(NetworkPacket& packet) {

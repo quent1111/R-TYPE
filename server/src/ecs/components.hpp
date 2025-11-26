@@ -7,7 +7,8 @@ struct position {
     float x;
     float y;
 
-    constexpr position(float x = 0.0f, float y = 0.0f) noexcept : x(x), y(y) {}
+    // x -> p_x, y -> p_y
+    constexpr position(float p_x = 0.0f, float p_y = 0.0f) noexcept : x(p_x), y(p_y) {}
 };
 
 // Component: 2D velocity of an entity
@@ -15,7 +16,8 @@ struct velocity {
     float vx;
     float vy;
 
-    constexpr velocity(float vx = 0.0f, float vy = 0.0f) noexcept : vx(vx), vy(vy) {}
+    // vx -> p_vx, vy -> p_vy
+    constexpr velocity(float p_vx = 0.0f, float p_vy = 0.0f) noexcept : vx(p_vx), vy(p_vy) {}
 };
 
 // Component: Health for entities
@@ -23,15 +25,17 @@ struct health {
     int current;
     int maximum;
 
-    constexpr health(int max = 100) noexcept : current(max), maximum(max) {}
-    constexpr health(int current, int max) noexcept : current(current), maximum(max) {}
+    // max -> max_hp, current -> curr_hp
+    constexpr health(int max_hp = 100) noexcept : current(max_hp), maximum(max_hp) {}
+    constexpr health(int curr_hp, int max_hp) noexcept : current(curr_hp), maximum(max_hp) {}
 };
 
 // Component: Damage dealing capability
 struct damage {
     int amount;
 
-    constexpr explicit damage(int amount = 10) noexcept : amount(amount) {}
+    // amount -> dmg_amount
+    constexpr explicit damage(int dmg_amount = 10) noexcept : amount(dmg_amount) {}
 };
 
 // Component: Collision box for physics
@@ -39,7 +43,8 @@ struct collider {
     float width;
     float height;
 
-    constexpr collider(float w = 32.0f, float h = 32.0f) noexcept : width(w), height(h) {}
+    // w -> w_val, h -> h_val
+    constexpr collider(float w_val = 32.0f, float h_val = 32.0f) noexcept : width(w_val), height(h_val) {}
 };
 
 // Component: Entity type identifier
@@ -53,12 +58,14 @@ enum class entity_type {
 struct entity_tag {
     entity_type type;
 
-    constexpr explicit entity_tag(entity_type type) noexcept : type(type) {}
+    // type -> t_type
+    constexpr explicit entity_tag(entity_type t_type) noexcept : type(t_type) {}
 };
 
 // Component: Network client ID (for multiplayer)
 struct network_id {
     int client_id;
 
-    constexpr explicit network_id(int id = -1) noexcept : client_id(id) {}
+    // id -> c_id
+    constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };

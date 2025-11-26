@@ -37,7 +37,7 @@ public:
 
     // Gestion des clients
     int register_client(const asio::ip::udp::endpoint& endpoint);
-    void remove_inactive_clients(std::chrono::seconds timeout);
+    std::vector<int> remove_inactive_clients(std::chrono::seconds timeout);
     size_t get_client_count();
     std::map<int, ClientEndpoint> get_clients();
 
