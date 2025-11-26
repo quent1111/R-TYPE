@@ -43,22 +43,30 @@ void SettingsManager::parse_line(const std::string& line) {
     std::string key = trim(line.substr(0, pos));
     std::string value = trim(line.substr(pos + 1));
 
-    if (key == "resolution_width") {
-        m_resolution_width = static_cast<unsigned int>(std::stoi(value));
-    } else if (key == "resolution_height") {
-        m_resolution_height = static_cast<unsigned int>(std::stoi(value));
-    } else if (key == "fullscreen") {
-        m_fullscreen = (value == "true" || value == "1");
-    } else if (key == "vsync") {
-        m_vsync = (value == "true" || value == "1");
-    } else if (key == "show_fps") {
-        m_show_fps = (value == "true" || value == "1");
-    } else if (key == "graphics_quality") {
-        m_graphics_quality = std::stoi(value);
-    } else if (key == "music_volume") {
-        m_music_volume = std::stoi(value);
-    } else if (key == "sfx_volume") {
-        m_sfx_volume = std::stoi(value);
+    try {
+        if (key == "resolution_width") {
+            m_resolution_width = static_cast<unsigned int>(std::stoi(value));
+        } else if (key == "resolution_height") {
+            m_resolution_height = static_cast<unsigned int>(std::stoi(value));
+        } else if (key == "fullscreen") {
+            m_fullscreen = (value == "true" || value == "1");
+        } else if (key == "vsync") {
+            m_vsync = (value == "true" || value == "1");
+        } else if (key == "show_fps") {
+            m_show_fps = (value == "true" || value == "1");
+        } else if (key == "graphics_quality") {
+            m_graphics_quality = std::stoi(value);
+        } else if (key == "music_volume") {
+            m_music_volume = std::stoi(value);
+        } else if (key == "sfx_volume") {
+            m_sfx_volume = std::stoi(value);
+        }
+    } catch (const std::invalid_argument& e) {
+        std::cerr << "[SettingsManager] Warning: Invalid value for '" << key << "': '" << value
+                  << "' (not a valid number). Using default.\n";
+    } catch (const std::out_of_range& e) {
+        std::cerr << "[SettingsManager] Warning: Value out of range for '" << key << "': '" << value
+                  << "'. Using default.\n";
     }
 }
 
