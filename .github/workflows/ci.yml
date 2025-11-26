@@ -218,41 +218,50 @@ jobs:
     needs: [build-and-test, build-matrix]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - name: Configure Git
-      run: |
-        git config --global user.name "GitHub Actions Bot"
-        git config --global user.email "actions@github.com"
-    - name:  Add Epitech remote
-      run: |
-        git remote add epitech https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git || true
-    - name: Push to Epitech repository
-      env:
-        EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
-      run: |
-        if [ -z "$EPITECH_TOKEN" ]; then
-          echo " Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
-          echo "To enable deployment, add your Epitech GitHub token as a secret."
-          exit 0
-        fi
-        # Configure remote with token
-        git remote set-url epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
-        # Push to main branch
-        echo " Pushing to Epitech repository..."
-        git push epitech main --force
-        echo " Successfully deployed to Epitech repository!"
-    - name: Create deployment summary
-      if: success()
-      run: |
-        echo "## Deployment Successful" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo " Code pushed to Epitech repository" >> $GITHUB_STEP_SUMMARY
-        echo " Repository: https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4" >> $GITHUB_STEP_SUMMARY
-        echo " Branch: main" >> $GITHUB_STEP_SUMMARY
-        echo " Time: $(date)" >> $GITHUB_STEP_SUMMARY
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: Push to Epitech repository
+        env:
+          EPITECH_TOKEN: ${{ secrets.EPITECH_DEPLOY_TOKEN }}
+        run: |
+          if [ -z "$EPITECH_TOKEN" ]; then
+            echo "⚠️ Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
+            exit 0
+          fi
+        
+          # Configuration du remote avec le token
+          echo "🔧 Configuring remote..."
+          git remote add epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
+        
+          # Test de connectivité
+          echo "🔍 Testing repository access..."
+          git ls-remote epitech &> /dev/null || {
+            echo "❌ Error: Cannot access Epitech repository. Check token permissions."
+            exit 1
+          }
+        
+          # Push
+          echo "📤 Pushing to Epitech repository..."
+          git push epitech main --force
+          echo "✅ Successfully deployed to Epitech repository!"
+
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📦 Code pushed to Epitech repository" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 Repository: https://github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4" >> $GITHUB_STEP_SUMMARY
+          echo "🌿 Branch: main" >> $GITHUB_STEP_SUMMARY
+          echo "⏰ Time: $(date)" >> $GITHUB_STEP_SUMMARY
 
   summary:
     name:  CI/CD Summary
