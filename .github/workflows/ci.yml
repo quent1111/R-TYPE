@@ -236,18 +236,15 @@ jobs:
             echo "⚠️ Warning: EPITECH_DEPLOY_TOKEN not set. Skipping deployment."
             exit 0
           fi
-        
           # Configuration du remote avec le token
           echo "🔧 Configuring remote..."
           git remote add epitech https://x-access-token:${EPITECH_TOKEN}@github.com/EpitechPGE3-2025/G-CPP-500-NAN-5-2-rtype-4.git
-        
           # Test de connectivité
           echo "🔍 Testing repository access..."
           git ls-remote epitech &> /dev/null || {
             echo "❌ Error: Cannot access Epitech repository. Check token permissions."
             exit 1
           }
-        
           # Push
           echo "📤 Pushing to Epitech repository..."
           git push epitech main --force
