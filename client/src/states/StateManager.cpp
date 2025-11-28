@@ -57,7 +57,9 @@ void StateManager::process_transitions() {
     if (!m_states.empty()) {
         std::string next_state = m_states.top()->get_next_state();
         if (!next_state.empty()) {
-            change_state(next_state);
+            m_states.top()->clear_next_state();
+            std::string state_name = next_state;
+            change_state(state_name);
         }
     }
 }
