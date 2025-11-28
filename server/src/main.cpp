@@ -1,8 +1,9 @@
+#include "Game.hpp"
 #include "NetworkPacket.hpp"
 #include "UDPServer.hpp"
-#include "Game.hpp"
 
 #include <csignal>
+
 #include <atomic>
 #include <chrono>
 #include <iostream>

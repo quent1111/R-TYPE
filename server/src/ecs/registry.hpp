@@ -4,6 +4,7 @@
 #include "sparse_array.hpp"
 
 #include <any>
+
 #include <functional>
 #include <memory>
 #include <queue>
@@ -43,7 +44,6 @@ private:
     std::size_t _next_entity_id = 0;
     std::queue<std::size_t> _dead_entities;
     std::unordered_map<std::size_t, std::unordered_set<std::type_index>> _entity_components;
-
 
 public:
     registry() = default;
@@ -172,14 +172,13 @@ public:
     typename sparse_array<Component>::const_reference_type get_component(entity_t entity) const {
         return get_components<Component>()[static_cast<std::size_t>(entity)];
     }
-
 };
 
 namespace std {
-    template <>
-    struct hash<entity> {
-        std::size_t operator()(const entity& e) const {
-            return std::hash<std::size_t>{}(static_cast<std::size_t>(e));
-        }
-    };
-}
+template <>
+struct hash<entity> {
+    std::size_t operator()(const entity& e) const {
+        return std::hash<std::size_t>{}(static_cast<std::size_t>(e));
+    }
+};
+}  // namespace std
