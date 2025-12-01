@@ -23,6 +23,8 @@ private:
     void update_game_state(float dt);
     void send_periodic_updates(UDPServer& server, float dt);
 
+    void handle_player_input(int client_id, const std::vector<uint8_t>& data);
+
 public:
     Game();
     ~Game();

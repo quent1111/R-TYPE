@@ -30,7 +30,6 @@ entity Game::create_player(int client_id, float start_x, float start_y) {
         return _registry.entity_from_index(_client_entity_ids[client_id]);
     }
     auto player = _registry.spawn_entity();
-
     _registry.emplace_component<position>(player, start_x, start_y);
     _registry.emplace_component<velocity>(player, 1.0f, 0.0f);
     _registry.emplace_component<health>(player, 100);
@@ -98,29 +97,101 @@ void Game::broadcast_player_positions(UDPServer& server) {
     server.send_to_all(serializer.data());
 }
 
+void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) {
+    auto player_opt = get_player_entity(client_id);
+    if (!player_opt.has_value()) {
+        return;
+    }
+
+    entity player = player_opt.value();
+
+    float px = 0.0f;
+    float py = 0.0f;
+
+    for (uint8_t b : data) {
+        char c = static_cast<char>(b);
+        if (c == 'z') {
+            py -= 10.0f;
+        } else if (c == 's') {
+            py += 10.0f;
+        } else if (c == 'q') {
+            px -= 10.0f;
+        } else if (c == 'd') {
+            px += 10.0f;
+        }
+    }
+
+    std::cout << "[Game] Client " << client_id << " input: (" << px << ", " << py << ")\n";
+
+    auto& pos_slot = _registry.get_component<position>(player);
+    if (pos_slot.has_value()) {
+        pos_slot->x += px;
+        pos_slot->y += py;
+        return;
+    }
+    _registry.emplace_component<position>(player, pos_slot->x, pos_slot->y);
+}
+
 void Game::process_network_events(UDPServer& server) {
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {
-        if (!packet.data.empty()) {
-            int client_id = server.register_client(packet.sender);
-            auto player_opt = get_player_entity(client_id);
+        if (packet.data.empty() || packet.data.size() < 3) {
+            continue;
+        }
 
-            if (!player_opt.has_value()) {
-                float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
-                float start_y = 300.0f;
-                create_player(client_id, start_x, start_y);
+        try {
+            RType::BinarySerializer deserializer(packet.data);
 
-                std::string welcome_msg = "[Game] welcome player " + std::to_string(client_id);
-                std::vector<uint8_t> welcome_data;
-                welcome_data.push_back(0x42);
-                welcome_data.push_back(0xB5);
-                welcome_data.insert(welcome_data.end(), welcome_msg.begin(), welcome_msg.end());
-                NetworkPacket welcome_packet(std::move(welcome_data), packet.sender);
-                server.queue_output_packet(std::move(welcome_packet));
+            uint16_t magic;
+            deserializer >> magic;
+
+            if (!RType::MagicNumber::is_valid(magic)) {
+                std::cerr << "[Game] Invalid magic number from " << packet.sender << std::endl;
+                continue;
             }
 
-            NetworkPacket response_packet(std::move(packet.data), packet.sender);
-            server.queue_output_packet(std::move(response_packet));
+            RType::OpCode opcode;
+            deserializer >> opcode;
+            int client_id = server.register_client(packet.sender);
+
+            switch (opcode) {
+                case RType::OpCode::Input: {
+                    auto player_opt = get_player_entity(client_id);
+                    if (!player_opt.has_value()) { // A voir si créer un player quand on recois une commande que le serveur connais c'est utile
+                        float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
+                        float start_y = 300.0f;
+                        auto player = create_player(client_id, start_x, start_y);
+                        std::cout << "[Game] New player connected: Client " << client_id
+                                  << " (Entity " << player.id() << ")" << std::endl;
+                    }
+
+                    std::vector<uint8_t> payload(deserializer.data().begin() + deserializer.read_position(),
+                                                 deserializer.data().end());
+                    handle_player_input(client_id, payload);
+                    break;
+                }
+                case RType::OpCode::Login: {
+                    std::cout << "[Game] Login request received from client " << client_id << std::endl;
+                    auto player_opt = get_player_entity(client_id);
+                    if (!player_opt.has_value()) {
+                        float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
+                        float start_y = 300.0f;
+                        create_player(client_id, start_x, start_y);
+                    }
+                    break;
+                }
+                default: {
+                    std::cout << "[Game] Unhandled opcode: 0x" << std::hex
+                              << static_cast<int>(opcode) << std::dec
+                              << " from client " << client_id << std::endl;
+                    break;
+                }
+            }
+
+        } catch (const RType::SerializationException& e) {
+            std::cerr << "[Game] Serialization error: " << e.what() << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "[Game] Error processing packet: " << e.what() << std::endl;
         }
     }
 }

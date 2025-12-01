@@ -63,8 +63,10 @@ public:
                         if (received >= 3) {
                             uint8_t msg_type = buffer[2];
 
-                            if (msg_type == 0x01) {
+                            if (msg_type == 0x13) {
                                 decode_player_positions(buffer, received);
+                            } else if (msg_type == 0x01) {
+                                std::cout << "\n[Serveur] Message de connexion\n> " << std::flush;
                             } else {
                                 std::cout << "\n[Serveur] ";
                                 for (ssize_t i = 2; i < received; i++) {
@@ -93,30 +95,69 @@ public:
 
     void decode_player_positions(const std::vector<uint8_t>& buffer, ssize_t received) {
         std::cout << "\n[Game] Positions des joueurs:\n";
+
         if (received < 4) {
             std::cout << "  Paquet invalide (trop court)\n> " << std::flush;
             return;
         }
+
         size_t offset = 3;
         uint8_t player_count = buffer[offset];
         offset += 1;
         std::cout << "  Nombre de joueurs: " << static_cast<int>(player_count) << "\n";
-        for (int i = 0; i < player_count && offset + 10 <= static_cast<size_t>(received); i++) {
-            int32_t client_id = static_cast<int32_t>(buffer[offset]) |
-                               (static_cast<int32_t>(buffer[offset + 1]) << 8);
-            offset += 2;
+
+        for (int i = 0; i < player_count && offset + 12 <= static_cast<size_t>(received); i++) {
+            uint32_t client_id = static_cast<uint32_t>(buffer[offset]) |
+                                (static_cast<uint32_t>(buffer[offset + 1]) << 8) |
+                                (static_cast<uint32_t>(buffer[offset + 2]) << 16) |
+                                (static_cast<uint32_t>(buffer[offset + 3]) << 24);
+            offset += 4;
+
             float x;
             std::memcpy(&x, &buffer[offset], sizeof(float));
             offset += 4;
+
             float y;
             std::memcpy(&y, &buffer[offset], sizeof(float));
             offset += 4;
+
             std::cout << "  Player " << client_id << ": (" << x << ", " << y << ")\n";
         }
+
         if (player_count == 0) {
             std::cout << "  Aucun joueur connecté\n";
         }
+
         std::cout << "> " << std::flush;
+    }
+
+    void send_login_request() {
+        std::vector<uint8_t> packet;
+
+        packet.push_back(static_cast<uint8_t>(MAGIC_NUMBER & 0xFF));
+        packet.push_back(static_cast<uint8_t>((MAGIC_NUMBER >> 8) & 0xFF));
+        packet.push_back(0x01);
+        ssize_t sent = sendto(socket_fd_, packet.data(), packet.size(), 0,
+                             (struct sockaddr*)&server_addr_, sizeof(server_addr_));
+        if (sent < 0) {
+            std::cerr << "[Erreur] Échec de l'envoi de connexion: " << strerror(errno) << std::endl;
+        } else {
+            std::cout << "[Client] Demande de connexion envoyée" << std::endl;
+        }
+    }
+    void send_input(char key) {
+        std::vector<uint8_t> packet;
+        packet.push_back(static_cast<uint8_t>(MAGIC_NUMBER & 0xFF));
+        packet.push_back(static_cast<uint8_t>((MAGIC_NUMBER >> 8) & 0xFF));
+        packet.push_back(0x10);
+        packet.push_back(static_cast<uint8_t>(key));
+        ssize_t sent = sendto(socket_fd_, packet.data(), packet.size(), 0,
+                             (struct sockaddr*)&server_addr_, sizeof(server_addr_));
+        if (sent < 0) {
+            std::cerr << "[Erreur] Échec de l'envoi d'input: " << strerror(errno) << std::endl;
+        } else {
+            std::cout << "[Client] Input envoyé: '" << key << "'" << std::endl;
+        }
     }
 
     void send_message(const std::string& message) {
@@ -137,19 +178,42 @@ public:
 
     void run() {
         std::cout << "=== Client UDP R-TYPE ===" << std::endl;
-        std::cout << "Tapez vos messages et appuyez sur Entrée pour les envoyer." << std::endl;
-        std::cout << "Tapez 'quit' pour quitter." << std::endl;
+        std::cout << "Commandes disponibles:" << std::endl;
+        std::cout << "  'connect' - Se connecter au serveur" << std::endl;
+        std::cout << "  'z/q/s/d' - Déplacements (up/left/down/right)" << std::endl;
+        std::cout << "  'space'   - Tirer" << std::endl;
+        std::cout << "  'quit'    - Quitter" << std::endl;
         std::cout << "=========================" << std::endl;
 
         std::string input;
         while (true) {
             std::cout << "> ";
             std::getline(std::cin, input);
+
             if (input == "quit" || input == "exit") {
                 std::cout << "[Client] Déconnexion..." << std::endl;
                 break;
             }
-            if (!input.empty()) {
+
+            if (input == "connect") {
+                send_login_request();
+            }
+            else if (input == "z") {
+                send_input('z');
+            }
+            else if (input == "s") {
+                send_input('s');
+            }
+            else if (input == "q") {
+                send_input('q');
+            }
+            else if (input == "d") {
+                send_input('d');
+            }
+            else if (input == "space") {
+                send_input(' ');
+            }
+            else if (!input.empty()) {
                 send_message(input);
             }
         }
