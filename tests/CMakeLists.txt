@@ -95,6 +95,42 @@ target_link_libraries(test_integration PRIVATE
 # add_test(NAME IntegrationTests COMMAND test_integration)
 
 # ----------------------------------------------------------------------------
+# Client Tests (Settings and State Management)
+# ----------------------------------------------------------------------------
+add_executable(test_client_minimal
+    client/test_minimal.cpp
+)
+
+target_link_libraries(test_client_minimal PRIVATE
+    gtest::gtest
+    project_options
+    project_warnings
+)
+
+add_test(NAME ClientMinimalTest COMMAND test_client_minimal)
+
+add_executable(test_client
+    client/test_settings_manager.cpp
+    client/test_state_manager.cpp
+    ${CMAKE_SOURCE_DIR}/client/src/core/SettingsManager.cpp
+    ${CMAKE_SOURCE_DIR}/client/src/core/FontManager.cpp
+    ${CMAKE_SOURCE_DIR}/client/src/states/StateManager.cpp
+)
+
+target_include_directories(test_client PRIVATE
+    ${CMAKE_SOURCE_DIR}/client/include
+)
+
+target_link_libraries(test_client PRIVATE
+    gtest::gtest
+    sfml::sfml
+    project_options
+    project_warnings
+)
+
+add_test(NAME ClientTests COMMAND test_client)
+
+# ----------------------------------------------------------------------------
 # Sanity Test (Always Enabled)
 # ----------------------------------------------------------------------------
 add_executable(test_sanity test_sanity.cpp)
@@ -109,6 +145,7 @@ message(STATUS "==========================================")
 message(STATUS "Test Suite Configuration")
 message(STATUS "==========================================")
 message(STATUS "✓ Sanity tests: ENABLED")
+message(STATUS "✓ Client tests: ENABLED")
 message(STATUS "⏸ ECS tests: DISABLED (placeholder)")
 message(STATUS "⏸ Network tests: DISABLED (placeholder)")
 message(STATUS "⏸ Game tests: DISABLED (placeholder)")
