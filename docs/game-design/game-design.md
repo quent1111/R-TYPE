@@ -79,5 +79,4 @@ R-TYPE is designed to be playable and enjoyable by the widest possible audience.
 - Power-ups: scale duration and potency so they feel meaningful but not game-breaking.
 - Difficulty Curve: design levels/waves to teach mechanics early and introduce complexity steadily.
 
-
 *Document last updated: 2025-12-01*
