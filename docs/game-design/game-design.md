@@ -54,16 +54,19 @@ This document describes the high-level game design for R-TYPE, including core me
 
 ## Mapping Design → Codebase
 
-- ECS Systems (see `engine/ecs`):
-  - MovementSystem: applies velocity and input to player entities.
-  - ProjectileSystem: spawns and advances projectiles, handles lifetime and collisions.
-  - CollisionSystem: resolves collisions and applies damage.
-  - SpawnSystem: schedules enemy waves and handles spawn patterns (data-driven via JSON/CSV).
-  - PowerupSystem: applies power-up effects and manages durations.
+- ECS Systems (see `engine/ecs` and `server/src/ecs/systems.hpp`):
+  - `position_system`: handles movement and applies velocity/input to entities (movement integration).
+  - `collision_system`: detects and resolves collisions between entities (bounding box checks).
+  - `damage_system`: applies damage to entities as a result of collisions or other effects.
+  - `cleanup_system`: removes entities that are destroyed (HP <= 0) or otherwise expired.
+  - `boundary_system`: enforces world boundaries and removes out-of-bounds entities.
+  - `logging_system`: utility system used for debugging (logs positions/velocities).
+  - (Planned) Additional systems such as projectile handling, spawn/wave management, and power-up management may be added in the future. These are not present in `server/src/ecs/systems.hpp` at the moment but are natural extensions of the current systems.
 
 - Key modules and files:
-  - `server/game_logic/instances/`: server-side game loop and instance management for multiplayer matches.
-  - `engine/core/`: shared systems like timing, resource management, and settings.
+  - `server/src/`: server-side authoritative logic and main server code (e.g. `server/src/Game.cpp`, `server/src/ecs/systems.hpp`).
+  - `server/src/ecs/systems.hpp`: current canonical list of server-side ECS systems (see above).
+  - `engine/core/`: location for shared systems like timing, resource management, and settings.
   - `client/ui/`: HUD elements (score, health, power-up icons) and input handling.
 
 ## Implementation Notes
@@ -83,7 +86,5 @@ This document describes the high-level game design for R-TYPE, including core me
 ## References
 
 - See `docs/architecture/ecs.md` for details on the ECS structure.
-- See `server/game_logic/` for server-side authoritative logic examples.
-
-
-*Document last updated: 2025-12-01*
+ - See `docs/architecture/ecs.md` for details on the ECS structure.
+ - See `server/src/` (e.g. `server/src/Game.cpp`, `server/src/ecs/systems.hpp`) for server-side authoritative logic examples.
