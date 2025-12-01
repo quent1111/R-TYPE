@@ -15,6 +15,7 @@ public:
     virtual void update(float dt) = 0;
     virtual void render(sf::RenderWindow& window) = 0;
     virtual std::string get_next_state() const = 0;
+    virtual void clear_next_state() {}
     virtual bool is_overlay() const { return false; }
 };
 

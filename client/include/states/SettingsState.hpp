@@ -21,6 +21,7 @@ public:
     void update(float dt) override;
     void render(sf::RenderWindow& window) override;
     std::string get_next_state() const override { return m_next_state; }
+    void clear_next_state() override { m_next_state.clear(); }
 
 private:
     void setup_ui();
