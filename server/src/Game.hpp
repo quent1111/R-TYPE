@@ -1,18 +1,17 @@
 #pragma once
 
 #include "UDPServer.hpp"
-#include <atomic>
-#include <unordered_map>
-#include <optional>
-
+#include "ecs/components.hpp"
 #include "ecs/entity.hpp"
 #include "ecs/registry.hpp"
 #include "ecs/sparse_array.hpp"
-#include "ecs/components.hpp"
 #include "ecs/systems.hpp"
 
-class Game
-{
+#include <atomic>
+#include <optional>
+#include <unordered_map>
+
+class Game {
 private:
     registry _registry;
     std::unordered_map<int, std::size_t> _client_entity_ids;

@@ -4,8 +4,9 @@
 #include "registry.hpp"
 
 #include <cmath>
-#include <iostream>
+
 #include <algorithm>
+#include <iostream>
 
 // SYSTEM 1: MOVEMENT
 inline void position_system(registry& reg, float dt) {
@@ -49,11 +50,8 @@ inline void collision_system(registry& reg) {
             auto& pos2 = positions[j].value();
             auto& col2 = colliders[j].value();
 
-            if (pos1.x < pos2.x + col2.width &&
-                pos1.x + col1.width > pos2.x &&
-                pos1.y < pos2.y + col2.height &&
-                pos1.y + col1.height > pos2.y)
-            {
+            if (pos1.x < pos2.x + col2.width && pos1.x + col1.width > pos2.x &&
+                pos1.y < pos2.y + col2.height && pos1.y + col1.height > pos2.y) {
                 std::cout << "[Physics] Collision: Entity " << i << " <-> " << j << std::endl;
                 // Logique de collision (recul, etc.) à ajouter ici
             }
@@ -69,8 +67,10 @@ inline void damage_system(registry& reg) {
     auto& damages = reg.get_components<damage>();
 
     size_t limit = positions.size();
-    if (colliders.size() < limit) limit = colliders.size();
-    if (damages.size() < limit) limit = damages.size();
+    if (colliders.size() < limit)
+        limit = colliders.size();
+    if (damages.size() < limit)
+        limit = damages.size();
 
     for (std::size_t i = 0; i < limit; ++i) {
         if (!positions[i] || !colliders[i] || !damages[i])
@@ -83,7 +83,8 @@ inline void damage_system(registry& reg) {
         size_t target_limit = std::min({positions.size(), colliders.size(), healths.size()});
 
         for (std::size_t j = 0; j < target_limit; ++j) {
-            if (i == j) continue;
+            if (i == j)
+                continue;
 
             if (!positions[j] || !colliders[j] || !healths[j])
                 continue;
@@ -92,11 +93,8 @@ inline void damage_system(registry& reg) {
             auto& col2 = colliders[j].value();
             auto& hp = healths[j].value();
 
-            if (pos1.x < pos2.x + col2.width &&
-                pos1.x + col1.width > pos2.x &&
-                pos1.y < pos2.y + col2.height &&
-                pos1.y + col1.height > pos2.y)
-            {
+            if (pos1.x < pos2.x + col2.width && pos1.x + col1.width > pos2.x &&
+                pos1.y < pos2.y + col2.height && pos1.y + col1.height > pos2.y) {
                 hp.current -= dmg.amount;
             }
         }
@@ -123,9 +121,8 @@ inline void boundary_system(registry& reg, float world_width, float world_height
         if (positions[i]) {
             auto& pos = positions[i].value();
 
-            if (pos.x < -100 || pos.x > world_width + 100 ||
-                pos.y < -100 || pos.y > world_height + 100)
-            {
+            if (pos.x < -100 || pos.x > world_width + 100 || pos.y < -100 ||
+                pos.y > world_height + 100) {
                 reg.kill_entity(reg.entity_from_index(i));
             }
         }
@@ -143,8 +140,8 @@ inline void logging_system(registry& reg) {
         if (positions[i] && velocities[i]) {
             auto& pos = positions[i].value();
             auto& vel = velocities[i].value();
-            std::cerr << "Entity " << i << ": Pos(" << pos.x << ", " << pos.y
-                      << ") Vel(" << vel.vx << ", " << vel.vy << ")" << std::endl;
+            std::cerr << "Entity " << i << ": Pos(" << pos.x << ", " << pos.y << ") Vel(" << vel.vx
+                      << ", " << vel.vy << ")" << std::endl;
         }
     }
 }

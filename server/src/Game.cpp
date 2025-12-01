@@ -1,15 +1,19 @@
 #include "Game.hpp"
-#include <iostream>
-#include <thread>
-#include <chrono>
-#include <optional>
+
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
+
 #include <cstdint>
 #include <cstring>
 
+#include <chrono>
+#include <iostream>
+#include <optional>
+#include <thread>
+
 extern std::atomic<bool> server_running;
 
-Game::Game(/* args */)
-{
+Game::Game(/* args */) {
     _registry.register_component<position>();
     _registry.register_component<velocity>();
     _registry.register_component<health>();
@@ -18,9 +22,7 @@ Game::Game(/* args */)
     _registry.register_component<network_id>();
 }
 
-Game::~Game()
-{
-}
+Game::~Game() {}
 
 entity Game::create_player(int client_id, float start_x, float start_y) {
     if (_client_entity_ids.find(client_id) != _client_entity_ids.end()) {
@@ -33,12 +35,12 @@ entity Game::create_player(int client_id, float start_x, float start_y) {
     _registry.emplace_component<velocity>(player, 1.0f, 0.0f);
     _registry.emplace_component<health>(player, 100);
     _registry.emplace_component<collider>(player, 32.0f, 32.0f);
-    _registry.emplace_component<entity_tag>(player, entity_type::PLAYER);
+    _registry.emplace_component<entity_tag>(player, RType::EntityType::Player);
     _registry.emplace_component<network_id>(player, client_id);
 
     _client_entity_ids[client_id] = player.id();
-    std::cout << "[Game] Player created for client " << client_id
-              << " (Entity ID: " << player.id() << ")" << std::endl;
+    std::cout << "[Game] Player created for client " << client_id << " (Entity ID: " << player.id()
+              << ")" << std::endl;
     return player;
 }
 
@@ -65,12 +67,15 @@ void Game::broadcast_player_positions(UDPServer& server) {
         return;
     }
 
-    std::vector<uint8_t> data;
-    data.push_back(0x42);
-    data.push_back(0xB5);
-    data.push_back(0x01); // msg type: player_positions
-    data.push_back(static_cast<uint8_t>(_client_entity_ids.size()));
+    // Utilisation du BinarySerializer pour une sérialisation propre et sûre
+    RType::BinarySerializer serializer;
 
+    // Header: Magic Number (uint16_t) + OpCode + Nombre de joueurs
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::EntityPosition;
+    serializer << static_cast<uint8_t>(_client_entity_ids.size());
+
+    // Payload: Pour chaque joueur, sérialiser [ClientID(uint16_t), X(float), Y(float)]
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
@@ -78,27 +83,19 @@ void Game::broadcast_player_positions(UDPServer& server) {
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
 
-            // Client ID (2 bytes)
-            data.push_back(static_cast<uint8_t>(client_id & 0xFF));
-            data.push_back(static_cast<uint8_t>((client_id >> 8) & 0xFF));
+            // Client ID (uint32_t - 4 bytes)
+            serializer << static_cast<uint32_t>(client_id);
 
-            // Position X (4 bytes - float as bytes)
-            uint32_t x_int = *reinterpret_cast<const uint32_t*>(&pos.x);
-            data.push_back(static_cast<uint8_t>(x_int & 0xFF));
-            data.push_back(static_cast<uint8_t>((x_int >> 8) & 0xFF));
-            data.push_back(static_cast<uint8_t>((x_int >> 16) & 0xFF));
-            data.push_back(static_cast<uint8_t>((x_int >> 24) & 0xFF));
+            // Position X (float - 4 bytes)
+            serializer << pos.x;
 
-            // Position Y (4 bytes - float as bytes)
-            uint32_t y_int = *reinterpret_cast<const uint32_t*>(&pos.y);
-            data.push_back(static_cast<uint8_t>(y_int & 0xFF));
-            data.push_back(static_cast<uint8_t>((y_int >> 8) & 0xFF));
-            data.push_back(static_cast<uint8_t>((y_int >> 16) & 0xFF));
-            data.push_back(static_cast<uint8_t>((y_int >> 24) & 0xFF));
+            // Position Y (float - 4 bytes)
+            serializer << pos.y;
         }
     }
 
-    server.send_to_all(data);
+    // Envoyer le paquet à tous les clients
+    server.send_to_all(serializer.data());
 }
 
 void Game::process_network_events(UDPServer& server) {
@@ -128,8 +125,7 @@ void Game::process_network_events(UDPServer& server) {
     }
 }
 
-void Game::update_game_state(float dt)
-{
+void Game::update_game_state(float dt) {
     // 1. Logique (IA, Tirs auto)
     // ai_system(_registry);
 
@@ -146,8 +142,8 @@ void Game::update_game_state(float dt)
 }
 
 void Game::send_periodic_updates(UDPServer& server, float dt) {
-    const float position_broadcast_interval = 0.1f; // 100ms
-    const float cleanup_interval = 1.0f;            // 1s
+    const float position_broadcast_interval = 0.1f;  // 100ms
+    const float cleanup_interval = 1.0f;             // 1s
 
     _pos_broadcast_accumulator += dt;
     if (_pos_broadcast_accumulator >= position_broadcast_interval) {
