@@ -31,7 +31,46 @@ This document describes the high-level game design for R-TYPE, including core me
 - Controls: minimal input lag; target 60 FPS with <100ms round-trip in networked play.
 - Feedback: clear audio-visual cues for hits, damage taken, power-up collection, and deaths.
 - Readability: distinct sprite silhouettes and color palette to separate players, enemies, projectiles, and effects.
-- Accessibility: consider color-blind friendly palettes and configurable input bindings.
+- Responsiveness: controls must feel tight and predictable to maintain player confidence.
+
+## Accessibility & Inclusive Design
+
+R-TYPE is designed to be playable and enjoyable by the widest possible audience. Accessibility is not an afterthought—it's a core design principle that enhances the experience for all players.
+
+### Visual Accessibility
+
+#### Color Blindness Support
+- Palette Design: Primary UI and gameplay elements use color combinations that are distinguishable across all types of color vision deficiency (Protanopia, Deuteranopia, Tritanopia).
+- Color Blind Modes: Provide preset color schemes optimized for different types of color blindness:
+  - Protanopia mode (red-green, red appears darker)
+  - Deuteranopia mode (red-green, green appears darker)
+  - Tritanopia mode (blue-yellow)
+  - High contrast mode for low vision players
+- Projectile Clarity: Player bullets vs. enemy bullets use different shapes (e.g., circles vs. diamonds) and border styles.
+
+#### Visual Clarity
+- Contrast Ratios: UI text and critical gameplay elements maintain WCAG AAA contrast ratios (minimum 7:1) against backgrounds.
+- Particle Effect Reduction: Option to reduce or disable non-essential visual effects (screen shake, background particles) to minimize visual noise.
+
+### Auditory Accessibility
+
+#### Sound Design
+- Visual Subtitles for Audio Cues: Important audio events (enemy spawn warnings, power-up drops, boss phase changes) have optional on-screen text indicators.
+- Volume Mixing: Separate volume controls for:
+  - Music
+  - Sound Effects (SFX)
+  - UI sounds
+
+### Motor/Input Accessibility
+
+#### Control Customization
+- Full Key Remapping: Every action (movement, shoot, special, pause, etc.) can be rebound to any key/button.
+- Multiple Control Schemes: Ship with preset configurations:
+  - Classic (arrow keys + Z/X)
+  - WASD + Mouse
+  - Gamepad (with multiple layouts)
+  - One-handed mode (all actions accessible with one hand)
+- Auto-Fire Mode: Hold-to-shoot can be toggled to auto-fire (tap once to start/stop).
 
 ## Balancing Guidelines
 
@@ -39,51 +78,6 @@ This document describes the high-level game design for R-TYPE, including core me
 - Spawn Rates: gradual introduction of enemies; avoid overlapping high-density waves near player spawn.
 - Power-ups: scale duration and potency so they feel meaningful but not game-breaking.
 - Difficulty Curve: design levels/waves to teach mechanics early and introduce complexity steadily.
-
-## Multiplayer & Network Considerations
-
-- Authority Model: server authoritative for important state (HP, entity spawns, score). Clients perform prediction for movement and shooting to keep controls responsive.
-- Replication: compress and send only deltas for entity state; prioritize player-owned entities and nearby threats.
-- Lag Compensation: use client-side prediction for movement and client-side hit-simulation with server reconciliation.
-- Bandwidth: tick rate around 20-30 updates/sec for world state; event-driven messages for spawns and deaths.
-
-## Metrics & Telemetry
-
-- Track: average player session length, death causes, most-used weapons, average time to clear wave.
-- Use metrics for balancing: e.g., if many deaths are caused by a single hazard, adjust spawn/telegraph.
-
-## Mapping Design → Codebase
-
-- ECS Systems (see `engine/ecs`):
-  - MovementSystem: applies velocity and input to player entities.
-  - ProjectileSystem: spawns and advances projectiles, handles lifetime and collisions.
-  - CollisionSystem: resolves collisions and applies damage.
-  - SpawnSystem: schedules enemy waves and handles spawn patterns (data-driven via JSON/CSV).
-  - PowerupSystem: applies power-up effects and manages durations.
-
-- Key modules and files:
-  - `server/game_logic/instances/`: server-side game loop and instance management for multiplayer matches.
-  - `engine/core/`: shared systems like timing, resource management, and settings.
-  - `client/ui/`: HUD elements (score, health, power-up icons) and input handling.
-
-## Implementation Notes
-
-- Data-driven wave definitions: store enemy wave patterns in external files so designers can iterate quickly without recompiling.
-- Deterministic server simulation: keep authoritative server behavior deterministic wherever possible to simplify reconciliation.
-- Modular systems: keep systems small and single-responsibility so it's easy to test and modify (e.g., separate movement from input handling).
-
-## Design Checklist (for new features)
-
-- [ ] Gameplay prototype implemented in a sandbox scene.
-- [ ] Telemetry added to gather metrics for balancing.
-- [ ] Visual/audio feedback implemented and tuned.
-- [ ] Network behavior verified under artificial latency.
-- [ ] Unit/integration tests added for critical systems.
-
-## References
-
-- See `docs/architecture/ecs.md` for details on the ECS structure.
-- See `server/game_logic/` for server-side authoritative logic examples.
 
 
 *Document last updated: 2025-12-01*
