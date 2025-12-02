@@ -2,6 +2,7 @@
 
 #include "../../src/Common/BinarySerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "inputKey.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -99,37 +100,33 @@ void Game::broadcast_player_positions(UDPServer& server) {
 
 void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) {
     auto player_opt = get_player_entity(client_id);
-    if (!player_opt.has_value()) {
+    if (!player_opt.has_value()) return;
+
+    RType::BinarySerializer deserializer(data);
+    uint8_t input_mask;
+    uint32_t timestamp;
+
+    try {
+        deserializer >> input_mask >> timestamp;
+    } catch (...) {
+        std::cerr << "[Game] Failed to parse input payload" << std::endl;
         return;
     }
 
-    entity player = player_opt.value();
+    auto player = player_opt.value();
+    auto& pos_opt = _registry.get_component<position>(player);
 
-    float px = 0.0f;
-    float py = 0.0f;
-
-    for (uint8_t b : data) {
-        char c = static_cast<char>(b);
-        if (c == 'z') {
-            py -= 10.0f;
-        } else if (c == 's') {
-            py += 10.0f;
-        } else if (c == 'q') {
-            px -= 10.0f;
-        } else if (c == 'd') {
-            px += 10.0f;
-        }
+    if (pos_opt.has_value()) {
+        float speed = 10.0f;
+        if (input_mask & KEY_Z)
+            pos_opt->y -= speed;
+        if (input_mask & KEY_S)
+            pos_opt->y += speed;
+        if (input_mask & KEY_Q)
+            pos_opt->x -= speed;
+        if (input_mask & KEY_D)
+            pos_opt->x += speed;
     }
-
-    std::cout << "[Game] Client " << client_id << " input: (" << px << ", " << py << ")\n";
-
-    auto& pos_slot = _registry.get_component<position>(player);
-    if (pos_slot.has_value()) {
-        pos_slot->x += px;
-        pos_slot->y += py;
-        return;
-    }
-    _registry.emplace_component<position>(player, pos_slot->x, pos_slot->y);
 }
 
 void Game::process_network_events(UDPServer& server) {
@@ -165,8 +162,10 @@ void Game::process_network_events(UDPServer& server) {
                                   << " (Entity " << player.id() << ")" << std::endl;
                     }
 
-                    std::vector<uint8_t> payload(deserializer.data().begin() + deserializer.read_position(),
-                                                 deserializer.data().end());
+                    std::vector<uint8_t> payload(
+                        deserializer.data().begin() + static_cast<std::ptrdiff_t>(deserializer.read_position()),
+                        deserializer.data().end()
+                    );
                     handle_player_input(client_id, payload);
                     break;
                 }

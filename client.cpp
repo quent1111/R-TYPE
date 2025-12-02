@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <sys/select.h>
 #include <errno.h>
+#include "server/src/inputKey.hpp"
 
 class SimpleUDPClient {
 private:
@@ -150,7 +151,28 @@ public:
         packet.push_back(static_cast<uint8_t>(MAGIC_NUMBER & 0xFF));
         packet.push_back(static_cast<uint8_t>((MAGIC_NUMBER >> 8) & 0xFF));
         packet.push_back(0x10);
-        packet.push_back(static_cast<uint8_t>(key));
+        switch (key)
+        {
+        case 'z':
+            packet.push_back(KEY_Z);
+            break;
+        case 's':
+            packet.push_back(KEY_S);
+            break;
+        case 'q':
+            packet.push_back(KEY_Q);
+            break;
+        case 'd':
+            packet.push_back(KEY_D);
+            break;
+        default:
+            packet.push_back(static_cast<uint8_t>(key));
+            break;
+        }
+        packet.push_back(0);
+        packet.push_back(0);
+        packet.push_back(0);
+        packet.push_back(0);
         ssize_t sent = sendto(socket_fd_, packet.data(), packet.size(), 0,
                              (struct sockaddr*)&server_addr_, sizeof(server_addr_));
         if (sent < 0) {
