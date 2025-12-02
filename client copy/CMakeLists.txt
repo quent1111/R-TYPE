@@ -1,18 +1,43 @@
 cmake_minimum_required(VERSION 3.20)
 
-# Simple R-TYPE Client with SFML
-add_executable(r-type_client
+# Original game (without menu)
+add_executable(r-type_client_old
     src/main.cpp
-    src/game.cpp
-    src/networkClient.cpp
+)
+
+target_include_directories(r-type_client_old PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(r-type_client_old PRIVATE
+    game_logic
+    r-type-engine
+    project_options
+    project_warnings
+    sfml::sfml
+)
+
+link_platform_libraries(r-type_client_old)
+
+# New client with menu system
+add_executable(r-type_client
+    src/main_menu.cpp
+    src/core/SettingsManager.cpp
+    src/core/FontManager.cpp
+    src/states/StateManager.cpp
+    src/states/MenuState.cpp
+    src/states/SettingsState.cpp
+    src/states/GameState.cpp
+    src/ui/MenuComponents.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/server/src
 )
 
 target_link_libraries(r-type_client PRIVATE
+    game_logic
+    r-type-engine
     project_options
     project_warnings
     sfml::sfml
