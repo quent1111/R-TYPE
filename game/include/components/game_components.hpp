@@ -4,24 +4,11 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include "../../../engine/ecs/components.hpp"
 
 struct controllable {
     float speed;
     constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}
-};
-
-struct health {
-    int current;
-    int maximum;
-
-    constexpr health(int max = 100) noexcept : current(max), maximum(max) {}
-    constexpr health(int curr, int max) noexcept : current(curr), maximum(max) {}
-
-    [[nodiscard]] constexpr bool is_alive() const noexcept { return current > 0; }
-    [[nodiscard]] constexpr bool is_dead() const noexcept { return current <= 0; }
-    [[nodiscard]] constexpr float health_percentage() const noexcept {
-        return maximum > 0 ? static_cast<float>(current) / static_cast<float>(maximum) : 0.0f;
-    }
 };
 
 struct weapon {
@@ -96,31 +83,6 @@ struct animation_component {
         return frames[current_frame];
     }
 };
-
-struct damage_on_contact {
-    int damage_amount;
-    bool destroy_on_hit;
-
-    constexpr damage_on_contact(int dmg = 10, bool destroy = true) noexcept
-        : damage_amount(dmg), destroy_on_hit(destroy) {}
-};
-
-struct collision_box {
-    float width;
-    float height;
-    float offset_x;
-    float offset_y;
-
-    constexpr collision_box(float w = 50.0f, float h = 50.0f, float ox = 0.0f,
-                             float oy = 0.0f) noexcept
-        : width(w), height(h), offset_x(ox), offset_y(oy) {}
-};
-
-struct player_tag {};
-
-struct enemy_tag {};
-
-struct projectile_tag {};
 
 struct explosion_tag {
     float lifetime;

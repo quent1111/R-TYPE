@@ -59,6 +59,8 @@ void Game::handle_input() {
         input_mask |= KEY_S;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         input_mask |= KEY_D;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        input_mask |= KEY_SPACE;
 
     if (input_mask != 0) {
         game_to_network_queue_.push(

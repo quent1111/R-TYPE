@@ -22,6 +22,12 @@ struct health {
 
     constexpr health(int max_hp = 100) noexcept : current(max_hp), maximum(max_hp) {}
     constexpr health(int curr_hp, int max_hp) noexcept : current(curr_hp), maximum(max_hp) {}
+
+    [[nodiscard]] constexpr bool is_alive() const noexcept { return current > 0; }
+    [[nodiscard]] constexpr bool is_dead() const noexcept { return current <= 0; }
+    [[nodiscard]] constexpr float health_percentage() const noexcept {
+        return maximum > 0 ? static_cast<float>(current) / static_cast<float>(maximum) : 0.0f;
+    }
 };
 
 struct damage {
@@ -73,3 +79,5 @@ struct collision_box {
 struct player_tag {};
 
 struct enemy_tag {};
+
+struct projectile_tag {};

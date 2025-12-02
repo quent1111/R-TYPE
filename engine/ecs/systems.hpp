@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 // SYSTEM 1: MOVEMENT
 inline void position_system(registry& reg, float dt) {
@@ -104,28 +105,42 @@ inline void damage_system(registry& reg) {
 // SYSTEM 4: CLEANUP (Mort)
 inline void cleanup_system(registry& reg) {
     auto& healths = reg.get_components<health>();
+    std::vector<std::size_t> entities_to_kill;
 
+    // Collecter les entités à supprimer
     for (std::size_t i = 0; i < healths.size(); ++i) {
         if (healths[i] && healths[i]->current <= 0) {
-            reg.kill_entity(reg.entity_from_index(i));
-            std::cout << "[Game] Entity " << i << " died." << std::endl;
+            entities_to_kill.push_back(i);
         }
+    }
+
+    // Supprimer les entités collectées
+    for (std::size_t i : entities_to_kill) {
+        reg.kill_entity(reg.entity_from_index(i));
+        std::cout << "[Game] Entity " << i << " died." << std::endl;
     }
 }
 
 // SYSTEM 5: BOUNDARIES (Sortie de map)
 inline void boundary_system(registry& reg, float world_width, float world_height) {
     auto& positions = reg.get_components<position>();
+    std::vector<std::size_t> entities_to_kill;
 
+    // Collecter les entités à supprimer
     for (std::size_t i = 0; i < positions.size(); ++i) {
         if (positions[i]) {
             auto& pos = positions[i].value();
 
             if (pos.x < -100 || pos.x > world_width + 100 || pos.y < -100 ||
                 pos.y > world_height + 100) {
-                reg.kill_entity(reg.entity_from_index(i));
+                entities_to_kill.push_back(i);
             }
         }
+    }
+
+    // Supprimer les entités collectées
+    for (std::size_t i : entities_to_kill) {
+        reg.kill_entity(reg.entity_from_index(i));
     }
 }
 

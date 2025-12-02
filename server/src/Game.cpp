@@ -26,6 +26,26 @@ Game::Game(/* args */) {
 
 Game::~Game() {}
 
+entity Game::createProjectile(registry& reg, float x, float y, float vx, float vy, int damage) {
+    entity projectile = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();  // IMPORTANT: pour le broadcast
+
+    reg.add_component(projectile, position{x, y});
+    reg.add_component(projectile, velocity{vx, vy});
+    reg.add_component(projectile, collision_box{24.0f, 24.0f});
+    reg.add_component(projectile, damage_on_contact{damage, true});
+    reg.add_component(projectile, projectile_tag{});
+    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
+
+    return projectile;
+}
+
 entity Game::createBasicEnemy(registry& reg, float x, float y)
 {
     entity enemy = reg.spawn_entity();
@@ -101,29 +121,21 @@ void Game::remove_player(int client_id) {
 }
 
 void Game::broadcast_entity_positions(UDPServer& server) {
-    size_t entity_count = 0;
-
-    entity_count += _client_entity_ids.size();
-
-    auto& tags = _registry.get_components<entity_tag>();
-    for (size_t i = 0; i < tags.size(); ++i) {
-        if (tags[i].has_value()) {
-            if (tags[i]->type == RType::EntityType::Enemy) {
-                entity_count++;
-            }
-        }
-    }
-
-    if (entity_count == 0) {
-        return;
-    }
-
+    // Construire dynamiquement et compter après pour éviter les race conditions
     RType::BinarySerializer serializer;
 
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::EntityPosition;
-    serializer << static_cast<uint8_t>(entity_count);
+    
+    // Réserver l'espace pour le count qu'on mettra à jour après
+    size_t count_position = serializer.data().size();
+    serializer << static_cast<uint8_t>(0); // placeholder
 
+    size_t entity_count = 0;
+    auto& tags = _registry.get_components<entity_tag>();
+    auto& positions = _registry.get_components<position>();
+
+    // Broadcast des joueurs
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
@@ -131,7 +143,6 @@ void Game::broadcast_entity_positions(UDPServer& server) {
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
-
             serializer << static_cast<uint32_t>(entity_id);
             serializer << static_cast<uint8_t>(RType::EntityType::Player);
             serializer << pos.x;
@@ -140,27 +151,43 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             serializer << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             serializer << vy;
+            entity_count++;
         }
     }
 
-    auto& positions = _registry.get_components<position>();
+    // Broadcast des ennemis et projectiles
     for (size_t i = 0; i < tags.size(); ++i) {
-        if (tags[i].has_value() && tags[i]->type == RType::EntityType::Enemy) {
-            if (i < positions.size() && positions[i].has_value()) {
-                const auto& pos = positions[i].value();
-                auto entity_obj = _registry.entity_from_index(i);
-                auto vel_opt = _registry.get_component<velocity>(entity_obj);
-                serializer << static_cast<uint32_t>(i);
-                serializer << static_cast<uint8_t>(RType::EntityType::Enemy);
-                serializer << pos.x;
-                serializer << pos.y;
-                float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
-                serializer << vx;
-                float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
-                serializer << vy;
-            }
+        if (!tags[i].has_value()) continue;
+        
+        // Vérifier que la position existe toujours
+        if (i >= positions.size() || !positions[i].has_value()) continue;
+
+        if (tags[i]->type == RType::EntityType::Enemy || 
+            tags[i]->type == RType::EntityType::Projectile) {
+            
+            const auto& pos = positions[i].value();
+            auto entity_obj = _registry.entity_from_index(i);
+            auto vel_opt = _registry.get_component<velocity>(entity_obj);
+            
+            serializer << static_cast<uint32_t>(i);
+            serializer << static_cast<uint8_t>(tags[i]->type);
+            serializer << pos.x;
+            serializer << pos.y;
+            float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
+            serializer << vx;
+            float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
+            serializer << vy;
+            entity_count++;
         }
     }
+
+    // Ne rien envoyer si pas d'entités
+    if (entity_count == 0) {
+        return;
+    }
+
+    // Mettre à jour le count dans le paquet
+    serializer.data()[count_position] = static_cast<uint8_t>(entity_count);
 
     server.send_to_all(serializer.data());
 }
@@ -193,6 +220,9 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
             pos_opt->x -= speed;
         if (input_mask & KEY_D)
             pos_opt->x += speed;
+        if (input_mask & KEY_SPACE) {
+            createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
+        }
     }
 }
 
@@ -276,8 +306,8 @@ void Game::update_game_state(float dt)
     // damage_system(_registry);
 
     // 4. Nettoyage
-    // boundary_system(_registry, 4000.0f, 1000.0f);
-    // cleanup_system(_registry);
+    boundary_system(_registry, 4000.0f, 1000.0f);
+    cleanup_system(_registry);
 }
 
 void Game::send_periodic_updates(UDPServer& server, float dt)

@@ -476,12 +476,28 @@ do_build() {
     check_cmake
     check_compiler
     check_dev_tools "$COMMAND"
-    if [ ! -f "$BUILD_DIR/conan_toolchain.cmake" ] || [ "$CLEAN_BUILD" = true ]; then
+
+    local TOOLCHAIN_EXISTS=false
+    if [ -f "$BUILD_DIR/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/build/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/generators/conan_toolchain.cmake" ]; then
+        TOOLCHAIN_EXISTS=true
+    fi
+
+    if [ "$TOOLCHAIN_EXISTS" = false ] || [ "$CLEAN_BUILD" = true ]; then
         install_dependencies
     fi
-    if [ ! -f "$BUILD_DIR/CMakeCache.txt" ] || [ "$CLEAN_BUILD" = true ]; then
+
+    local CMAKE_CONFIGURED=false
+    if [ -f "$BUILD_DIR/CMakeCache.txt" ] || \
+       [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+        CMAKE_CONFIGURED=true
+    fi
+
+    if [ "$CMAKE_CONFIGURED" = false ] || [ "$CLEAN_BUILD" = true ]; then
         configure_cmake
     fi
+
     build_project "$TARGET"
 }
 

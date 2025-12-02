@@ -27,6 +27,7 @@ private:
 
     void spawnEnemyWave(registry& reg, int count);
     entity createBasicEnemy(registry& reg, float x, float y);
+    entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage);
 
 public:
     Game();
