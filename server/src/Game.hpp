@@ -1,11 +1,11 @@
 #pragma once
 
 #include "UDPServer.hpp"
-#include "ecs/components.hpp"
-#include "ecs/entity.hpp"
-#include "ecs/registry.hpp"
-#include "ecs/sparse_array.hpp"
-#include "ecs/systems.hpp"
+#include "../../engine/ecs/components.hpp"
+#include "../../engine/ecs/entity.hpp"
+#include "../../engine/ecs/registry.hpp"
+#include "../../engine/ecs/sparse_array.hpp"
+#include "../../engine/ecs/systems.hpp"
 
 #include <atomic>
 #include <optional>
