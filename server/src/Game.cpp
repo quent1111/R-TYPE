@@ -11,6 +11,7 @@
 #include <iostream>
 #include <optional>
 #include <thread>
+#include <random>
 
 extern std::atomic<bool> server_running;
 
@@ -24,6 +25,43 @@ Game::Game(/* args */) {
 }
 
 Game::~Game() {}
+
+entity Game::createBasicEnemy(registry& reg, float x, float y)
+{
+    entity enemy = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<health>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<enemy_tag>();
+    reg.register_component<entity_tag>();  // IMPORTANT: pour le broadcast
+
+    reg.add_component(enemy, position{x, y});
+    reg.add_component(enemy, velocity{-150.0f, 0.0f});
+    reg.add_component(enemy, health{30});
+
+    reg.add_component(enemy, collision_box{60.0f, 45.0f});
+    reg.add_component(enemy, damage_on_contact{25, false});
+    reg.add_component(enemy, enemy_tag{});
+    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy});  // IMPORTANT: avec le bon type
+
+    return enemy;
+}
+
+void Game::spawnEnemyWave(registry& reg, int count)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
+
+    for (int i = 0; i < count; ++i) {
+        float spawn_x = 2000.0f;
+        float spawn_y = dis_y(gen);
+        createBasicEnemy(reg, spawn_x, spawn_y);
+    }
+}
 
 entity Game::create_player(int client_id, float start_x, float start_y) {
     if (_client_entity_ids.find(client_id) != _client_entity_ids.end()) {
@@ -62,39 +100,68 @@ void Game::remove_player(int client_id) {
     }
 }
 
-void Game::broadcast_player_positions(UDPServer& server) {
-    if (_client_entity_ids.empty()) {
+void Game::broadcast_entity_positions(UDPServer& server) {
+    size_t entity_count = 0;
+
+    entity_count += _client_entity_ids.size();
+
+    auto& tags = _registry.get_components<entity_tag>();
+    for (size_t i = 0; i < tags.size(); ++i) {
+        if (tags[i].has_value()) {
+            if (tags[i]->type == RType::EntityType::Enemy) {
+                entity_count++;
+            }
+        }
+    }
+
+    if (entity_count == 0) {
         return;
     }
 
-    // Utilisation du BinarySerializer pour une sérialisation propre et sûre
     RType::BinarySerializer serializer;
 
-    // Header: Magic Number (uint16_t) + OpCode + Nombre de joueurs
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::EntityPosition;
-    serializer << static_cast<uint8_t>(_client_entity_ids.size());
+    serializer << static_cast<uint8_t>(entity_count);
 
-    // Payload: Pour chaque joueur, sérialiser [ClientID(uint16_t), X(float), Y(float)]
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
+        auto vel_opt = _registry.get_component<velocity>(player);
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
 
-            // Client ID (uint32_t - 4 bytes)
-            serializer << static_cast<uint32_t>(client_id);
-
-            // Position X (float - 4 bytes)
+            serializer << static_cast<uint32_t>(entity_id);
+            serializer << static_cast<uint8_t>(RType::EntityType::Player);
             serializer << pos.x;
-
-            // Position Y (float - 4 bytes)
             serializer << pos.y;
+            float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
+            serializer << vx;
+            float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
+            serializer << vy;
         }
     }
 
-    // Envoyer le paquet à tous les clients
+    auto& positions = _registry.get_components<position>();
+    for (size_t i = 0; i < tags.size(); ++i) {
+        if (tags[i].has_value() && tags[i]->type == RType::EntityType::Enemy) {
+            if (i < positions.size() && positions[i].has_value()) {
+                const auto& pos = positions[i].value();
+                auto entity_obj = _registry.entity_from_index(i);
+                auto vel_opt = _registry.get_component<velocity>(entity_obj);
+                serializer << static_cast<uint32_t>(i);
+                serializer << static_cast<uint8_t>(RType::EntityType::Enemy);
+                serializer << pos.x;
+                serializer << pos.y;
+                float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
+                serializer << vx;
+                float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
+                serializer << vy;
+            }
+        }
+    }
+
     server.send_to_all(serializer.data());
 }
 
@@ -129,7 +196,8 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
     }
 }
 
-void Game::process_network_events(UDPServer& server) {
+void Game::process_network_events(UDPServer& server)
+{
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {
         if (packet.data.empty() || packet.data.size() < 3) {
@@ -195,7 +263,8 @@ void Game::process_network_events(UDPServer& server) {
     }
 }
 
-void Game::update_game_state(float dt) {
+void Game::update_game_state(float dt)
+{
     // 1. Logique (IA, Tirs auto)
     // ai_system(_registry);
 
@@ -211,13 +280,14 @@ void Game::update_game_state(float dt) {
     // cleanup_system(_registry);
 }
 
-void Game::send_periodic_updates(UDPServer& server, float dt) {
-    const float position_broadcast_interval = 0.1f;  // 100ms
-    const float cleanup_interval = 1.0f;             // 1s
+void Game::send_periodic_updates(UDPServer& server, float dt)
+{
+    const float position_broadcast_interval = 0.1f;
+    const float cleanup_interval = 1.0f;
 
     _pos_broadcast_accumulator += dt;
     if (_pos_broadcast_accumulator >= position_broadcast_interval) {
-        broadcast_player_positions(server);
+        broadcast_entity_positions(server);
         _pos_broadcast_accumulator -= position_broadcast_interval;
     }
 
@@ -240,6 +310,8 @@ void Game::runGameLoop(UDPServer& server) {
 
     auto previous_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> lag(0.0);
+
+    spawnEnemyWave(_registry, 51);
 
     while (server_running) {
         auto current_time = std::chrono::steady_clock::now();

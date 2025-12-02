@@ -25,6 +25,9 @@ private:
 
     void handle_player_input(int client_id, const std::vector<uint8_t>& data);
 
+    void spawnEnemyWave(registry& reg, int count);
+    entity createBasicEnemy(registry& reg, float x, float y);
+
 public:
     Game();
     ~Game();
@@ -33,5 +36,5 @@ public:
     entity create_player(int client_id, float start_x = 100.0f, float start_y = 100.0f);
     std::optional<entity> get_player_entity(int client_id);
     void remove_player(int client_id);
-    void broadcast_player_positions(UDPServer& server);
+    void broadcast_entity_positions(UDPServer& server);
 };
