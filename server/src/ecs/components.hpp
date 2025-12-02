@@ -49,3 +49,27 @@ struct network_id {
 
     constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };
+
+
+struct damage_on_contact {
+    int damage_amount;
+    bool destroy_on_hit;
+
+    constexpr damage_on_contact(int dmg = 10, bool destroy = true) noexcept
+        : damage_amount(dmg), destroy_on_hit(destroy) {}
+};
+
+struct collision_box {
+    float width;
+    float height;
+    float offset_x;
+    float offset_y;
+
+    constexpr collision_box(float w = 50.0f, float h = 50.0f, float ox = 0.0f,
+                             float oy = 0.0f) noexcept
+        : width(w), height(h), offset_x(ox), offset_y(oy) {}
+};
+
+struct player_tag {};
+
+struct enemy_tag {};
