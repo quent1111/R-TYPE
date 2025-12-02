@@ -95,7 +95,7 @@ public:
     }
 
     void decode_player_positions(const std::vector<uint8_t>& buffer, ssize_t received) {
-        std::cout << "\n[Game] Positions des joueurs:\n";
+        std::cout << "\n[Game] Entités reçues:\n";
 
         if (received < 4) {
             std::cout << "  Paquet invalide (trop court)\n> " << std::flush;
@@ -103,16 +103,20 @@ public:
         }
 
         size_t offset = 3;
-        uint8_t player_count = buffer[offset];
+        uint8_t entity_count = buffer[offset];
         offset += 1;
-        std::cout << "  Nombre de joueurs: " << static_cast<int>(player_count) << "\n";
 
-        for (int i = 0; i < player_count && offset + 12 <= static_cast<size_t>(received); i++) {
-            uint32_t client_id = static_cast<uint32_t>(buffer[offset]) |
+        std::cout << "  Nombre d'entités: " << static_cast<int>(entity_count) << "\n";
+
+        for (int i = 0; i < entity_count && offset + 21 <= static_cast<size_t>(received); i++) {
+            uint32_t entity_id = static_cast<uint32_t>(buffer[offset]) |
                                 (static_cast<uint32_t>(buffer[offset + 1]) << 8) |
                                 (static_cast<uint32_t>(buffer[offset + 2]) << 16) |
                                 (static_cast<uint32_t>(buffer[offset + 3]) << 24);
             offset += 4;
+
+            uint8_t type = buffer[offset];
+            offset += 1;
 
             float x;
             std::memcpy(&x, &buffer[offset], sizeof(float));
@@ -122,11 +126,29 @@ public:
             std::memcpy(&y, &buffer[offset], sizeof(float));
             offset += 4;
 
-            std::cout << "  Player " << client_id << ": (" << x << ", " << y << ")\n";
+            float vx;
+            std::memcpy(&vx, &buffer[offset], sizeof(float));
+            offset += 4;
+
+            float vy;
+            std::memcpy(&vy, &buffer[offset], sizeof(float));
+            offset += 4;
+
+            const char* type_name = "Unknown";
+            if (type == 0x01) {
+                type_name = "PLAYER";
+            } else if (type == 0x02) {
+                type_name = "ENEMY";
+            } else if (type == 0x03) {
+                type_name = "PROJECTILE";
+            }
+
+            std::cout << "  [" << type_name << "] Entity#" << entity_id 
+                      << " pos:(" << x << ", " << y << ") vel:(" << vx << ", " << vy << ")\n";
         }
 
-        if (player_count == 0) {
-            std::cout << "  Aucun joueur connecté\n";
+        if (entity_count == 0) {
+            std::cout << "  Aucune entité\n";
         }
 
         std::cout << "> " << std::flush;
