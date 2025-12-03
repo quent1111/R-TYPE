@@ -14,6 +14,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.register_component<collision_box>();
     reg.register_component<damage_on_contact>();
     reg.register_component<enemy_tag>();
+    reg.register_component<entity_tag>();
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
@@ -41,6 +42,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, collision_box{60.0f, 45.0f});
     reg.add_component(enemy, damage_on_contact{25, false});
     reg.add_component(enemy, enemy_tag{});
+    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy});
 
     return enemy;
 }

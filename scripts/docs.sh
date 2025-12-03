@@ -5,22 +5,18 @@
 
 set -e
 
-# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCS_DIR="$PROJECT_ROOT/docs"
 
-# Default action
 ACTION="serve"
 
-# Help message
 show_help() {
     cat << EOF
 Usage: $0 [COMMAND] [OPTIONS]
@@ -49,7 +45,6 @@ EXAMPLES:
 EOF
 }
 
-# Check if MkDocs is installed
 check_mkdocs() {
     if ! command -v mkdocs &> /dev/null; then
         echo -e "${YELLOW}MkDocs not found!${NC}"
@@ -58,7 +53,6 @@ check_mkdocs() {
     fi
 }
 
-# Install MkDocs and dependencies
 install_deps() {
     echo -e "${BLUE}Installing MkDocs dependencies...${NC}\n"
     
@@ -73,14 +67,12 @@ install_deps() {
     echo -e "\n${GREEN}✓ Dependencies installed successfully!${NC}"
 }
 
-# Serve documentation locally
 serve_docs() {
     check_mkdocs
     
     local port=8000
     local addr="127.0.0.1"
     
-    # Parse options
     while [[ $# -gt 0 ]]; do
         case $1 in
             -p|--port)
@@ -108,7 +100,6 @@ serve_docs() {
     mkdocs serve -a "$addr:$port"
 }
 
-# Build documentation
 build_docs() {
     check_mkdocs
     
@@ -123,7 +114,6 @@ build_docs() {
     echo -e "${BLUE}Output directory: $PROJECT_ROOT/site${NC}"
 }
 
-# Deploy to GitHub Pages
 deploy_docs() {
     check_mkdocs
     
@@ -147,7 +137,6 @@ deploy_docs() {
     echo -e "${BLUE}Visit: https://quent1111.github.io/R-TYPE/${NC}"
 }
 
-# Clean built documentation
 clean_docs() {
     echo -e "${BLUE}Cleaning documentation build...${NC}"
     
@@ -159,10 +148,8 @@ clean_docs() {
     fi
 }
 
-# Main execution
 cd "$PROJECT_ROOT"
 
-# Parse command
 if [[ $# -gt 0 ]]; then
     case $1 in
         serve)
@@ -192,6 +179,5 @@ if [[ $# -gt 0 ]]; then
             ;;
     esac
 else
-    # Default action: serve
     serve_docs
 fi

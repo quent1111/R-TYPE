@@ -1,6 +1,3 @@
-# Game Logic Library
-# This library contains all shared game logic (components, systems, entities)
-# It will be used by both client and server
 
 add_library(game_logic STATIC
     src/systems/input_system.cpp

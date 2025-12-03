@@ -12,6 +12,7 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
     reg.register_component<collision_box>();
     reg.register_component<damage_on_contact>();
     reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();
 
     std::vector<sf::IntRect> projectile_frames = {
         {231, 102, 16, 17},
@@ -27,6 +28,7 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
     reg.add_component(projectile, collision_box{24.0f, 24.0f});
     reg.add_component(projectile, damage_on_contact{damage, true});
     reg.add_component(projectile, projectile_tag{});
+    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
 
     return projectile;
 }

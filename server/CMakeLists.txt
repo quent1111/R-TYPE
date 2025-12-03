@@ -8,10 +8,12 @@ add_executable(r-type_server
 
 target_include_directories(r-type_server PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/game-lib/include
 )
 
 target_link_libraries(r-type_server PRIVATE
     r-type-engine
+    game_logic
     project_options
     project_warnings
     asio::asio

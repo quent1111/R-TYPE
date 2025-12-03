@@ -3,6 +3,7 @@
 #include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
+#include "TextureManager.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -22,6 +23,12 @@ private:
     sf::RenderWindow window_;
     sf::Font font_;
     sf::Text info_text_;
+    TextureManager texture_manager_;
+
+    sf::Sprite bg_sprite1_;
+    sf::Sprite bg_sprite2_;
+    float bg_scroll_offset_ = 0.0f;
+    const float bg_scroll_speed_ = 50.0f;
 
     bool is_running_;
     bool prev_space_pressed_ = false;
@@ -33,6 +40,8 @@ private:
     void process_network_messages();
     void render();
     void setup_ui();
+
+    void init_entity_sprite(Entity& entity);
 
 public:
     Game(ThreadSafeQueue<GameToNetwork::Message>& game_to_net,

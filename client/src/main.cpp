@@ -50,19 +50,14 @@
 
 int main() {
     try {
-        // 1. Les files de communication
         ThreadSafeQueue<GameToNetwork::Message> game_to_network_queue;
         ThreadSafeQueue<NetworkToGame::Message> network_to_game_queue;
 
-        // 2. Le Client Réseau (Lance ses threads interne receiver/sender)
-        // Pas besoin de std::thread ici !
         NetworkClient network_client("localhost", 4242, game_to_network_queue, network_to_game_queue);
 
-        // 3. Le Jeu (Bloquant, tourne dans le main thread)
         Game game(game_to_network_queue, network_to_game_queue);
         game.run();
 
-        // 4. Arrêt propre (Le destructeur de NetworkClient s'occupe de join ses threads)
 
     } catch (const std::exception& e) {
         std::cerr << "[Fatal Error] " << e.what() << std::endl;

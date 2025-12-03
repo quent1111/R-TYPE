@@ -9,7 +9,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 HOOKS_DIR="$PROJECT_ROOT/.git/hooks"
 
-# Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
@@ -20,16 +19,13 @@ echo -e "${BLUE}╔════════════════════�
 echo -e "${BLUE}║   Installing R-TYPE Git Hooks          ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════╝${NC}\n"
 
-# Check if we're in a git repository
 if [ ! -d "$PROJECT_ROOT/.git" ]; then
     echo -e "${RED}Error: Not in a git repository${NC}"
     exit 1
 fi
 
-# Create hooks directory if it doesn't exist
 mkdir -p "$HOOKS_DIR"
 
-# Pre-commit hook content
 cat > "$HOOKS_DIR/pre-commit" << 'EOF'
 #!/bin/bash
 

@@ -16,7 +16,7 @@ struct Message {
 
     Message(MessageType t, uint8_t input = 0) : type(t), input_mask(input) {}
 };
-}  // namespace GameToNetwork
+}
 
 namespace NetworkToGame {
 enum class MessageType : uint8_t { EntityUpdate, ConnectionStatus };
@@ -31,4 +31,4 @@ struct Message {
     Message(MessageType t, std::map<uint32_t, Entity> ents)
         : type(t), entities(std::move(ents)), is_connected(false) {}
 };
-}  // namespace NetworkToGame
+}

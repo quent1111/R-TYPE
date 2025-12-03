@@ -1,33 +1,13 @@
 #pragma once
 
+#include "logic_components.hpp"
+
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <cstdint>
 #include <vector>
 #include "../../../engine/ecs/components.hpp"
 
-struct controllable {
-    float speed;
-    constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}
-};
-
-struct weapon {
-    float fire_rate;
-    float time_since_shot;
-    float projectile_speed;
-    int damage;
-
-    constexpr weapon(float rate = 5.0f, float proj_speed = 500.0f, int dmg = 10) noexcept
-        : fire_rate(rate), time_since_shot(0.0f), projectile_speed(proj_speed), damage(dmg) {}
-
-    constexpr void update(float dt) noexcept { time_since_shot += dt; }
-
-    [[nodiscard]] constexpr bool can_shoot() const noexcept {
-        return time_since_shot >= (1.0f / fire_rate);
-    }
-
-    constexpr void reset_shot_timer() noexcept { time_since_shot = 0.0f; }
-};
 
 struct sprite_component {
     std::string texture_path;
@@ -82,21 +62,4 @@ struct animation_component {
         }
         return frames[current_frame];
     }
-};
-
-struct explosion_tag {
-    float lifetime;
-    float elapsed;
-
-    constexpr explosion_tag(float life = 0.5f) noexcept
-        : lifetime(life), elapsed(0.0f) {}
-};
-
-struct bounded_movement {
-    float min_x, max_x;
-    float min_y, max_y;
-
-    constexpr bounded_movement(float minx = 0.0f, float maxx = 1920.0f, float miny = 0.0f,
-                                float maxy = 1080.0f) noexcept
-        : min_x(minx), max_x(maxx), min_y(miny), max_y(maxy) {}
 };

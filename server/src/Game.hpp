@@ -1,10 +1,18 @@
 #pragma once
 
 #include "../../engine/ecs/components.hpp"
+#include "../../game-lib/include/components/logic_components.hpp"
+#include "../../game-lib/include/components/game_components.hpp"
+
+#include "../../game-lib/include/entities/enemy_factory.hpp"
+#include "../../game-lib/include/entities/player_factory.hpp"
+#include "../../game-lib/include/entities/projectile_factory.hpp"
+#include "../../game-lib/include/systems/movement_system.hpp"
+#include "../../game-lib/include/systems/cleanup_system.hpp"
+
 #include "../../engine/ecs/entity.hpp"
 #include "../../engine/ecs/registry.hpp"
 #include "../../engine/ecs/sparse_array.hpp"
-#include "../../engine/ecs/systems.hpp"
 #include "../../src/Common/BinarySerializer.hpp"
 #include "UDPServer.hpp"
 
@@ -27,10 +35,6 @@ private:
     void send_periodic_updates(UDPServer& server, float dt);
 
     void handle_player_input(int client_id, const std::vector<uint8_t>& data);
-
-    void spawnEnemyWave(registry& reg, int count);
-    entity createBasicEnemy(registry& reg, float x, float y);
-    entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage);
 
 public:
     Game();

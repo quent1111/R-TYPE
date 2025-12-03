@@ -15,84 +15,36 @@
 
 extern std::atomic<bool> server_running;
 
-Game::Game(/* args */) {
+Game::Game() {
     _registry.register_component<position>();
     _registry.register_component<velocity>();
     _registry.register_component<health>();
     _registry.register_component<collider>();
     _registry.register_component<entity_tag>();
     _registry.register_component<network_id>();
+    _registry.register_component<controllable>();
+    _registry.register_component<weapon>();
+    _registry.register_component<collision_box>();
+    _registry.register_component<damage_on_contact>();
+    _registry.register_component<player_tag>();
+    _registry.register_component<enemy_tag>();
+    _registry.register_component<projectile_tag>();
+    _registry.register_component<bounded_movement>();
+    _registry.register_component<explosion_tag>();
+    _registry.register_component<sprite_component>();
+    _registry.register_component<animation_component>();
     _broadcast_serializer.reserve(65536);
 }
 
 Game::~Game() {}
-
-entity Game::createProjectile(registry& reg, float x, float y, float vx, float vy, int damage) {
-    entity projectile = reg.spawn_entity();
-
-    reg.register_component<position>();
-    reg.register_component<velocity>();
-    reg.register_component<collision_box>();
-    reg.register_component<damage_on_contact>();
-    reg.register_component<projectile_tag>();
-    reg.register_component<entity_tag>();
-
-    reg.add_component(projectile, position{x, y});
-    reg.add_component(projectile, velocity{vx, vy});
-    reg.add_component(projectile, collision_box{24.0f, 24.0f});
-    reg.add_component(projectile, damage_on_contact{damage, true});
-    reg.add_component(projectile, projectile_tag{});
-    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
-
-    return projectile;
-}
-
-entity Game::createBasicEnemy(registry& reg, float x, float y) {
-    entity enemy = reg.spawn_entity();
-
-    reg.register_component<position>();
-    reg.register_component<velocity>();
-    reg.register_component<health>();
-    reg.register_component<collision_box>();
-    reg.register_component<damage_on_contact>();
-    reg.register_component<enemy_tag>();
-    reg.register_component<entity_tag>();
-
-    reg.add_component(enemy, position{x, y});
-    reg.add_component(enemy, velocity{-150.0f, 0.0f});
-    reg.add_component(enemy, health{30});
-
-    reg.add_component(enemy, collision_box{60.0f, 45.0f});
-    reg.add_component(enemy, damage_on_contact{25, false});
-    reg.add_component(enemy, enemy_tag{});
-    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy});
-
-    return enemy;
-}
-
-void Game::spawnEnemyWave(registry& reg, int count) {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
-
-    for (int i = 0; i < count; ++i) {
-        float spawn_x = 2000.0f;
-        float spawn_y = dis_y(gen);
-        createBasicEnemy(reg, spawn_x, spawn_y);
-    }
-}
 
 entity Game::create_player(int client_id, float start_x, float start_y) {
     if (_client_entity_ids.find(client_id) != _client_entity_ids.end()) {
         std::cout << "[Game] Player for client " << client_id << " already exists" << std::endl;
         return _registry.entity_from_index(_client_entity_ids[client_id]);
     }
-    auto player = _registry.spawn_entity();
-    _registry.emplace_component<position>(player, start_x, start_y);
-    _registry.emplace_component<velocity>(player, 1.0f, 0.0f);
-    _registry.emplace_component<health>(player, 100);
-    _registry.emplace_component<collider>(player, 32.0f, 32.0f);
-    _registry.emplace_component<entity_tag>(player, RType::EntityType::Player);
+
+    auto player = ::createPlayer(_registry, start_x, start_y);
     _registry.emplace_component<network_id>(player, client_id);
 
     _client_entity_ids[client_id] = player.id();
@@ -201,6 +153,7 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
 
     auto player = player_opt.value();
     auto& pos_opt = _registry.get_component<position>(player);
+    // auto& vel_opt = _registry.get_component<velocity>(player);
 
     if (pos_opt.has_value()) {
         float speed = 10.0f;
@@ -213,7 +166,8 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
         if (input_mask & KEY_D)
             pos_opt->x += speed;
         if (input_mask & KEY_SPACE) {
-            createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
+             // TODO: Ajouter un cooldown pour éviter le spam, en utilisant le composant weapon
+            ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
         }
     }
 }
@@ -243,12 +197,11 @@ void Game::process_network_events(UDPServer& server) {
             switch (opcode) {
                 case RType::OpCode::Input: {
                     auto player_opt = get_player_entity(client_id);
-                    if (!player_opt.has_value()) {  // A voir si créer un player quand on recois une
-                                                    // commande que le serveur connais c'est utile
+                    if (!player_opt.has_value()) {
                         float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                         float start_y = 300.0f;
                         auto player = create_player(client_id, start_x, start_y);
-                        std::cout << "[Game] New player connected: Client " << client_id
+                        std::cout << "[Game] New player connected (Implicit): Client " << client_id
                                   << " (Entity " << player.id() << ")" << std::endl;
                     }
 
@@ -290,16 +243,15 @@ void Game::update_game_state(float dt) {
     // 1. Logique (IA, Tirs auto)
     // ai_system(_registry);
 
-    // 2. Physique
-    position_system(_registry, dt);
+    // 2. Physique (Déplacement + Bornes)
+    movementSystem(_registry, dt);
 
     // 3. Collisions & Dégâts
     // collision_system(_registry);
     // damage_system(_registry);
 
     // 4. Nettoyage
-    boundary_system(_registry, 4000.0f, 1000.0f);
-    cleanup_system(_registry);
+    cleanupSystem(_registry);
 }
 
 void Game::send_periodic_updates(UDPServer& server, float dt) {

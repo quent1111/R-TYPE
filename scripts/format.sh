@@ -213,7 +213,6 @@ fi
 
 echo -e "\n${GREEN}Done!${NC}"
 
-# Exit with error if any check failed
 if [[ $FORMAT_EXIT -ne 0 ]] || [[ $TIDY_EXIT -ne 0 ]]; then
     exit 1
 fi

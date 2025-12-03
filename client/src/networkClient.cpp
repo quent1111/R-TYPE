@@ -105,19 +105,6 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, ssize_t 
             entity.vx = vx;
             entity.vy = vy;
 
-            entity.shape.setSize(sf::Vector2f(30, 30));
-            entity.shape.setPosition(entity.x, entity.y);
-
-            if (type_val == 0x01) {
-                entity.shape.setFillColor(sf::Color::Green);
-            } else if (type_val == 0x02) {
-                entity.shape.setFillColor(sf::Color::Red);
-            } else if (type_val == 0x03) {
-                entity.shape.setFillColor(sf::Color::Yellow);
-            } else {
-                entity.shape.setFillColor(sf::Color::White);
-            }
-
             new_entities[entity_id] = entity;
         }
 
