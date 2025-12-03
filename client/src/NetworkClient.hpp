@@ -1,23 +1,27 @@
 #pragma once
 
+#include "Entity.hpp"
+#include "Messages.hpp"
+#include "SafeQueue.hpp"
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
+
 #include <SFML/Graphics.hpp>
-#include <iostream>
-#include <string>
-#include <vector>
+#include <arpa/inet.h>
 #include <cstdint>
 #include <cstring>
-#include <thread>
-#include <atomic>
-#include <map>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
 #include <fcntl.h>
-#include "SafeQueue.hpp"
-#include "Messages.hpp"
-#include "Entity.hpp"
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <iostream>
+#include <map>
+#include <string>
+#include <thread>
+#include <vector>
 
 class NetworkClient {
 private:

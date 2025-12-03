@@ -1,11 +1,12 @@
 #pragma once
 
-#include "UDPServer.hpp"
 #include "../../engine/ecs/components.hpp"
 #include "../../engine/ecs/entity.hpp"
 #include "../../engine/ecs/registry.hpp"
 #include "../../engine/ecs/sparse_array.hpp"
 #include "../../engine/ecs/systems.hpp"
+#include "../../src/Common/BinarySerializer.hpp"
+#include "UDPServer.hpp"
 
 #include <atomic>
 #include <optional>
@@ -15,6 +16,8 @@ class Game {
 private:
     registry _registry;
     std::unordered_map<int, std::size_t> _client_entity_ids;
+
+    RType::BinarySerializer _broadcast_serializer;
 
     float _pos_broadcast_accumulator = 0.0f;
     float _cleanup_accumulator = 0.0f;

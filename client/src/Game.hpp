@@ -1,12 +1,14 @@
 #pragma once
 
-#include <SFML/Graphics.hpp>
-#include <memory>
-#include <string>
-#include <map>
+#include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
-#include "Messages.hpp"
+
+#include <SFML/Graphics.hpp>
+
+#include <map>
+#include <memory>
+#include <string>
 
 class Game {
 private:

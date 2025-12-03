@@ -2,22 +2,30 @@
 
 #include <mutex>
 #include <queue>
+#include <condition_variable>
 
 template <typename T>
 class ThreadSafeQueue {
 private:
     std::queue<T> queue_;
     mutable std::mutex mutex_;
+    std::condition_variable cv_;
 
 public:
     void push(const T& item) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        queue_.push(item);
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            queue_.push(item);
+        }
+        cv_.notify_one();
     }
 
     void push(T&& item) {
-        std::lock_guard<std::mutex> lock(mutex_);
-        queue_.push(std::move(item));
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            queue_.push(std::move(item));
+        }
+        cv_.notify_one();
     }
 
     bool try_pop(T& item) {
@@ -38,5 +46,13 @@ public:
     size_t size() const {
         std::lock_guard<std::mutex> lock(mutex_);
         return queue_.size();
+    }
+
+    bool wait_and_pop(T& item) {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cv_.wait(lock, [this]{ return !queue_.empty(); });
+    item = std::move(queue_.front());
+    queue_.pop();
+    return true;
     }
 };
