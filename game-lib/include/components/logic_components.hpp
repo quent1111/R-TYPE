@@ -2,6 +2,7 @@
 
 #include "../../../src/Common/Opcodes.hpp"
 
+// Composants de Gameplay Logique (Server-Safe, pas de SFML)
 
 struct health {
     int current;
@@ -73,6 +74,15 @@ struct bounded_movement {
         : min_x(minx), max_x(maxx), min_y(miny), max_y(maxy) {}
 };
 
+struct wave_manager {
+    float timer = 0.0f;
+    float spawn_interval = 5.0f;
+    int enemies_per_wave = 3;
+    
+    constexpr wave_manager(float interval = 5.0f, int count = 3) noexcept 
+        : spawn_interval(interval), enemies_per_wave(count) {}
+};
+
 // Tags
 struct player_tag {};
 struct enemy_tag {};
@@ -94,4 +104,3 @@ struct network_id {
     int client_id;
     constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };
-

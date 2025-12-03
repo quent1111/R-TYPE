@@ -5,6 +5,7 @@ add_library(game_logic STATIC
     src/systems/shooting_system.cpp
     src/systems/collision_system.cpp
     src/systems/cleanup_system.cpp
+    src/systems/wave_system.cpp
     src/entities/player_factory.cpp
     src/entities/enemy_factory.cpp
     src/entities/projectile_factory.cpp

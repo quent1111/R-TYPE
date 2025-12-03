@@ -31,6 +31,7 @@ Game::Game() {
     _registry.register_component<projectile_tag>();
     _registry.register_component<bounded_movement>();
     _registry.register_component<explosion_tag>();
+    _registry.register_component<wave_manager>();
     _registry.register_component<sprite_component>();
     _registry.register_component<animation_component>();
     _broadcast_serializer.reserve(65536);
@@ -251,6 +252,7 @@ void Game::process_network_events(UDPServer& server) {
 
 void Game::update_game_state(float dt) {
     shootingSystem(_registry, dt);
+    waveSystem(_registry, dt);
 
     movementSystem(_registry, dt);
 
@@ -269,7 +271,7 @@ void Game::send_periodic_updates(UDPServer& server, float dt) {
 
     _cleanup_accumulator += dt;
     if (_cleanup_accumulator >= cleanup_interval) {
-        auto dead_clients = server.remove_inactive_clients(std::chrono::seconds(30));
+        auto dead_clients = server.remove_inactive_clients(std::chrono::seconds(90));
         for (int id : dead_clients) {
             remove_player(id);
         }
@@ -287,7 +289,6 @@ void Game::runGameLoop(UDPServer& server) {
     auto previous_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> lag(0.0);
 
-    spawnEnemyWave(_registry, 51);
 
     while (server_running) {
         auto current_time = std::chrono::steady_clock::now();

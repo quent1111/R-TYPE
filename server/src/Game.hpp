@@ -10,6 +10,7 @@
 #include "../../game-lib/include/systems/movement_system.hpp"
 #include "../../game-lib/include/systems/shooting_system.hpp"
 #include "../../game-lib/include/systems/cleanup_system.hpp"
+#include "../../game-lib/include/systems/wave_system.hpp"
 
 #include "../../engine/ecs/entity.hpp"
 #include "../../engine/ecs/registry.hpp"
