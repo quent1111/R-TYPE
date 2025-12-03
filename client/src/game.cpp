@@ -60,8 +60,12 @@ void Game::handle_input() {
         input_mask |= KEY_S;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         input_mask |= KEY_D;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+
+    bool current_space = sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+    if (current_space && !prev_space_pressed_) {
         input_mask |= KEY_SPACE;
+    }
+    prev_space_pressed_ = current_space;
 
     if (input_mask != 0) {
         game_to_network_queue_.push(

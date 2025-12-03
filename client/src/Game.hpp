@@ -24,6 +24,7 @@ private:
     sf::Text info_text_;
 
     bool is_running_;
+    bool prev_space_pressed_ = false;
     std::map<uint32_t, Entity> entities_;
 
     void process_events();
