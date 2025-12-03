@@ -47,7 +47,7 @@ public:
     }
 
     void receive_loop() {
-        std::vector<uint8_t> buffer(4096);
+        std::vector<uint8_t> buffer(65536);
         struct sockaddr_in from_addr;
         socklen_t from_len = sizeof(from_addr);
 
