@@ -65,6 +65,15 @@ void Game::process_events() {
             is_running_ = false;
         }
 
+        if (event.type == sf::Event::GainedFocus) {
+            has_focus_ = true;
+            std::cout << "[Client] Focus GAINED" << std::endl;
+        }
+        if (event.type == sf::Event::LostFocus) {
+            has_focus_ = false;
+            std::cout << "[Client] Focus LOST" << std::endl;
+        }
+
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Escape) {
                 window_.close();
@@ -75,6 +84,10 @@ void Game::process_events() {
 }
 
 void Game::handle_input() {
+    if (!has_focus_) {
+        return;
+    }
+
     uint8_t input_mask = 0;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
@@ -90,11 +103,9 @@ void Game::handle_input() {
         input_mask |= KEY_D;
     }
 
-    bool current_space = sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
-    if (current_space && !prev_space_pressed_) {
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
         input_mask |= KEY_SPACE;
     }
-    prev_space_pressed_ = current_space;
 
     if (input_mask != 0) {
         game_to_network_queue_.push(

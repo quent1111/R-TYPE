@@ -8,6 +8,7 @@
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
 #include "../../game-lib/include/systems/movement_system.hpp"
+#include "../../game-lib/include/systems/shooting_system.hpp"
 #include "../../game-lib/include/systems/cleanup_system.hpp"
 
 #include "../../engine/ecs/entity.hpp"

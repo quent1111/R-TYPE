@@ -31,6 +31,7 @@ private:
     const float bg_scroll_speed_ = 50.0f;
 
     bool is_running_;
+    bool has_focus_ = true;
     bool prev_space_pressed_ = false;
     std::map<uint32_t, Entity> entities_;
 

@@ -154,6 +154,7 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
     auto player = player_opt.value();
     auto& pos_opt = _registry.get_component<position>(player);
     // auto& vel_opt = _registry.get_component<velocity>(player);
+    auto& wpn_opt = _registry.get_component<weapon>(player);
 
     if (pos_opt.has_value()) {
         float speed = 10.0f;
@@ -166,8 +167,17 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
         if (input_mask & KEY_D)
             pos_opt->x += speed;
         if (input_mask & KEY_SPACE) {
-             // TODO: Ajouter un cooldown pour éviter le spam, en utilisant le composant weapon
-            ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
+             if (wpn_opt.has_value()) {
+                 auto& wpn = wpn_opt.value();
+                 if (wpn.can_shoot()) {
+                     std::cout << "[Game] Client " << client_id << " (Entity " << player.id() << ") SHOOTS!" << std::endl;
+                     ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
+                     wpn.reset_shot_timer();
+                 }
+             } else {
+                 std::cout << "[Game] Client " << client_id << " (Entity " << player.id() << ") SHOOTS (Fallback)!" << std::endl;
+                 ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
+             }
         }
     }
 }
@@ -240,17 +250,10 @@ void Game::process_network_events(UDPServer& server) {
 }
 
 void Game::update_game_state(float dt) {
-    // 1. Logique (IA, Tirs auto)
-    // ai_system(_registry);
+    shootingSystem(_registry, dt);
 
-    // 2. Physique (Déplacement + Bornes)
     movementSystem(_registry, dt);
 
-    // 3. Collisions & Dégâts
-    // collision_system(_registry);
-    // damage_system(_registry);
-
-    // 4. Nettoyage
     cleanupSystem(_registry);
 }
 
