@@ -20,7 +20,7 @@ private:
     ThreadSafeQueue<GameToNetwork::Message>& game_to_network_queue_;
     ThreadSafeQueue<NetworkToGame::Message>& network_to_game_queue_;
 
-    sf::RenderWindow window_;
+    sf::RenderWindow& window_;
     sf::Font font_;
     sf::Text info_text_;
     TextureManager texture_manager_;
@@ -32,24 +32,25 @@ private:
 
     bool is_running_;
     bool has_focus_ = true;
-    bool prev_space_pressed_ = false;
     std::map<uint32_t, Entity> entities_;
 
-    void process_events();
-    void handle_input();
-    void update();
     void process_network_messages();
-    void render();
     void setup_ui();
 
     void init_entity_sprite(Entity& entity);
 
 public:
-    Game(ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
+    Game(sf::RenderWindow& window,
+         ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
          ThreadSafeQueue<NetworkToGame::Message>& net_to_game);
     ~Game();
 
     void run();
+    void handle_input();
+    void update();
+    void render();
+    bool is_running() const { return is_running_; }
+    void set_focus(bool focus) { has_focus_ = focus; }
 
     Game(const Game&) = delete;
     Game& operator=(const Game&) = delete;

@@ -43,8 +43,13 @@ public:
     void receive_loop();
     void send_loop();
     void decode_entities(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_lobby_status(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_start_game(const std::vector<uint8_t>& buffer, ssize_t received);
     void send_login();
     void send_input(uint8_t input_mask);
+    void send_ready(bool ready);
+    void stop() { running_ = false; }
+    void run();
 
     ~NetworkClient();
 };

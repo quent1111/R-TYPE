@@ -12,6 +12,7 @@
 #include <optional>
 #include <random>
 #include <thread>
+#include <thread>
 
 extern std::atomic<bool> server_running;
 
@@ -171,12 +172,10 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
              if (wpn_opt.has_value()) {
                  auto& wpn = wpn_opt.value();
                  if (wpn.can_shoot()) {
-                     std::cout << "[Game] Client " << client_id << " (Entity " << player.id() << ") SHOOTS!" << std::endl;
                      ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
                      wpn.reset_shot_timer();
                  }
              } else {
-                 std::cout << "[Game] Client " << client_id << " (Entity " << player.id() << ") SHOOTS (Fallback)!" << std::endl;
                  ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
              }
         }
@@ -207,6 +206,10 @@ void Game::process_network_events(UDPServer& server) {
 
             switch (opcode) {
                 case RType::OpCode::Input: {
+                    if (_game_phase != GamePhase::InGame) {
+                        break;
+                    }
+                    
                     auto player_opt = get_player_entity(client_id);
                     if (!player_opt.has_value()) {
                         float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
@@ -228,9 +231,20 @@ void Game::process_network_events(UDPServer& server) {
                               << std::endl;
                     auto player_opt = get_player_entity(client_id);
                     if (!player_opt.has_value()) {
-                        float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
-                        float start_y = 300.0f;
-                        create_player(client_id, start_x, start_y);
+                        _client_ready_status[client_id] = false;
+                        std::cout << "[Game] Client " << client_id << " joined lobby" << std::endl;
+                    }
+                    break;
+                }
+                case RType::OpCode::PlayerReady: {
+                    uint8_t ready_byte;
+                    try {
+                        deserializer >> ready_byte;
+                        bool ready = (ready_byte != 0);
+                        handle_player_ready(client_id, ready);
+                        check_start_game(server);
+                    } catch (...) {
+                        std::cerr << "[Game] Failed to parse PlayerReady payload" << std::endl;
                     }
                     break;
                 }
@@ -250,7 +264,80 @@ void Game::process_network_events(UDPServer& server) {
     }
 }
 
+void Game::handle_player_ready(int client_id, bool ready) {
+    _client_ready_status[client_id] = ready;
+    std::cout << "[Game] Client " << client_id << " is " << (ready ? "READY" : "NOT READY") << std::endl;
+}
+
+void Game::check_start_game(UDPServer& server) {
+    if (_game_phase != GamePhase::Lobby) {
+        return;
+    }
+    
+    if (_client_ready_status.empty()) {
+        return;
+    }
+    
+    bool all_ready = true;
+    for (const auto& [client_id, ready] : _client_ready_status) {
+        if (!ready) {
+            all_ready = false;
+            break;
+        }
+    }
+    
+    if (all_ready) {
+        std::cout << "[Game] All players ready! Starting game..." << std::endl;
+        start_game(server);
+    }
+}
+
+void Game::start_game(UDPServer& server) {
+    std::cout << "[Game] ===== STARTING GAME =====" << std::endl;
+    
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::StartGame;
+    server.send_to_all(serializer.data());
+    
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    
+    _game_phase = GamePhase::InGame;
+    
+    float start_x = 100.0f;
+    for (const auto& [client_id, ready] : _client_ready_status) {
+        create_player(client_id, start_x, 300.0f);
+        start_x += 50.0f;
+    }
+    
+    std::cout << "[Game] Game started with " << _client_ready_status.size() << " players" << std::endl;
+}
+
+void Game::broadcast_lobby_status(UDPServer& server) {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::LobbyStatus;
+    
+    uint8_t total_players = static_cast<uint8_t>(_client_ready_status.size());
+    uint8_t ready_players = 0;
+    
+    for (const auto& [client_id, ready] : _client_ready_status) {
+        if (ready) {
+            ready_players++;
+        }
+    }
+    
+    serializer << total_players;
+    serializer << ready_players;
+    
+    server.send_to_all(serializer.data());
+}
+
 void Game::update_game_state(float dt) {
+    if (_game_phase != GamePhase::InGame) {
+        return;
+    }
+    
     shootingSystem(_registry, dt);
     waveSystem(_registry, dt);
 
@@ -271,18 +358,28 @@ void Game::update_game_state(float dt) {
 
 void Game::send_periodic_updates(UDPServer& server, float dt) {
     const float position_broadcast_interval = 0.1f;
+    const float lobby_broadcast_interval = 0.5f;
     const float cleanup_interval = 1.0f;
 
-    _pos_broadcast_accumulator += dt;
-    if (_pos_broadcast_accumulator >= position_broadcast_interval) {
-        broadcast_entity_positions(server);
-        _pos_broadcast_accumulator -= position_broadcast_interval;
+    if (_game_phase == GamePhase::Lobby) {
+        _lobby_broadcast_accumulator += dt;
+        if (_lobby_broadcast_accumulator >= lobby_broadcast_interval) {
+            broadcast_lobby_status(server);
+            _lobby_broadcast_accumulator -= lobby_broadcast_interval;
+        }
+    } else {
+        _pos_broadcast_accumulator += dt;
+        if (_pos_broadcast_accumulator >= position_broadcast_interval) {
+            broadcast_entity_positions(server);
+            _pos_broadcast_accumulator -= position_broadcast_interval;
+        }
     }
 
     _cleanup_accumulator += dt;
     if (_cleanup_accumulator >= cleanup_interval) {
         auto dead_clients = server.remove_inactive_clients(std::chrono::seconds(90));
         for (int id : dead_clients) {
+            _client_ready_status.erase(id);
             remove_player(id);
         }
         _cleanup_accumulator -= cleanup_interval;

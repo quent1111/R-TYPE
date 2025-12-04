@@ -23,21 +23,32 @@
 #include <optional>
 #include <unordered_map>
 
+enum class GamePhase {
+    Lobby,
+    InGame
+};
+
 class Game {
 private:
     registry _registry;
     std::unordered_map<int, std::size_t> _client_entity_ids;
+    std::unordered_map<int, bool> _client_ready_status;
 
     RType::BinarySerializer _broadcast_serializer;
 
     float _pos_broadcast_accumulator = 0.0f;
     float _cleanup_accumulator = 0.0f;
+    float _lobby_broadcast_accumulator = 0.0f;
+    GamePhase _game_phase = GamePhase::Lobby;
 
     void process_network_events(UDPServer& server);
     void update_game_state(float dt);
     void send_periodic_updates(UDPServer& server, float dt);
 
     void handle_player_input(int client_id, const std::vector<uint8_t>& data);
+    void handle_player_ready(int client_id, bool ready);
+    void check_start_game(UDPServer& server);
+    void start_game(UDPServer& server);
 
 public:
     Game();
@@ -48,4 +59,5 @@ public:
     std::optional<entity> get_player_entity(int client_id);
     void remove_player(int client_id);
     void broadcast_entity_positions(UDPServer& server);
+    void broadcast_lobby_status(UDPServer& server);
 };

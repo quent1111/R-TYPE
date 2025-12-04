@@ -39,22 +39,17 @@ void collisionSystem(registry& reg) {
 
                     if (p_left < e_right && p_right > e_left &&
                         p_top < e_bottom && p_bottom > e_top) {
-                        std::cout << "[Physics] Collision Projectile " << i << " -> Enemy " << j << std::endl;
-
+                        // Collision détectée
                         enemy_hp.current -= proj_dmg.damage_amount;
                         if (enemy_hp.current < 0) enemy_hp.current = 0;
 
                         if (proj_dmg.destroy_on_hit) {
-                            std::cout << "[Physics] Destroying projectile " << i << " (destroy_on_hit=true)" << std::endl;
                             auto proj_entity = reg.entity_from_index(i);
                             reg.remove_component<entity_tag>(proj_entity);
                             reg.kill_entity(proj_entity);
-                        } else {
-                            std::cout << "[Physics] Projectile " << i << " NOT destroyed (destroy_on_hit=false)" << std::endl;
                         }
 
                         if (enemy_hp.is_dead()) {
-                            std::cout << "[Physics] Enemy " << j << " DEAD, creating explosion at (" << enemy_pos.x << ", " << enemy_pos.y << ")" << std::endl;
                             createExplosion(reg, enemy_pos.x, enemy_pos.y);
                         }
                         break;

@@ -48,8 +48,20 @@ void NetworkClient::receive_loop() {
             uint16_t magic =
                 static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
 
-            if (magic == MAGIC_NUMBER && buffer[2] == 0x13) {
-                decode_entities(buffer, received);
+            if (magic == MAGIC_NUMBER) {
+                uint8_t opcode = buffer[2];
+                
+                if (opcode == 0x13) {
+                    decode_entities(buffer, received);
+                } else if (opcode == 0x21) {
+                    decode_lobby_status(buffer, received);
+                } else if (opcode == 0x22) {
+                    decode_start_game(buffer, received);
+                } else {
+                    std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex << static_cast<int>(opcode) << std::dec << std::endl;
+                }
+            } else {
+                std::cerr << "[NetworkClient] Error: Bad magic number 0x" << std::hex << magic << std::dec << std::endl;
             }
         }
     }
@@ -67,6 +79,10 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::SendInput:
                 send_input(msg.input_mask);
+                break;
+
+            case GameToNetwork::MessageType::SendReady:
+                send_ready(msg.ready_status);
                 break;
 
             case GameToNetwork::MessageType::Disconnect:
@@ -137,6 +153,46 @@ void NetworkClient::send_input(uint8_t input_mask) {
 
     sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
            reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+}
+
+void NetworkClient::send_ready(bool ready) {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::PlayerReady;
+    serializer << static_cast<uint8_t>(ready ? 1 : 0);
+
+    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
+           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+}
+
+void NetworkClient::decode_lobby_status(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 5) return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint8_t total_players, ready_players;
+        deserializer >> total_players >> ready_players;
+
+        NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyStatus);
+        msg.total_players = total_players;
+        msg.ready_players = ready_players;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding lobby status: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_start_game(const std::vector<uint8_t>& /*buffer*/, ssize_t /*received*/) {
+    NetworkToGame::Message msg(NetworkToGame::MessageType::StartGame);
+    network_to_game_queue_.push(msg);
+}
+
+void NetworkClient::run() {
 }
 
 NetworkClient::~NetworkClient() {

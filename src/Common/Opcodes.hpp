@@ -11,6 +11,9 @@ enum class OpCode : uint8_t {
     EntitySpawn = 0x11,
     EntityDestroy = 0x12,
     EntityPosition = 0x13,
+    PlayerReady = 0x20,
+    LobbyStatus = 0x21,
+    StartGame = 0x22,
     MagicByte1 = 0x42,
     MagicByte2 = 0xB5
 };

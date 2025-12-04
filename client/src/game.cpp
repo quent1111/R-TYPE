@@ -9,15 +9,14 @@
 #include <memory>
 #include <string>
 
-Game::Game(ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
+Game::Game(sf::RenderWindow& window,
+           ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
            ThreadSafeQueue<NetworkToGame::Message>& net_to_game)
-    : game_to_network_queue_(game_to_net),
+    : window_(window),
+      game_to_network_queue_(game_to_net),
       network_to_game_queue_(net_to_game),
-      window_(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), "R-TYPE Client"),
       is_running_(true) {
-    std::cout << "[Game] Starting of the R-TYPE client..." << std::endl;
-
-    window_.setFramerateLimit(FRAMERATE);
+    std::cout << "[Game] Initializing game logic..." << std::endl;
 
     setup_ui();
 
@@ -55,32 +54,6 @@ void Game::setup_ui() {
     info_text_.setCharacterSize(20);
     info_text_.setFillColor(sf::Color::White);
     info_text_.setPosition(10, 10);
-}
-
-void Game::process_events() {
-    sf::Event event = {};
-    while (window_.pollEvent(event)) {
-        if (event.type == sf::Event::Closed) {
-            window_.close();
-            is_running_ = false;
-        }
-
-        if (event.type == sf::Event::GainedFocus) {
-            has_focus_ = true;
-            std::cout << "[Client] Focus GAINED" << std::endl;
-        }
-        if (event.type == sf::Event::LostFocus) {
-            has_focus_ = false;
-            std::cout << "[Client] Focus LOST" << std::endl;
-        }
-
-        if (event.type == sf::Event::KeyPressed) {
-            if (event.key.code == sf::Keyboard::Escape) {
-                window_.close();
-                is_running_ = false;
-            }
-        }
-    }
 }
 
 void Game::handle_input() {
@@ -301,10 +274,5 @@ void Game::render() {
 }
 
 void Game::run() {
-    while (window_.isOpen() && is_running_) {
-        process_events();
-        handle_input();
-        update();
-        render();
-    }
+    // This method is no longer used, game loop is managed by StateManager
 }
