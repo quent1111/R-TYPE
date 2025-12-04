@@ -18,7 +18,9 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 
 get_bin_dir() {
-    if [ -d "$BUILD_DIR/build/$BUILD_TYPE/bin" ]; then
+    if [ -d "$BUILD_DIR/$BUILD_TYPE/bin" ]; then
+        echo "$BUILD_DIR/$BUILD_TYPE/bin"
+    elif [ -d "$BUILD_DIR/build/$BUILD_TYPE/bin" ]; then
         echo "$BUILD_DIR/build/$BUILD_TYPE/bin"
     elif [ -d "$BUILD_DIR/bin" ]; then
         echo "$BUILD_DIR/bin"
@@ -310,23 +312,26 @@ build_project() {
     local TARGET="${1:-all}"
     print_step "Building $TARGET ($BUILD_TYPE mode)..."
     local ACTUAL_BUILD_DIR="$BUILD_DIR"
-    if [ -f "CMakeUserPresets.json" ]; then
-        if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
-            ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
-        else
-            print_warning "CMake presets detected but preset build directory is not configured. Attempting to configure presets..."
-            configure_cmake
-            if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
-                ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
-            else
-                print_error "Preset configuration failed. Run './r-type.sh rebuild' or configure manually."
-                exit 1
-            fi
-        fi
+    
+    if [ -f "$BUILD_DIR/$BUILD_TYPE/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR/$BUILD_TYPE"
+    elif [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
     elif [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
         ACTUAL_BUILD_DIR="$BUILD_DIR"
+    elif [ -f "CMakeUserPresets.json" ]; then
+        print_warning "CMake presets detected but build not configured. Configuring..."
+        configure_cmake
+        if [ -f "$BUILD_DIR/$BUILD_TYPE/CMakeCache.txt" ]; then
+            ACTUAL_BUILD_DIR="$BUILD_DIR/$BUILD_TYPE"
+        elif [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+            ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+        else
+            print_error "Configuration failed. Run './r-type.sh rebuild' or configure manually."
+            exit 1
+        fi
     else
-        print_error "No CMake cache found in build directories. Run './r-type.sh build' to configure." 
+        print_error "No CMake cache found. Run './r-type.sh rebuild' to reconfigure."
         exit 1
     fi
 

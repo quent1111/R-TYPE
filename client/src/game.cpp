@@ -274,5 +274,4 @@ void Game::render() {
 }
 
 void Game::run() {
-    // This method is no longer used, game loop is managed by StateManager
 }

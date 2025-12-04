@@ -1,23 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
 
-add_executable(r-type_client_network
-    src/main.cpp
-    src/game.cpp
-    src/networkClient.cpp
-)
-
-target_include_directories(r-type_client_network PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-target_link_libraries(r-type_client_network PRIVATE
-    project_options
-    project_warnings
-    sfml::sfml
-)
-
-link_platform_libraries(r-type_client_network)
-
 add_executable(r-type_client
     src/main_menu.cpp
     src/game.cpp
@@ -49,4 +31,4 @@ add_custom_command(TARGET r-type_client POST_BUILD
     COMMENT "Copying assets to build directory"
 )
 
-message(STATUS "Client executables configured: r-type_client and r-type_client_network")
+message(STATUS "Client executable configured: r-type_client")

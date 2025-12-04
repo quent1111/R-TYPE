@@ -21,6 +21,14 @@ void LobbyState::on_enter() {
         std::cerr << "[LobbyState] Warning: Could not load font\n";
     }
     
+    // Nettoyer tous les composants UI avant de les recréer
+    m_buttons.clear();
+    m_corners.clear();
+    m_side_panels.clear();
+    m_background.reset();
+    m_title.reset();
+    m_footer.reset();
+    
     setup_ui();
 }
 
@@ -33,39 +41,67 @@ void LobbyState::setup_ui() {
     sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
                         static_cast<float>(window_size.y) / 2.0f);
 
+    // Background animé
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
+    // Titre stylisé
     m_title = std::make_unique<ui::MenuTitle>(
-        "LOBBY", sf::Vector2f(center.x, center.y - 220.0f), 72);
+        "LOBBY", sf::Vector2f(center.x, center.y - 280.0f), 84);
 
+    // Footer
+    m_footer = std::make_unique<ui::MenuFooter>(window_size);
+
+    // Décorations des coins
+    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
+        sf::Vector2f(30.0f, 30.0f), false, false));
+    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
+        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
+    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
+        sf::Vector2f(30.0f, static_cast<float>(window_size.y) - 80.0f), false, true));
+    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
+        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f,
+                     static_cast<float>(window_size.y) - 80.0f), true, true));
+
+    // Panneaux latéraux
+    m_side_panels.push_back(std::make_unique<ui::SidePanel>(
+        sf::Vector2f(50.0f, center.y - 50.0f), true));
+    m_side_panels.push_back(std::make_unique<ui::SidePanel>(
+        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, center.y - 50.0f), false));
+
+    // Textes d'info avec style amélioré
     m_status_text.setFont(m_font);
-    m_status_text.setCharacterSize(30);
-    m_status_text.setFillColor(sf::Color::White);
-    m_status_text.setString("Connecting to server...");
+    m_status_text.setCharacterSize(28);
+    m_status_text.setFillColor(sf::Color(100, 200, 255));
+    m_status_text.setString(">> Connected to server <<");
+    m_status_text.setOutlineColor(sf::Color(0, 50, 100));
+    m_status_text.setOutlineThickness(1.5f);
     sf::FloatRect status_bounds = m_status_text.getLocalBounds();
     m_status_text.setOrigin(status_bounds.width / 2.0f, status_bounds.height / 2.0f);
-    m_status_text.setPosition(center.x, center.y - 100.0f);
+    m_status_text.setPosition(center.x, center.y - 160.0f);
 
     m_player_count_text.setFont(m_font);
-    m_player_count_text.setCharacterSize(24);
-    m_player_count_text.setFillColor(sf::Color(150, 150, 255));
-    m_player_count_text.setString("Players: 0 | Ready: 0");
+    m_player_count_text.setCharacterSize(48);
+    m_player_count_text.setFillColor(sf::Color(255, 220, 100));
+    m_player_count_text.setString("0 / 0 READY");
+    m_player_count_text.setOutlineColor(sf::Color(100, 80, 0));
+    m_player_count_text.setOutlineThickness(2.0f);
     sf::FloatRect count_bounds = m_player_count_text.getLocalBounds();
     m_player_count_text.setOrigin(count_bounds.width / 2.0f, count_bounds.height / 2.0f);
-    m_player_count_text.setPosition(center.x, center.y - 50.0f);
+    m_player_count_text.setPosition(center.x, center.y - 80.0f);
 
     m_waiting_text.setFont(m_font);
-    m_waiting_text.setCharacterSize(20);
-    m_waiting_text.setFillColor(sf::Color(200, 200, 200));
-    m_waiting_text.setString("Waiting for all players to be ready...");
+    m_waiting_text.setCharacterSize(22);
+    m_waiting_text.setFillColor(sf::Color(180, 180, 200));
+    m_waiting_text.setString("--- Waiting for players ---");
+    m_waiting_text.setStyle(sf::Text::Italic);
     sf::FloatRect waiting_bounds = m_waiting_text.getLocalBounds();
     m_waiting_text.setOrigin(waiting_bounds.width / 2.0f, waiting_bounds.height / 2.0f);
-    m_waiting_text.setPosition(center.x, center.y + 150.0f);
+    m_waiting_text.setPosition(center.x, center.y + 200.0f);
 
-    const float button_width = 340.0f;
-    const float button_height = 70.0f;
-    const float button_spacing = 90.0f;
-    const float start_y = center.y + 20.0f;
+    const float button_width = 380.0f;
+    const float button_height = 75.0f;
+    const float button_spacing = 95.0f;
+    const float start_y = center.y + 30.0f;
 
     auto ready_btn = std::make_unique<ui::Button>(
         sf::Vector2f(center.x - button_width / 2.0f, start_y),
@@ -78,7 +114,7 @@ void LobbyState::setup_ui() {
 
     auto back_btn = std::make_unique<ui::Button>(
         sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
-        sf::Vector2f(button_width, button_height), "BACK");
+        sf::Vector2f(button_width, button_height), "BACK TO MENU");
     back_btn->set_colors(sf::Color(120, 30, 40, 200),
                          sf::Color(180, 50, 60, 255),
                          sf::Color(100, 20, 30, 255));
@@ -180,6 +216,7 @@ void LobbyState::handle_event(const sf::Event& event) {
 void LobbyState::update(float dt) {
     process_network_messages();
     
+    // Animation de tous les composants UI
     if (m_background) {
         m_background->update(dt);
     }
@@ -189,32 +226,61 @@ void LobbyState::update(float dt) {
     for (auto& button : m_buttons) {
         button->update(dt);
     }
+    for (auto& corner : m_corners) {
+        corner->update(dt);
+    }
+    for (auto& panel : m_side_panels) {
+        panel->update(dt);
+    }
     
-    std::string count_str = "Players: " + std::to_string(m_total_players) + 
-                           " | Ready: " + std::to_string(m_ready_players);
+    // Mise à jour des infos de lobby avec style
+    std::string count_str = std::to_string(m_ready_players) + " / " + 
+                           std::to_string(m_total_players) + " READY";
     m_player_count_text.setString(count_str);
+    
+    // Couleur qui change selon le statut
+    if (m_ready_players == m_total_players && m_total_players > 0) {
+        m_player_count_text.setFillColor(sf::Color(100, 255, 100)); // Vert quand prêt
+    } else {
+        m_player_count_text.setFillColor(sf::Color(255, 220, 100)); // Jaune sinon
+    }
+    
     sf::FloatRect bounds = m_player_count_text.getLocalBounds();
     m_player_count_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
 }
 
 void LobbyState::render(sf::RenderWindow& window) {
+    // Fond animé
     if (m_background) {
         m_background->render(window);
     }
-
+    
+    // Panneaux latéraux (derrière tout)
+    for (auto& panel : m_side_panels) {
+        panel->render(window);
+    }
+    
+    // Décorations des coins
+    for (auto& corner : m_corners) {
+        corner->render(window);
+    }
+    
+    // Titre stylisé
     if (m_title) {
         m_title->render(window);
     }
-
-    window.draw(m_status_text);
+    
+    // Compteur de joueurs uniquement
     window.draw(m_player_count_text);
     
-    if (m_total_players > 0 && m_ready_players < m_total_players) {
-        window.draw(m_waiting_text);
-    }
-
+    // Boutons
     for (auto& button : m_buttons) {
         button->render(window);
+    }
+    
+    // Footer (au-dessus de tout)
+    if (m_footer) {
+        m_footer->render(window);
     }
 }
 
