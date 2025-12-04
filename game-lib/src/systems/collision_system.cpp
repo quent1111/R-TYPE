@@ -1,88 +1,63 @@
 #include "systems/collision_system.hpp"
-#include "ecs/components.hpp"
+#include "components/logic_components.hpp"
 #include "components/game_components.hpp"
-#include <vector>
-
-struct CollisionData {
-    std::size_t entity_id;
-    float x, y;
-    float width, height;
-    bool has_damage;
-    int damage;
-    bool destroy_on_hit;
-};
-
-static bool checkAABB(float x1, float y1, float w1, float h1, float x2, float y2, float w2,
-                      float h2) {
-    return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2);
-}
+#include "entities/explosion_factory.hpp"
+#include <iostream>
 
 void collisionSystem(registry& reg) {
     auto& positions = reg.get_components<position>();
     auto& collision_boxes = reg.get_components<collision_box>();
-    auto& damages = reg.get_components<damage_on_contact>();
+    auto& damage_contacts = reg.get_components<damage_on_contact>();
     auto& healths = reg.get_components<health>();
-    auto& projectile_tags = reg.get_components<projectile_tag>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
+    auto& projectile_tags = reg.get_components<projectile_tag>();
 
-    std::vector<CollisionData> colliders;
-    for (std::size_t i = 0; i < positions.size() && i < collision_boxes.size(); ++i) {
-        auto& pos_opt = positions[i];
-        auto& box_opt = collision_boxes[i];
 
-        if (pos_opt && box_opt) {
-            auto& pos = pos_opt.value();
-            auto& box = box_opt.value();
+    for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
+        if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
+            auto& proj_pos = positions[i].value();
+            auto& proj_box = collision_boxes[i].value();
+            auto& proj_dmg = damage_contacts[i].value();
 
-            CollisionData data;
-            data.entity_id = i;
-            data.x = pos.x + box.offset_x;
-            data.y = pos.y + box.offset_y;
-            data.width = box.width;
-            data.height = box.height;
-            data.has_damage = false;
-            data.damage = 0;
-            data.destroy_on_hit = false;
+            for (std::size_t j = 0; j < positions.size() && j < enemy_tags.size(); ++j) {
+                if (i == j) continue;
 
-            if (i < damages.size() && damages[i]) {
-                auto& dmg = damages[i].value();
-                data.has_damage = true;
-                data.damage = dmg.damage_amount;
-                data.destroy_on_hit = dmg.destroy_on_hit;
-            }
+                if (enemy_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
+                    auto& enemy_pos = positions[j].value();
+                    auto& enemy_box = collision_boxes[j].value();
+                    auto& enemy_hp = healths[j].value();
 
-            colliders.push_back(data);
-        }
-    }
+                    float p_left = proj_pos.x + proj_box.offset_x;
+                    float p_top = proj_pos.y + proj_box.offset_y;
+                    float p_right = p_left + proj_box.width;
+                    float p_bottom = p_top + proj_box.height;
 
-    for (std::size_t i = 0; i < colliders.size(); ++i) {
-        std::size_t entity_i = colliders[i].entity_id;
+                    float e_left = enemy_pos.x + enemy_box.offset_x;
+                    float e_top = enemy_pos.y + enemy_box.offset_y;
+                    float e_right = e_left + enemy_box.width;
+                    float e_bottom = e_top + enemy_box.height;
 
-        if (entity_i >= projectile_tags.size() || !projectile_tags[entity_i]) {
-            continue;
-        }
+                    if (p_left < e_right && p_right > e_left &&
+                        p_top < e_bottom && p_bottom > e_top) {
+                        std::cout << "[Physics] Collision Projectile " << i << " -> Enemy " << j << std::endl;
 
-        for (std::size_t j = 0; j < colliders.size(); ++j) {
-            if (i == j) continue;
+                        enemy_hp.current -= proj_dmg.damage_amount;
+                        if (enemy_hp.current < 0) enemy_hp.current = 0;
 
-            std::size_t entity_j = colliders[j].entity_id;
+                        if (proj_dmg.destroy_on_hit) {
+                            std::cout << "[Physics] Destroying projectile " << i << " (destroy_on_hit=true)" << std::endl;
+                            auto proj_entity = reg.entity_from_index(i);
+                            reg.remove_component<entity_tag>(proj_entity);
+                            reg.kill_entity(proj_entity);
+                        } else {
+                            std::cout << "[Physics] Projectile " << i << " NOT destroyed (destroy_on_hit=false)" << std::endl;
+                        }
 
-            if (entity_j >= enemy_tags.size() || !enemy_tags[entity_j]) {
-                continue;
-            }
-
-            if (checkAABB(colliders[i].x, colliders[i].y, colliders[i].width, colliders[i].height,
-                          colliders[j].x, colliders[j].y, colliders[j].width,
-                          colliders[j].height)) {
-                if (colliders[i].has_damage && entity_j < healths.size() && healths[entity_j]) {
-                    healths[entity_j].value().current -= colliders[i].damage;
-                }
-
-                if (colliders[i].destroy_on_hit && entity_i < healths.size()) {
-                    if (!healths[entity_i]) {
-                        reg.add_component(reg.entity_from_index(entity_i), health{0, 1});
-                    } else {
-                        healths[entity_i].value().current = 0;
+                        if (enemy_hp.is_dead()) {
+                            std::cout << "[Physics] Enemy " << j << " DEAD, creating explosion at (" << enemy_pos.x << ", " << enemy_pos.y << ")" << std::endl;
+                            createExplosion(reg, enemy_pos.x, enemy_pos.y);
+                        }
+                        break;
                     }
                 }
             }

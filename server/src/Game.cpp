@@ -109,7 +109,8 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         if (i >= positions.size() || !positions[i].has_value()) continue;
 
         if (tags[i]->type == RType::EntityType::Enemy ||
-            tags[i]->type == RType::EntityType::Projectile) {
+            tags[i]->type == RType::EntityType::Projectile ||
+            tags[i]->type == RType::EntityType::Obstacle) {
 
             const auto& pos = positions[i].value();
             auto entity_obj = _registry.entity_from_index(i);
@@ -154,7 +155,6 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
 
     auto player = player_opt.value();
     auto& pos_opt = _registry.get_component<position>(player);
-    // auto& vel_opt = _registry.get_component<velocity>(player);
     auto& wpn_opt = _registry.get_component<weapon>(player);
 
     if (pos_opt.has_value()) {
@@ -255,6 +255,16 @@ void Game::update_game_state(float dt) {
     waveSystem(_registry, dt);
 
     movementSystem(_registry, dt);
+
+    collisionSystem(_registry);
+
+    auto& explosion_tags = _registry.get_components<explosion_tag>();
+    for (std::size_t i = 0; i < explosion_tags.size(); ++i) {
+        auto& explosion_opt = explosion_tags[i];
+        if (explosion_opt) {
+            explosion_opt.value().elapsed += dt;
+        }
+    }
 
     cleanupSystem(_registry);
 }

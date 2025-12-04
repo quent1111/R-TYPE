@@ -172,6 +172,23 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
+    } else if (entity.type == 0x05) {
+        if (texture_manager_.has("assets/r-typesheet1.png")) {
+            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+
+            entity.frames = {
+                {330, 289, 28, 34},
+                {362, 289, 28, 34},
+                {394, 289, 28, 34},
+                {426, 289, 28, 34},
+                {0, 0, 1, 1}
+            };
+            entity.frame_duration = 0.08F;
+            entity.loop = false;
+
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();

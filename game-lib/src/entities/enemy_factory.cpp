@@ -18,7 +18,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
-    reg.add_component(enemy, health{30});
+    reg.add_component(enemy, health{10});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet26.png";
