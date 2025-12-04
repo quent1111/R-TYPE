@@ -37,12 +37,10 @@ Game::Game() {
     _registry.register_component<animation_component>();
     _broadcast_serializer.reserve(65536);
 }
-
 Game::~Game() {}
 
 entity Game::create_player(int client_id, float start_x, float start_y) {
     if (_client_entity_ids.find(client_id) != _client_entity_ids.end()) {
-        std::cout << "[Game] Player for client " << client_id << " already exists" << std::endl;
         return _registry.entity_from_index(_client_entity_ids[client_id]);
     }
 
@@ -86,6 +84,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
     auto& tags = _registry.get_components<entity_tag>();
     auto& positions = _registry.get_components<position>();
 
+    // Joueurs
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
@@ -105,6 +104,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         }
     }
 
+    // Autres entités
     for (size_t i = 0; i < tags.size(); ++i) {
         if (!tags[i].has_value()) continue;
         if (i >= positions.size() || !positions[i].has_value()) continue;
@@ -129,12 +129,9 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         }
     }
 
-    if (entity_count == 0) {
-        return;
-    }
+    if (entity_count == 0) return;
 
     _broadcast_serializer.data()[count_position] = static_cast<uint8_t>(entity_count);
-
     server.send_to_all(_broadcast_serializer.data());
 }
 
@@ -294,62 +291,59 @@ void Game::check_start_game(UDPServer& server) {
 
 void Game::start_game(UDPServer& server) {
     std::cout << "[Game] ===== STARTING GAME =====" << std::endl;
-    
+
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::StartGame;
     server.send_to_all(serializer.data());
-    
+
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    
+
     _game_phase = GamePhase::InGame;
-    
+
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
         create_player(client_id, start_x, 300.0f);
         start_x += 50.0f;
     }
-    
+
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players" << std::endl;
 }
 
 void Game::broadcast_lobby_status(UDPServer& server) {
-    RType::BinarySerializer serializer;
-    serializer << RType::MagicNumber::VALUE;
-    serializer << RType::OpCode::LobbyStatus;
-    
+    _broadcast_serializer.clear();
+
+    _broadcast_serializer << RType::MagicNumber::VALUE;
+    _broadcast_serializer << RType::OpCode::LobbyStatus;
+
     uint8_t total_players = static_cast<uint8_t>(_client_ready_status.size());
     uint8_t ready_players = 0;
-    
+
     for (const auto& [client_id, ready] : _client_ready_status) {
-        if (ready) {
-            ready_players++;
-        }
+        if (ready) ready_players++;
     }
-    
-    serializer << total_players;
-    serializer << ready_players;
-    
-    server.send_to_all(serializer.data());
+
+    _broadcast_serializer << total_players;
+    _broadcast_serializer << ready_players;
+
+    server.send_to_all(_broadcast_serializer.data());
 }
 
 void Game::update_game_state(float dt) {
     if (_game_phase != GamePhase::InGame) {
         return;
     }
-    
+
     shootingSystem(_registry, dt);
     waveSystem(_registry, dt);
-
     movementSystem(_registry, dt);
-
     collisionSystem(_registry);
 
     auto& explosion_tags = _registry.get_components<explosion_tag>();
+
     for (std::size_t i = 0; i < explosion_tags.size(); ++i) {
-        auto& explosion_opt = explosion_tags[i];
-        if (explosion_opt) {
-            explosion_opt.value().elapsed += dt;
+        if (explosion_tags[i].has_value()) {
+            explosion_tags[i].value().elapsed += dt;
         }
     }
 
@@ -357,7 +351,7 @@ void Game::update_game_state(float dt) {
 }
 
 void Game::send_periodic_updates(UDPServer& server, float dt) {
-    const float position_broadcast_interval = 0.1f;
+    const float position_broadcast_interval = 0.05f;
     const float lobby_broadcast_interval = 0.5f;
     const float cleanup_interval = 1.0f;
 

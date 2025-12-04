@@ -23,7 +23,7 @@ private:
     std::map<int, ClientEndpoint> clients_;
     std::mutex clients_mutex_;
     ThreadSafeQueue<NetworkPacket> input_queue_;
-    std::array<uint8_t, 1024> recv_buffer_;
+    std::array<uint8_t, 65536> recv_buffer_;
     int next_client_id_;
     bool running_;
 

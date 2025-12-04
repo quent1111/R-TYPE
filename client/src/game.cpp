@@ -183,17 +183,23 @@ void Game::process_network_messages() {
 
                     auto it = entities_.find(id);
                     if (it != entities_.end()) {
-                        incoming.prev_x = it->second.x;
-                        incoming.prev_y = it->second.y;
-                        incoming.prev_time = it->second.curr_time;
+                        if (it->second.type != incoming.type) {
+                            incoming.prev_x = incoming.x;
+                            incoming.prev_y = incoming.y;
+                            incoming.prev_time = now;
+                            init_entity_sprite(incoming);
+                        } else {
+                            incoming.prev_x = it->second.x;
+                            incoming.prev_y = it->second.y;
+                            incoming.prev_time = it->second.curr_time;
 
-                        incoming.sprite = it->second.sprite;
-                        incoming.frames = it->second.frames;
-                        incoming.current_frame_index = it->second.current_frame_index;
-                        incoming.frame_duration = it->second.frame_duration;
-                        incoming.time_accumulator = it->second.time_accumulator;
-                        incoming.loop = it->second.loop;
-
+                            incoming.sprite = it->second.sprite;
+                            incoming.frames = it->second.frames;
+                            incoming.current_frame_index = it->second.current_frame_index;
+                            incoming.frame_duration = it->second.frame_duration;
+                            incoming.time_accumulator = it->second.time_accumulator;
+                            incoming.loop = it->second.loop;
+                        }
                     } else {
                         incoming.prev_x = incoming.x;
                         incoming.prev_y = incoming.y;
@@ -269,8 +275,6 @@ void Game::render() {
     info += "Controls: Z/Q/S/D + Space\n";
     info_text_.setString(info);
     window_.draw(info_text_);
-
-    window_.display();
 }
 
 void Game::run() {
