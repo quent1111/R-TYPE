@@ -3,7 +3,6 @@
 #include "../../engine/ecs/components.hpp"
 #include "../../game-lib/include/components/logic_components.hpp"
 #include "../../game-lib/include/components/game_components.hpp"
-
 #include "../../game-lib/include/entities/enemy_factory.hpp"
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
@@ -12,7 +11,6 @@
 #include "../../game-lib/include/systems/cleanup_system.hpp"
 #include "../../game-lib/include/systems/wave_system.hpp"
 #include "../../game-lib/include/systems/collision_system.hpp"
-
 #include "../../engine/ecs/entity.hpp"
 #include "../../engine/ecs/registry.hpp"
 #include "../../engine/ecs/sparse_array.hpp"
@@ -39,6 +37,11 @@ private:
     float _pos_broadcast_accumulator = 0.0f;
     float _cleanup_accumulator = 0.0f;
     float _lobby_broadcast_accumulator = 0.0f;
+    float _level_broadcast_accumulator = 0.0f;
+    float _level_complete_timer = 0.0f;
+    float _powerup_broadcast_accumulator = 0.0f;
+    bool _level_complete_waiting = false;
+    bool _waiting_for_powerup_choice = false;
     GamePhase _game_phase = GamePhase::Lobby;
 
     void process_network_events(UDPServer& server);
@@ -47,8 +50,17 @@ private:
 
     void handle_player_input(int client_id, const std::vector<uint8_t>& data);
     void handle_player_ready(int client_id, bool ready);
+    void handle_weapon_upgrade_choice(int client_id, uint8_t upgrade_choice, UDPServer& server);
+    void handle_powerup_choice(int client_id, uint8_t powerup_choice, UDPServer& server);
+    void handle_powerup_activate(int client_id, UDPServer& server);
     void check_start_game(UDPServer& server);
     void start_game(UDPServer& server);
+    void check_level_completion(UDPServer& server);
+    void broadcast_level_info(UDPServer& server);
+    void broadcast_level_complete(UDPServer& server);
+    void broadcast_powerup_selection(UDPServer& server);
+    void broadcast_powerup_status(UDPServer& server);
+    void advance_level(UDPServer& server);
 
 public:
     Game();
