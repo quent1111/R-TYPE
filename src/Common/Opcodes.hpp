@@ -14,6 +14,13 @@ enum class OpCode : uint8_t {
     PlayerReady = 0x20,
     LobbyStatus = 0x21,
     StartGame = 0x22,
+    LevelStart = 0x30,
+    LevelComplete = 0x31,
+    WeaponUpgradeChoice = 0x32,
+    LevelProgress = 0x33,
+    PowerUpChoice = 0x34,
+    PowerUpActivate = 0x35,
+    PowerUpStatus = 0x36,
     MagicByte1 = 0x42,
     MagicByte2 = 0xB5
 };
