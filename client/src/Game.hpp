@@ -34,6 +34,43 @@ private:
     bool has_focus_ = true;
     std::map<uint32_t, Entity> entities_;
 
+    uint8_t current_level_ = 1;
+    uint16_t enemies_killed_ = 0;
+    uint16_t enemies_needed_ = 20;
+    bool show_level_intro_ = false;
+    float level_intro_timer_ = 0.0f;
+    float level_intro_duration_ = 3.0f;
+
+    bool show_powerup_selection_ = false;
+    uint8_t powerup_type_ = 0;
+    float powerup_time_remaining_ = 0.0f;
+    bool has_x_key_been_released_ = true;
+
+    sf::Text level_intro_title_;
+    sf::Text level_intro_subtitle_;
+    sf::RectangleShape level_intro_overlay_;
+    sf::Text level_text_;
+    sf::Text progress_text_;
+    sf::RectangleShape progress_bar_bg_;
+    sf::RectangleShape progress_bar_fill_;
+
+    sf::RectangleShape powerup_overlay_;
+    sf::Text powerup_title_;
+    sf::RectangleShape powerup_option1_bg_;
+    sf::RectangleShape powerup_option2_bg_;
+    sf::Text powerup_option1_text_;
+    sf::Text powerup_option2_text_;
+    sf::Text powerup_instruction_;
+    sf::Text powerup_active_text_;
+    sf::CircleShape shield_visual_;
+    sf::Text powerup_hint_text_;
+    sf::RectangleShape powerup_hint_bg_;
+
+    void render_level_intro();
+    void render_level_hud();
+    void render_powerup_selection();
+    void render_powerup_active();
+
     void process_network_messages();
     void setup_ui();
 

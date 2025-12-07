@@ -45,9 +45,16 @@ public:
     void decode_entities(const std::vector<uint8_t>& buffer, ssize_t received);
     void decode_lobby_status(const std::vector<uint8_t>& buffer, ssize_t received);
     void decode_start_game(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_level_start(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_level_progress(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_level_complete(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_powerup_selection(const std::vector<uint8_t>& buffer, ssize_t received);
+    void decode_powerup_status(const std::vector<uint8_t>& buffer, ssize_t received);
     void send_login();
     void send_input(uint8_t input_mask);
     void send_ready(bool ready);
+    void send_powerup_choice(uint8_t choice);
+    void send_powerup_activate();
     void stop() { running_ = false; }
     void run();
 

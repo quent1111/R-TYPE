@@ -50,13 +50,22 @@ void NetworkClient::receive_loop() {
 
             if (magic == MAGIC_NUMBER) {
                 uint8_t opcode = buffer[2];
-                
                 if (opcode == 0x13) {
                     decode_entities(buffer, received);
                 } else if (opcode == 0x21) {
                     decode_lobby_status(buffer, received);
                 } else if (opcode == 0x22) {
                     decode_start_game(buffer, received);
+                } else if (opcode == 0x30) {
+                    decode_level_start(buffer, received);
+                } else if (opcode == 0x33) {
+                    decode_level_progress(buffer, received);
+                } else if (opcode == 0x31) {
+                    decode_level_complete(buffer, received);
+                } else if (opcode == 0x34) {
+                    decode_powerup_selection(buffer, received);
+                } else if (opcode == 0x36) {
+                    decode_powerup_status(buffer, received);
                 } else {
                     std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex << static_cast<int>(opcode) << std::dec << std::endl;
                 }
@@ -83,6 +92,14 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::SendReady:
                 send_ready(msg.ready_status);
+                break;
+
+            case GameToNetwork::MessageType::SendPowerUpChoice:
+                send_powerup_choice(msg.powerup_choice_value);
+                break;
+
+            case GameToNetwork::MessageType::SendPowerUpActivate:
+                send_powerup_activate();
                 break;
 
             case GameToNetwork::MessageType::Disconnect:
@@ -190,6 +207,127 @@ void NetworkClient::decode_lobby_status(const std::vector<uint8_t>& buffer, ssiz
 void NetworkClient::decode_start_game(const std::vector<uint8_t>& /*buffer*/, ssize_t /*received*/) {
     NetworkToGame::Message msg(NetworkToGame::MessageType::StartGame);
     network_to_game_queue_.push(msg);
+}
+
+void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 4) return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint8_t level;
+        deserializer >> level;
+
+        NetworkToGame::Message msg(NetworkToGame::MessageType::LevelStart);
+        msg.level = level;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding level start: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_level_progress(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 8) return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint8_t level;
+        uint16_t kills, needed;
+        deserializer >> level >> kills >> needed;
+
+        NetworkToGame::Message msg(NetworkToGame::MessageType::LevelProgress);
+        msg.level = level;
+        msg.kills = kills;
+        msg.enemies_needed = needed;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding level progress: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 4) return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint8_t level;
+        deserializer >> level;
+
+        NetworkToGame::Message msg(NetworkToGame::MessageType::LevelComplete);
+        msg.level = level;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding level complete: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 4) return;
+
+    try {
+        NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpSelection);
+        msg.show_powerup_selection = true;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding power-up selection: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer, ssize_t received) {
+    if (received < 8) return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint8_t powerup_type;
+        float time_remaining;
+        deserializer >> powerup_type >> time_remaining;
+
+        NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpStatus);
+        msg.powerup_type = powerup_type;
+        msg.powerup_time_remaining = time_remaining;
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding power-up status: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::send_powerup_choice(uint8_t choice) {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::PowerUpChoice;
+    serializer << choice;
+
+    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
+           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+}
+
+void NetworkClient::send_powerup_activate() {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::PowerUpActivate;
+
+    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
+           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
 }
 
 void NetworkClient::run() {
