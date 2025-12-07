@@ -11,8 +11,48 @@ void collisionSystem(registry& reg) {
     auto& healths = reg.get_components<health>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
     auto& projectile_tags = reg.get_components<projectile_tag>();
+    auto& player_tags = reg.get_components<player_tag>();
+    auto& level_managers = reg.get_components<level_manager>();
+    auto& shields = reg.get_components<shield>();
 
+    // Shield collision - tuer les ennemis qui entrent dans le shield
+    for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
+        if (player_tags[p] && positions[p] && shields[p]) {
+            auto& player_pos = positions[p].value();
+            auto& player_shield = shields[p].value();
+            
+            if (player_shield.is_active()) {
+                // Vérifier tous les ennemis
+                for (std::size_t e = 0; e < positions.size() && e < enemy_tags.size(); ++e) {
+                    if (enemy_tags[e] && positions[e] && healths[e]) {
+                        auto& enemy_pos = positions[e].value();
+                        auto& enemy_hp = healths[e].value();
+                        
+                        if (player_shield.is_enemy_in_range(enemy_pos.x, enemy_pos.y, player_pos.x, player_pos.y)) {
+                            // Ennemi dans le shield - le tuer instantanément
+                            enemy_hp.current = 0;
+                            
+                            createExplosion(reg, enemy_pos.x, enemy_pos.y);
+                            
+                            // Incrémenter le compteur d'ennemis tués
+                            for (size_t k = 0; k < level_managers.size(); ++k) {
+                                if (level_managers[k].has_value()) {
+                                    level_managers[k]->on_enemy_killed();
+                                    break;
+                                }
+                            }
+                            
+                            auto enemy_entity = reg.entity_from_index(e);
+                            reg.remove_component<entity_tag>(enemy_entity);
+                            reg.kill_entity(enemy_entity);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
+    // Collision projectile-ennemi (existant)
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             auto& proj_pos = positions[i].value();
@@ -51,6 +91,14 @@ void collisionSystem(registry& reg) {
 
                         if (enemy_hp.is_dead()) {
                             createExplosion(reg, enemy_pos.x, enemy_pos.y);
+                            
+                            // Incrémenter le compteur d'ennemis tués dans le level manager
+                            for (size_t k = 0; k < level_managers.size(); ++k) {
+                                if (level_managers[k].has_value()) {
+                                    level_managers[k]->on_enemy_killed();
+                                    break;
+                                }
+                            }
                         }
                         break;
                     }
