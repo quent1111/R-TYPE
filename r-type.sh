@@ -218,6 +218,7 @@ check_compiler() {
 install_dependencies() {
     cd "$PROJECT_ROOT"
     if [ -f "$BUILD_DIR/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
        [ -f "$BUILD_DIR/build/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
        [ -f "$BUILD_DIR/generators/conan_toolchain.cmake" ]; then
         print_success "Dependencies already installed (skipping)"
