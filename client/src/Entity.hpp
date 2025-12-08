@@ -13,6 +13,9 @@ struct Entity {
     float x{0.f}, y{0.f};
     float vx{0.f}, vy{0.f};
 
+    int health{100};
+    int max_health{100};
+
     float prev_x{0.f}, prev_y{0.f};
     std::chrono::steady_clock::time_point prev_time{std::chrono::steady_clock::now()};
     std::chrono::steady_clock::time_point curr_time{prev_time};

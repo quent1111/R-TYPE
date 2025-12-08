@@ -41,7 +41,9 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
             std::vector<uint8_t> buffer(recv_buffer_.begin(),
                                         recv_buffer_.begin() + bytes_received);
 
-            if (opcode == 0x13) {
+            if (opcode == 0x02) {
+                decode_login_ack(buffer, bytes_received);
+            } else if (opcode == 0x13) {
                 decode_entities(buffer, bytes_received);
             } else if (opcode == 0x21) {
                 decode_lobby_status(buffer, bytes_received);
@@ -111,6 +113,29 @@ void NetworkClient::send_loop() {
         }
     }
 }
+
+void NetworkClient::decode_login_ack(const std::vector<uint8_t>& buffer, std::size_t received) {
+    if (received < 7)
+        return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+
+        uint16_t magic;
+        uint8_t opcode;
+        deserializer >> magic >> opcode;
+
+        uint32_t network_id;
+        deserializer >> network_id;
+        
+        my_network_id_ = network_id;
+        std::cout << "[NetworkClient] Received my network ID: " << my_network_id_ << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Erreur de décodage LoginAck: " << e.what() << std::endl;
+    }
+}
+
 void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::size_t received) {
     if (received < 4)
         return;
@@ -142,11 +167,19 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vx = vx;
             entity.vy = vy;
 
+            if (type_val == 0x01) {
+                int32_t current_health, max_health;
+                deserializer >> current_health >> max_health;
+                entity.health = current_health;
+                entity.max_health = max_health;
+            }
+
             new_entities[entity_id] = entity;
         }
 
-        network_to_game_queue_.push(
-            NetworkToGame::Message(NetworkToGame::MessageType::EntityUpdate, new_entities));
+        auto msg = NetworkToGame::Message(NetworkToGame::MessageType::EntityUpdate, new_entities);
+        msg.my_network_id = my_network_id_;
+        network_to_game_queue_.push(msg);
 
     } catch (const std::exception& e) {
         std::cerr << "[NetworkClient] Erreur de décodage paquet: " << e.what() << std::endl;

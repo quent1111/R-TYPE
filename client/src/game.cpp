@@ -138,13 +138,30 @@ void Game::setup_ui() {
     powerup_hint_text_.setStyle(sf::Text::Bold);
     powerup_hint_text_.setOutlineColor(sf::Color::Black);
     powerup_hint_text_.setOutlineThickness(3.0f);
-    powerup_hint_text_.setPosition(20, 950);  // Plus haut
+    powerup_hint_text_.setPosition(20, 950);
 
     powerup_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
     powerup_hint_bg_.setPosition(10, 940);
     powerup_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
     powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
     powerup_hint_bg_.setOutlineThickness(2.0f);
+
+    health_bar_bg_.setSize(sf::Vector2f(300.0f, 30.0f));
+    health_bar_bg_.setPosition(10.0f, 160.0f);
+    health_bar_bg_.setFillColor(sf::Color(50, 50, 50, 200));
+    health_bar_bg_.setOutlineColor(sf::Color::White);
+    health_bar_bg_.setOutlineThickness(2.0f);
+
+    health_bar_fill_.setSize(sf::Vector2f(296.0f, 26.0f));
+    health_bar_fill_.setPosition(12.0f, 162.0f);
+    health_bar_fill_.setFillColor(sf::Color(0, 255, 0));
+
+    health_text_.setFont(font_);
+    health_text_.setCharacterSize(20);
+    health_text_.setFillColor(sf::Color::White);
+    health_text_.setPosition(20.0f, 165.0f);
+    health_text_.setStyle(sf::Text::Bold);
+    health_text_.setString("HP: 100 / 100");
 }
 
 void Game::handle_input() {
@@ -267,6 +284,7 @@ void Game::process_network_messages() {
     while (network_to_game_queue_.try_pop(msg)) {
         switch (msg.type) {
             case NetworkToGame::MessageType::EntityUpdate: {
+                my_network_id_ = msg.my_network_id;
                 const auto now = std::chrono::steady_clock::now();
                 std::map<uint32_t, Entity> next;
                 for (const auto& p : msg.entities) {
@@ -373,10 +391,42 @@ void Game::render() {
         window_.draw(e.sprite);
     }
 
+    window_.setView(window_.getDefaultView());
+
     std::string info = "Entities: " + std::to_string(entities_.size()) + "\n";
     info += "Controls: Z/Q/S/D + Space\n";
     info_text_.setString(info);
     window_.draw(info_text_);
+
+    for (const auto& [id, entity] : entities_) {
+        if (entity.type == 0x01 && id == my_network_id_) {
+            static int last_health = -1;
+            if (entity.health != last_health) {
+                std::cout << "[Health] My player (ID=" << my_network_id_ << ") HP: " << entity.health << "/" << entity.max_health << std::endl;
+                last_health = entity.health;
+            }
+            float health_percentage = static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
+
+            sf::Color health_color;
+            if (health_percentage > 0.6f) {
+                health_color = sf::Color(0, 255, 0);
+            } else if (health_percentage > 0.3f) {
+                health_color = sf::Color(255, 165, 0);
+            } else {
+                health_color = sf::Color(255, 0, 0);
+            }
+
+            health_bar_fill_.setFillColor(health_color);
+            health_bar_fill_.setSize(sf::Vector2f(296.0f * health_percentage, 26.0f));
+
+            health_text_.setString("HP: " + std::to_string(entity.health) + " / " + std::to_string(entity.max_health));
+
+            window_.draw(health_bar_bg_);
+            window_.draw(health_bar_fill_);
+            window_.draw(health_text_);
+            break;
+        }
+    }
 
     render_level_hud();
     render_powerup_active();
