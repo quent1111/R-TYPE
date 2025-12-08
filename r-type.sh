@@ -18,7 +18,9 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 
 get_bin_dir() {
-    if [ -d "$BUILD_DIR/build/$BUILD_TYPE/bin" ]; then
+    if [ -d "$BUILD_DIR/$BUILD_TYPE/bin" ]; then
+        echo "$BUILD_DIR/$BUILD_TYPE/bin"
+    elif [ -d "$BUILD_DIR/build/$BUILD_TYPE/bin" ]; then
         echo "$BUILD_DIR/build/$BUILD_TYPE/bin"
     elif [ -d "$BUILD_DIR/bin" ]; then
         echo "$BUILD_DIR/bin"
@@ -216,6 +218,7 @@ check_compiler() {
 install_dependencies() {
     cd "$PROJECT_ROOT"
     if [ -f "$BUILD_DIR/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
        [ -f "$BUILD_DIR/build/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
        [ -f "$BUILD_DIR/generators/conan_toolchain.cmake" ]; then
         print_success "Dependencies already installed (skipping)"
@@ -310,23 +313,26 @@ build_project() {
     local TARGET="${1:-all}"
     print_step "Building $TARGET ($BUILD_TYPE mode)..."
     local ACTUAL_BUILD_DIR="$BUILD_DIR"
-    if [ -f "CMakeUserPresets.json" ]; then
-        if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
-            ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
-        else
-            print_warning "CMake presets detected but preset build directory is not configured. Attempting to configure presets..."
-            configure_cmake
-            if [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
-                ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
-            else
-                print_error "Preset configuration failed. Run './r-type.sh rebuild' or configure manually."
-                exit 1
-            fi
-        fi
+    
+    if [ -f "$BUILD_DIR/$BUILD_TYPE/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR/$BUILD_TYPE"
+    elif [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+        ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
     elif [ -f "$BUILD_DIR/CMakeCache.txt" ]; then
         ACTUAL_BUILD_DIR="$BUILD_DIR"
+    elif [ -f "CMakeUserPresets.json" ]; then
+        print_warning "CMake presets detected but build not configured. Configuring..."
+        configure_cmake
+        if [ -f "$BUILD_DIR/$BUILD_TYPE/CMakeCache.txt" ]; then
+            ACTUAL_BUILD_DIR="$BUILD_DIR/$BUILD_TYPE"
+        elif [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+            ACTUAL_BUILD_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+        else
+            print_error "Configuration failed. Run './r-type.sh rebuild' or configure manually."
+            exit 1
+        fi
     else
-        print_error "No CMake cache found in build directories. Run './r-type.sh build' to configure." 
+        print_error "No CMake cache found. Run './r-type.sh rebuild' to reconfigure."
         exit 1
     fi
 
@@ -476,12 +482,28 @@ do_build() {
     check_cmake
     check_compiler
     check_dev_tools "$COMMAND"
-    if [ ! -f "$BUILD_DIR/conan_toolchain.cmake" ] || [ "$CLEAN_BUILD" = true ]; then
+
+    local TOOLCHAIN_EXISTS=false
+    if [ -f "$BUILD_DIR/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/build/$BUILD_TYPE/generators/conan_toolchain.cmake" ] || \
+       [ -f "$BUILD_DIR/generators/conan_toolchain.cmake" ]; then
+        TOOLCHAIN_EXISTS=true
+    fi
+
+    if [ "$TOOLCHAIN_EXISTS" = false ] || [ "$CLEAN_BUILD" = true ]; then
         install_dependencies
     fi
-    if [ ! -f "$BUILD_DIR/CMakeCache.txt" ] || [ "$CLEAN_BUILD" = true ]; then
+
+    local CMAKE_CONFIGURED=false
+    if [ -f "$BUILD_DIR/CMakeCache.txt" ] || \
+       [ -f "$BUILD_DIR/build/$BUILD_TYPE/CMakeCache.txt" ]; then
+        CMAKE_CONFIGURED=true
+    fi
+
+    if [ "$CMAKE_CONFIGURED" = false ] || [ "$CLEAN_BUILD" = true ]; then
         configure_cmake
     fi
+
     build_project "$TARGET"
 }
 

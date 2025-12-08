@@ -4,6 +4,7 @@
 #include "ui/MenuComponents.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <memory>
 #include <vector>
 
@@ -25,7 +26,6 @@ public:
 private:
     void setup_ui();
     void on_play_clicked();
-    void on_settings_clicked();
     void on_quit_clicked();
 
     sf::RenderWindow& m_window;
@@ -39,4 +39,4 @@ private:
     sf::Vector2f m_mouse_pos;
 };
 
-} // namespace rtype
+}  // namespace rtype

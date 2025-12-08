@@ -1,17 +1,24 @@
 #pragma once
 
-#include "ecs/registry.hpp"
+#include "Game.hpp"
+#include "Messages.hpp"
+#include "NetworkClient.hpp"
+#include "SafeQueue.hpp"
 #include "states/IState.hpp"
-#include "texture_manager.hpp"
 
 #include <SFML/Graphics.hpp>
+
+#include <memory>
+#include <thread>
 
 namespace rtype {
 
 class GameState : public IState {
 public:
-    explicit GameState(sf::RenderWindow& window);
-    ~GameState() override = default;
+    GameState(sf::RenderWindow& window,
+              std::shared_ptr<ThreadSafeQueue<GameToNetwork::Message>> game_to_net,
+              std::shared_ptr<ThreadSafeQueue<NetworkToGame::Message>> net_to_game);
+    ~GameState() override;
 
     void on_enter() override;
     void on_exit() override;
@@ -22,29 +29,13 @@ public:
     void clear_next_state() override { m_next_state.clear(); }
 
 private:
-    void init_game();
-    void update_background(float dt);
-    void render_background(sf::RenderWindow& window);
-    void render_ui(sf::RenderWindow& window);
-    void run_systems(float dt);
-    void explosion_system(float dt);
-    void animation_system(float dt);
-    void render_system(sf::RenderWindow& window);
-    void update_fps(float dt);
-
     sf::RenderWindow& m_window;
-    registry m_registry;
-    TextureManager m_textures;
-    sf::Texture m_bg_texture;
-    float m_bg_scroll_offset{0.0f};
-    const float m_bg_scroll_speed{50.0f};
-    sf::Clock m_enemy_spawn_clock;
-    const float m_enemy_spawn_interval{3.0f};
     std::string m_next_state;
-    bool m_paused{false};
-    float m_fps{0.0f};
-    float m_fps_update_time{0.0f};
-    int m_frame_count{0};
+
+    std::shared_ptr<ThreadSafeQueue<GameToNetwork::Message>> m_game_to_network_queue;
+    std::shared_ptr<ThreadSafeQueue<NetworkToGame::Message>> m_network_to_game_queue;
+
+    std::unique_ptr<Game> m_game;
 };
 
-} // namespace rtype
+}  // namespace rtype

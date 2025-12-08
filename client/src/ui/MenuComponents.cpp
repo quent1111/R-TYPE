@@ -1,14 +1,16 @@
 #include "ui/MenuComponents.hpp"
+
 #include "core/FontManager.hpp"
 
 #include <cmath>
+
 #include <iostream>
 #include <random>
 
 namespace rtype::ui {
 
-Button::Button(const sf::Vector2f& position, const sf::Vector2f& size,
-               const std::string& text) : m_position(position), m_size(size) {
+Button::Button(const sf::Vector2f& position, const sf::Vector2f& size, const std::string& text)
+    : m_position(position), m_size(size) {
     const float bevel = 15.0f;
     m_shape.setPointCount(6);
     m_shape.setPoint(0, sf::Vector2f(bevel, 0));
@@ -186,8 +188,8 @@ void Button::render(sf::RenderWindow& window) {
 
 bool Button::contains(const sf::Vector2f& point) const {
     sf::Vector2f local_point = point - m_position;
-    if (local_point.x < 0 || local_point.x > m_size.x ||
-        local_point.y < 0 || local_point.y > m_size.y) {
+    if (local_point.x < 0 || local_point.x > m_size.x || local_point.y < 0 ||
+        local_point.y > m_size.y) {
         return false;
     }
     const float bevel = 15.0f;
@@ -219,16 +221,13 @@ void Button::set_text(const std::string& text) {
                      text_bounds.top + text_bounds.height / 2.0f);
 }
 
-void Button::set_colors(const sf::Color& normal, const sf::Color& hover,
-                        const sf::Color& pressed) {
+void Button::set_colors(const sf::Color& normal, const sf::Color& hover, const sf::Color& pressed) {
     m_normal_color = normal;
     m_hover_color = hover;
     m_pressed_color = pressed;
 }
 
-
-MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position,
-                     unsigned int size) {
+MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position, unsigned int size) {
     if (m_logo_texture.loadFromFile("assets/logoR-type1.png")) {
         m_has_logo = true;
         m_logo_sprite.setTexture(m_logo_texture);
@@ -254,12 +253,10 @@ MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position,
         m_shadow.setStyle(sf::Text::Bold);
 
         sf::FloatRect bounds = m_text.getLocalBounds();
-        m_text.setOrigin(bounds.left + bounds.width / 2.0f,
-                         bounds.top + bounds.height / 2.0f);
+        m_text.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
         m_text.setPosition(position);
 
-        m_shadow.setOrigin(bounds.left + bounds.width / 2.0f,
-                           bounds.top + bounds.height / 2.0f);
+        m_shadow.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
         m_shadow.setPosition(position.x + 5.0f, position.y + 5.0f);
     }
 
@@ -274,10 +271,8 @@ MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position,
             float distance = dist_dist(gen);
             sf::CircleShape particle(3.0f);
             particle.setFillColor(sf::Color(100, 200, 255, 120));
-            particle.setPosition(
-                position.x + std::cos(angle) * distance,
-                position.y + std::sin(angle) * distance
-            );
+            particle.setPosition(position.x + std::cos(angle) * distance,
+                                 position.y + std::sin(angle) * distance);
             m_particles.push_back(particle);
         }
     }
@@ -292,11 +287,8 @@ void MenuTitle::update(float dt) {
         float base_scale = 0.7f;
         m_logo_sprite.setScale(base_scale * pulse, base_scale * pulse);
     }
-    m_text.setFillColor(sf::Color(
-        static_cast<sf::Uint8>(100 * glow),
-        static_cast<sf::Uint8>(200 * glow),
-        255
-    ));
+    m_text.setFillColor(
+        sf::Color(static_cast<sf::Uint8>(100 * glow), static_cast<sf::Uint8>(200 * glow), 255));
 
     sf::Vector2f center_pos = m_has_logo ? m_logo_sprite.getPosition() : m_text.getPosition();
     for (auto& particle : m_particles) {
@@ -304,14 +296,10 @@ void MenuTitle::update(float dt) {
         float current_y = particle.getPosition().y;
         float angle = std::atan2(current_y - center_pos.y, current_x - center_pos.x);
         angle += dt * 0.5f;
-        float distance = std::sqrt(
-            (current_x - center_pos.x) * (current_x - center_pos.x) +
-            (current_y - center_pos.y) * (current_y - center_pos.y)
-        );
-        particle.setPosition(
-            center_pos.x + std::cos(angle) * distance,
-            center_pos.y + std::sin(angle) * distance
-        );
+        float distance = std::sqrt((current_x - center_pos.x) * (current_x - center_pos.x) +
+                                   (current_y - center_pos.y) * (current_y - center_pos.y));
+        particle.setPosition(center_pos.x + std::cos(angle) * distance,
+                             center_pos.y + std::sin(angle) * distance);
         sf::Uint8 particle_alpha = static_cast<sf::Uint8>(120 * glow);
         particle.setFillColor(sf::Color(100, 200, 255, particle_alpha));
     }
@@ -329,11 +317,13 @@ void MenuTitle::render(sf::RenderWindow& window) {
     }
 }
 
-void MenuTitle::set_text(const std::string& text) { m_text.setString(text); }
+void MenuTitle::set_text(const std::string& text) {
+    m_text.setString(text);
+}
 
 MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(window_size) {
-    m_background.setSize(sf::Vector2f(static_cast<float>(window_size.x),
-                                      static_cast<float>(window_size.y)));
+    m_background.setSize(
+        sf::Vector2f(static_cast<float>(window_size.x), static_cast<float>(window_size.y)));
     m_background.setFillColor(sf::Color(5, 5, 15));
 
     if (m_background_texture.loadFromFile("assets/galaxie.jpg")) {
@@ -343,8 +333,10 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
         float scale_y = static_cast<float>(window_size.y) / static_cast<float>(tex_size.y);
         float scale = std::max(scale_x, scale_y);
         m_background_sprite.setScale(scale, scale);
-        float offset_x = (static_cast<float>(window_size.x) - static_cast<float>(tex_size.x) * scale) / 2.0f;
-        float offset_y = (static_cast<float>(window_size.y) - static_cast<float>(tex_size.y) * scale) / 2.0f;
+        float offset_x =
+            (static_cast<float>(window_size.x) - static_cast<float>(tex_size.x) * scale) / 2.0f;
+        float offset_y =
+            (static_cast<float>(window_size.y) - static_cast<float>(tex_size.y) * scale) / 2.0f;
         m_background_sprite.setPosition(offset_x, offset_y);
         sf::Color tint = sf::Color::White;
         tint.a = 200;
@@ -405,7 +397,8 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
                               static_cast<float>(rect.height) / 2.0f);
         ship.scale = scale_dist(gen);
         ship.sprite.setScale(ship.scale, ship.scale);
-        std::uniform_real_distribution<float> start_x_dist(-200.0f, static_cast<float>(window_size.x));
+        std::uniform_real_distribution<float> start_x_dist(-200.0f,
+                                                           static_cast<float>(window_size.x));
         ship.position = sf::Vector2f(start_x_dist(gen), y_dist(gen));
         ship.sprite.setPosition(ship.position);
         ship.velocity = sf::Vector2f(speed_x_dist(gen), speed_y_dist(gen));
@@ -416,12 +409,9 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
     }
 
     std::vector<std::string> asteroid_files = {
-        "assets/Asteroids/Asteroid_1.png",
-        "assets/Asteroids/Asteroid_2.png",
-        "assets/Asteroids/Asteroid_3.png",
-        "assets/Asteroids/Asteroid_4.png",
-        "assets/Asteroids/Asteroid_5.png"
-    };
+        "assets/Asteroids/Asteroid_1.png", "assets/Asteroids/Asteroid_2.png",
+        "assets/Asteroids/Asteroid_3.png", "assets/Asteroids/Asteroid_4.png",
+        "assets/Asteroids/Asteroid_5.png"};
 
     m_asteroid_textures.reserve(asteroid_files.size());
     for (const auto& file : asteroid_files) {
@@ -439,7 +429,8 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
         std::uniform_real_distribution<float> asteroid_speed_y_dist(-8.0f, 8.0f);
         std::uniform_real_distribution<float> asteroid_rot_dist(-0.2f, 0.2f);
         std::uniform_int_distribution<int> asteroid_alpha_dist(100, 180);
-        std::uniform_int_distribution<int> texture_dist(0, static_cast<int>(m_asteroid_textures.size()) - 1);
+        std::uniform_int_distribution<int> texture_dist(
+            0, static_cast<int>(m_asteroid_textures.size()) - 1);
 
         for (int i = 0; i < 8; ++i) {
             Asteroid asteroid;
@@ -447,13 +438,15 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
             asteroid.sprite.setTexture(m_asteroid_textures[static_cast<std::size_t>(tex_idx)]);
             auto tex_size = m_asteroid_textures[static_cast<std::size_t>(tex_idx)].getSize();
             asteroid.sprite.setOrigin(static_cast<float>(tex_size.x) / 2.0f,
-                                     static_cast<float>(tex_size.y) / 2.0f);
+                                      static_cast<float>(tex_size.y) / 2.0f);
             asteroid.scale = asteroid_scale_dist(gen);
             asteroid.sprite.setScale(asteroid.scale, asteroid.scale);
-            std::uniform_real_distribution<float> start_x_dist(-150.0f, static_cast<float>(window_size.x));
+            std::uniform_real_distribution<float> start_x_dist(-150.0f,
+                                                               static_cast<float>(window_size.x));
             asteroid.position = sf::Vector2f(start_x_dist(gen), y_dist(gen));
             asteroid.sprite.setPosition(asteroid.position);
-            asteroid.velocity = sf::Vector2f(asteroid_speed_x_dist(gen), asteroid_speed_y_dist(gen));
+            asteroid.velocity =
+                sf::Vector2f(asteroid_speed_x_dist(gen), asteroid_speed_y_dist(gen));
             asteroid.rotation = 0.0f;
             asteroid.rotation_speed = asteroid_rot_dist(gen);
             sf::Uint8 alpha = static_cast<sf::Uint8>(asteroid_alpha_dist(gen));
@@ -584,7 +577,8 @@ void ParticleEffect::render(sf::RenderWindow& window) {
 }
 
 bool ParticleEffect::is_alive() const {
-    if (m_particles.empty()) return false;
+    if (m_particles.empty())
+        return false;
     return m_particles[0].lifetime < m_particles[0].max_lifetime;
 }
 
@@ -602,10 +596,8 @@ MenuFooter::MenuFooter(const sf::Vector2u& window_size) {
         m_copyright_text.setCharacterSize(14);
         m_copyright_text.setFillColor(sf::Color(80, 120, 160, 150));
         sf::FloatRect bounds = m_copyright_text.getLocalBounds();
-        m_copyright_text.setPosition(
-            static_cast<float>(window_size.x) - bounds.width - 20.0f,
-            static_cast<float>(window_size.y) - 30.0f
-        );
+        m_copyright_text.setPosition(static_cast<float>(window_size.x) - bounds.width - 20.0f,
+                                     static_cast<float>(window_size.y) - 30.0f);
     }
 
     sf::RectangleShape line;
@@ -630,22 +622,22 @@ CornerDecoration::CornerDecoration(const sf::Vector2f& position, bool flip_x, bo
     sf::RectangleShape line1(sf::Vector2f(80.0f, 2.0f));
     line1.setPosition(position.x, position.y);
     line1.setFillColor(sf::Color(100, 200, 255, 150));
-    if (flip_x) line1.setPosition(position.x - 80.0f, position.y);
+    if (flip_x)
+        line1.setPosition(position.x - 80.0f, position.y);
     m_lines.push_back(line1);
 
     sf::RectangleShape line2(sf::Vector2f(2.0f, 80.0f));
     line2.setPosition(position.x, position.y);
     line2.setFillColor(sf::Color(100, 200, 255, 150));
-    if (flip_y) line2.setPosition(position.x, position.y - 80.0f);
+    if (flip_y)
+        line2.setPosition(position.x, position.y - 80.0f);
     m_lines.push_back(line2);
 
     for (int i = 0; i < 3; ++i) {
         sf::CircleShape dot(2.0f);
         dot.setFillColor(sf::Color(100, 200, 255, 200));
-        dot.setPosition(
-            position.x + x_mult * static_cast<float>(i * 25 + 10),
-            position.y + y_mult * static_cast<float>(i * 25 + 10)
-        );
+        dot.setPosition(position.x + x_mult * static_cast<float>(i * 25 + 10),
+                        position.y + y_mult * static_cast<float>(i * 25 + 10));
         m_dots.push_back(dot);
     }
 }
@@ -692,12 +684,14 @@ SidePanel::SidePanel(const sf::Vector2f& position, bool is_left) {
         sf::RectangleShape bar;
         float height = 40.0f + static_cast<float>(i * 15);
         bar.setSize(sf::Vector2f(4.0f, height));
-        bar.setPosition(position + sf::Vector2f(is_left ? 15.0f : -10.0f, 40.0f + static_cast<float>(i * 25)));
+        bar.setPosition(position +
+                        sf::Vector2f(is_left ? 15.0f : -10.0f, 40.0f + static_cast<float>(i * 25)));
         bar.setFillColor(sf::Color(50, 150, 255, static_cast<sf::Uint8>(100 + i * 20)));
         m_bars.push_back(bar);
 
         sf::CircleShape indicator(3.0f);
-        indicator.setPosition(position + sf::Vector2f(is_left ? 12.0f : -16.0f, 35.0f + static_cast<float>(i * 25)));
+        indicator.setPosition(
+            position + sf::Vector2f(is_left ? 12.0f : -16.0f, 35.0f + static_cast<float>(i * 25)));
         indicator.setFillColor(sf::Color(100, 200, 255, 200));
         m_indicators.push_back(indicator);
     }
@@ -728,4 +722,4 @@ void SidePanel::render(sf::RenderWindow& window) {
     }
 }
 
-} // namespace rtype::ui
+}  // namespace rtype::ui

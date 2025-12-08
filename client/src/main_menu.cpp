@@ -1,65 +1,80 @@
-#include "core/SettingsManager.hpp"
+#include "Messages.hpp"
+#include "NetworkClient.hpp"
+#include "SafeQueue.hpp"
 #include "states/GameState.hpp"
+#include "states/LobbyState.hpp"
 #include "states/MenuState.hpp"
-#include "states/SettingsState.hpp"
 #include "states/StateManager.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
+#include <memory>
+#include <thread>
 
-int main(int, char**) {
-    auto& settings = rtype::SettingsManager::get_instance();
-    settings.load_from_file("settings.ini");
-
-    sf::VideoMode mode = settings.get_resolution();
-    sf::Uint32 style = settings.is_fullscreen() ? sf::Style::Fullscreen : sf::Style::Close;
-    sf::RenderWindow window(mode, "R-Type", style);
-    window.setVerticalSyncEnabled(settings.is_vsync_enabled());
+int main() {
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-TYPE - Multiplayer");
+    window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(60);
 
-    std::cout << "[R-Type] Window created with resolution: "
-              << mode.width << "x" << mode.height
-              << " (Fullscreen: " << (settings.is_fullscreen() ? "ON" : "OFF") << ")\n";
+    try {
+        auto game_to_network_queue = std::make_shared<ThreadSafeQueue<GameToNetwork::Message>>();
+        auto network_to_game_queue = std::make_shared<ThreadSafeQueue<NetworkToGame::Message>>();
 
-    rtype::StateManager state_manager;
+        std::cout << "[main] Connecting to server..." << std::endl;
+        auto network_client = std::make_shared<NetworkClient>(
+            "127.0.0.1", 4242, *game_to_network_queue, *network_to_game_queue);
+        std::cout << "[main] NetworkClient connected and running.\n";
 
-    state_manager.register_state("menu", [&window]() {
-        return std::make_unique<rtype::MenuState>(window);
-    });
+        rtype::StateManager state_manager;
 
-    state_manager.register_state("settings", [&window]() {
-        return std::make_unique<rtype::SettingsState>(window);
-    });
+        state_manager.register_state(
+            "menu", [&window]() { return std::make_unique<rtype::MenuState>(window); });
 
-    state_manager.register_state("game", [&window]() {
-        return std::make_unique<rtype::GameState>(window);
-    });
+        state_manager.register_state("lobby",
+                                     [&window, game_to_network_queue, network_to_game_queue]() {
+                                         return std::make_unique<rtype::LobbyState>(
+                                             window, game_to_network_queue, network_to_game_queue);
+                                     });
 
-    state_manager.push_state("menu");
+        state_manager.register_state("game",
+                                     [&window, game_to_network_queue, network_to_game_queue]() {
+                                         return std::make_unique<rtype::GameState>(
+                                             window, game_to_network_queue, network_to_game_queue);
+                                     });
 
-    sf::Clock clock;
+        state_manager.push_state("menu");
 
-    while (window.isOpen() && state_manager.has_states()) {
-        float dt = clock.restart().asSeconds();
+        sf::Clock clock;
 
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                window.close();
+        while (window.isOpen() && state_manager.has_states()) {
+            float dt = clock.restart().asSeconds();
+
+            sf::Event event;
+            while (window.pollEvent(event)) {
+                if (event.type == sf::Event::Closed) {
+                    window.close();
+                }
+                state_manager.handle_event(event);
             }
 
-            state_manager.handle_event(event);
+            state_manager.update(dt);
+            state_manager.process_transitions();
+
+            window.clear();
+            state_manager.render(window);
+            window.display();
         }
 
-        state_manager.update(dt);
+        if (network_client) {
+            std::cout << "[main] Stopping network client...\n";
+            network_client->stop();
+        }
 
-        state_manager.process_transitions();
-
-        window.clear(sf::Color(10, 10, 30));
-        state_manager.render(window);
-        window.display();
+    } catch (const std::exception& e) {
+        std::cerr << "[Fatal Error] " << e.what() << std::endl;
+        return 84;
     }
 
-    std::cout << "R-Type exiting...\n";
     return 0;
 }

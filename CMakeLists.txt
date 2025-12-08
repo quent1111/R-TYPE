@@ -18,35 +18,29 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 file(MAKE_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 file(MAKE_DIRECTORY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-# Add Homebrew paths for macOS ARM64
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
     list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
     include_directories(/opt/homebrew/include)
     link_directories(/opt/homebrew/lib)
 endif()
 
-# Find packages installed by Conan or system
 find_package(SFML QUIET COMPONENTS graphics window system audio)
 if(NOT SFML_FOUND)
-    # Fallback: try Conan-provided SFML with namespace
     find_package(SFML REQUIRED COMPONENTS graphics window system audio CONFIG)
 endif()
 find_package(asio REQUIRED)
 find_package(GTest REQUIRED)
 
-# Create unified SFML interface library for compatibility
 if(TARGET sfml::sfml)
-    # Conan provides sfml::sfml
     message(STATUS "Using Conan SFML targets (sfml::sfml)")
     set(SFML_TARGETS sfml::sfml)
 elseif(TARGET sfml-graphics)
-    # System SFML (Homebrew on macOS)
     message(STATUS "Using system SFML targets (sfml-graphics, etc.)")
     add_library(sfml_unified INTERFACE)
-    target_link_libraries(sfml_unified INTERFACE 
-        sfml-graphics 
-        sfml-window 
-        sfml-system 
+    target_link_libraries(sfml_unified INTERFACE
+        sfml-graphics
+        sfml-window
+        sfml-system
         sfml-audio
     )
     add_library(sfml::sfml ALIAS sfml_unified)
@@ -61,7 +55,7 @@ set_project_warnings(project_warnings)
 add_library(project_options INTERFACE)
 target_compile_features(project_options INTERFACE cxx_std_20)
 
-add_subdirectory(game)
+add_subdirectory(game-lib)
 add_subdirectory(engine)
 add_subdirectory(server)
 add_subdirectory(client)
@@ -69,7 +63,6 @@ add_subdirectory(client)
 enable_testing()
 add_subdirectory(tests)
 
-# Print configuration summary
 message(STATUS "==========================================")
 message(STATUS "R-Type Project Configuration v${PROJECT_VERSION}")
 message(STATUS "==========================================")

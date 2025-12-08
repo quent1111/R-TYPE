@@ -24,7 +24,6 @@ cd "$PROJECT_ROOT"
 
 ERRORS=0
 
-# 1. Check formatting
 echo -e "${YELLOW}▶${NC} Checking code formatting..."
 if ./scripts/format.sh > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} Code formatting is correct"
@@ -34,7 +33,6 @@ else
     ERRORS=$((ERRORS + 1))
 fi
 
-# 2. Check if project builds
 echo -e "${YELLOW}▶${NC} Checking if project builds..."
 if ./r-type.sh build > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} Project builds successfully"
@@ -44,7 +42,6 @@ else
     ERRORS=$((ERRORS + 1))
 fi
 
-# 3. Run tests
 echo -e "${YELLOW}▶${NC} Running tests..."
 if ./r-type.sh test > /dev/null 2>&1; then
     echo -e "${GREEN}✓${NC} All tests pass"

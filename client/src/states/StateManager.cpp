@@ -1,10 +1,11 @@
 #include "states/StateManager.hpp"
+
 #include <iostream>
 
 namespace rtype {
 
-void StateManager::register_state(
-    const std::string& name, std::function<std::unique_ptr<IState>()> factory) {
+void StateManager::register_state(const std::string& name,
+                                  std::function<std::unique_ptr<IState>()> factory) {
     m_factories[name] = std::move(factory);
 }
 
@@ -64,4 +65,4 @@ void StateManager::process_transitions() {
     }
 }
 
-} // namespace rtype
+}  // namespace rtype
