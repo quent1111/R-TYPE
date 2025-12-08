@@ -51,9 +51,10 @@ void spawnEnemyWave(registry& reg, int count) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
+    std::uniform_real_distribution<float> dis_x(2000.0f, 2300.0f);
 
     for (int i = 0; i < count; ++i) {
-        float spawn_x = 2000.0f;
+        float spawn_x = dis_x(gen);
         float spawn_y = dis_y(gen);
         createBasicEnemy(reg, spawn_x, spawn_y);
     }
