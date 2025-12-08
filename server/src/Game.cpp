@@ -93,6 +93,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
         auto vel_opt = _registry.get_component<velocity>(player);
+        auto health_opt = _registry.get_component<health>(player);
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
@@ -104,6 +105,13 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             _broadcast_serializer << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             _broadcast_serializer << vy;
+            
+            // Ajouter la santé pour les joueurs
+            int current_health = health_opt.has_value() ? health_opt->current : 100;
+            int max_health = health_opt.has_value() ? health_opt->maximum : 100;
+            _broadcast_serializer << static_cast<int32_t>(current_health);
+            _broadcast_serializer << static_cast<int32_t>(max_health);
+            
             entity_count++;
         }
     }
@@ -145,6 +153,13 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
     if (!player_opt.has_value())
         return;
 
+    auto player = player_opt.value();
+
+    auto player_tag_opt = _registry.get_component<player_tag>(player);
+    if (!player_tag_opt.has_value()) {
+        return;
+    }
+
     RType::BinarySerializer deserializer(data);
     uint8_t input_mask;
     uint32_t timestamp;
@@ -156,7 +171,6 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
         return;
     }
 
-    auto player = player_opt.value();
     auto& pos_opt = _registry.get_component<position>(player);
     auto& wpn_opt = _registry.get_component<weapon>(player);
     auto& power_cannon_opt = _registry.get_component<power_cannon>(player);
@@ -252,6 +266,14 @@ void Game::process_network_events(UDPServer& server) {
                     if (!player_opt.has_value()) {
                         _client_ready_status[client_id] = false;
                         std::cout << "[Game] Client " << client_id << " joined lobby" << std::endl;
+
+                        RType::BinarySerializer ack_serializer;
+                        ack_serializer << RType::MagicNumber::VALUE;
+                        ack_serializer << RType::OpCode::LoginAck;
+                        ack_serializer << client_id;
+
+                        server.send_to_client(client_id, ack_serializer.data());
+                        std::cout << "[Game] Sent LoginAck with network ID " << client_id << " to client" << std::endl;
                     }
                     break;
                 }
@@ -389,6 +411,7 @@ void Game::update_game_state(float dt) {
     }
 
     shootingSystem(_registry, dt);
+    enemyShootingSystem(_registry, dt);
     waveSystem(_registry, dt);
     movementSystem(_registry, dt);
     collisionSystem(_registry);
