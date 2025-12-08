@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+
 #include <memory>
 #include <string>
 
@@ -19,5 +20,4 @@ public:
     virtual bool is_overlay() const { return false; }
 };
 
-} // namespace rtype
-
+}  // namespace rtype

@@ -41,4 +41,4 @@ private:
     std::size_t _size;
 };
 
-}
+}  // namespace containers

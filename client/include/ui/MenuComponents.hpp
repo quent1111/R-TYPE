@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -164,4 +165,4 @@ private:
     float m_anim_time{0.0f};
 };
 
-} // namespace rtype::ui
+}  // namespace rtype::ui

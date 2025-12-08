@@ -1,4 +1,5 @@
 #include "states/MenuState.hpp"
+
 #include <iostream>
 
 namespace rtype {
@@ -28,23 +29,24 @@ void MenuState::setup_ui() {
 
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
-    m_title = std::make_unique<ui::MenuTitle>(
-        "R-TYPE", sf::Vector2f(center.x, center.y - 220.0f), 72);
+    m_title =
+        std::make_unique<ui::MenuTitle>("R-TYPE", sf::Vector2f(center.x, center.y - 220.0f), 72);
 
     m_footer = std::make_unique<ui::MenuFooter>(window_size);
 
-    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(30.0f, 30.0f), false, false));
+    m_corners.push_back(
+        std::make_unique<ui::CornerDecoration>(sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(30.0f, static_cast<float>(window_size.y) - 80.0f), false, true));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(static_cast<float>(window_size.x) - 30.0f,
-                     static_cast<float>(window_size.y) - 80.0f), true, true));
+                     static_cast<float>(window_size.y) - 80.0f),
+        true, true));
 
-    m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(50.0f, center.y - 100.0f), true));
+    m_side_panels.push_back(
+        std::make_unique<ui::SidePanel>(sf::Vector2f(50.0f, center.y - 100.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
         sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, center.y - 100.0f), false));
 
@@ -53,11 +55,10 @@ void MenuState::setup_ui() {
     const float button_spacing = 90.0f;
     const float start_y = center.y - 10.0f;
 
-    auto play_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(center.x - button_width / 2.0f, start_y),
-        sf::Vector2f(button_width, button_height), "PLAY");
-    play_btn->set_colors(sf::Color(30, 80, 180, 220),
-                         sf::Color(50, 120, 230, 255),
+    auto play_btn =
+        std::make_unique<ui::Button>(sf::Vector2f(center.x - button_width / 2.0f, start_y),
+                                     sf::Vector2f(button_width, button_height), "PLAY");
+    play_btn->set_colors(sf::Color(30, 80, 180, 220), sf::Color(50, 120, 230, 255),
                          sf::Color(20, 60, 150, 255));
     play_btn->set_callback([this]() { on_play_clicked(); });
     m_buttons.push_back(std::move(play_btn));
@@ -65,8 +66,7 @@ void MenuState::setup_ui() {
     auto quit_btn = std::make_unique<ui::Button>(
         sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
         sf::Vector2f(button_width, button_height), "QUIT");
-    quit_btn->set_colors(sf::Color(120, 30, 40, 200),
-                         sf::Color(180, 50, 60, 255),
+    quit_btn->set_colors(sf::Color(120, 30, 40, 200), sf::Color(180, 50, 60, 255),
                          sf::Color(100, 20, 30, 255));
     quit_btn->set_callback([this]() { on_quit_clicked(); });
     m_buttons.push_back(std::move(quit_btn));
@@ -85,7 +85,7 @@ void MenuState::on_quit_clicked() {
 void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
         m_mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x),
-                                    static_cast<float>(event.mouseMove.y));
+                                   static_cast<float>(event.mouseMove.y));
         for (auto& button : m_buttons) {
             button->handle_mouse_move(m_mouse_pos);
         }
@@ -152,5 +152,4 @@ void MenuState::render(sf::RenderWindow& window) {
     }
 }
 
-} // namespace rtype
-
+}  // namespace rtype

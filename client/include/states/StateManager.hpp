@@ -3,6 +3,7 @@
 #include "states/IState.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <functional>
 #include <map>
 #include <memory>
@@ -16,8 +17,7 @@ public:
     StateManager() = default;
     ~StateManager() = default;
 
-    void register_state(const std::string& name,
-                        std::function<std::unique_ptr<IState>()> factory);
+    void register_state(const std::string& name, std::function<std::unique_ptr<IState>()> factory);
     void push_state(const std::string& name);
     void pop_state();
     void change_state(const std::string& name);
@@ -35,5 +35,4 @@ private:
     TransitionType m_transition_type = TransitionType::None;
 };
 
-} // namespace rtype
-
+}  // namespace rtype

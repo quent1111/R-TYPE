@@ -1,12 +1,13 @@
-#include "states/StateManager.hpp"
-#include "states/MenuState.hpp"
-#include "states/LobbyState.hpp"
-#include "states/GameState.hpp"
+#include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
-#include "Messages.hpp"
+#include "states/GameState.hpp"
+#include "states/LobbyState.hpp"
+#include "states/MenuState.hpp"
+#include "states/StateManager.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -22,25 +23,25 @@ int main() {
 
         std::cout << "[main] Connecting to server..." << std::endl;
         auto network_client = std::make_shared<NetworkClient>(
-            "127.0.0.1", 4242,
-            *game_to_network_queue,
-            *network_to_game_queue
-        );
+            "127.0.0.1", 4242, *game_to_network_queue, *network_to_game_queue);
         std::cout << "[main] NetworkClient connected and running.\n";
 
         rtype::StateManager state_manager;
 
-        state_manager.register_state("menu", [&window]() {
-            return std::make_unique<rtype::MenuState>(window);
-        });
+        state_manager.register_state(
+            "menu", [&window]() { return std::make_unique<rtype::MenuState>(window); });
 
-        state_manager.register_state("lobby", [&window, game_to_network_queue, network_to_game_queue]() {
-            return std::make_unique<rtype::LobbyState>(window, game_to_network_queue, network_to_game_queue);
-        });
+        state_manager.register_state("lobby",
+                                     [&window, game_to_network_queue, network_to_game_queue]() {
+                                         return std::make_unique<rtype::LobbyState>(
+                                             window, game_to_network_queue, network_to_game_queue);
+                                     });
 
-        state_manager.register_state("game", [&window, game_to_network_queue, network_to_game_queue]() {
-            return std::make_unique<rtype::GameState>(window, game_to_network_queue, network_to_game_queue);
-        });
+        state_manager.register_state("game",
+                                     [&window, game_to_network_queue, network_to_game_queue]() {
+                                         return std::make_unique<rtype::GameState>(
+                                             window, game_to_network_queue, network_to_game_queue);
+                                     });
 
         state_manager.push_state("menu");
 

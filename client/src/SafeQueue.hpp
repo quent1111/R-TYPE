@@ -1,8 +1,8 @@
 #pragma once
 
+#include <condition_variable>
 #include <mutex>
 #include <queue>
-#include <condition_variable>
 
 template <typename T>
 class ThreadSafeQueue {
@@ -49,10 +49,10 @@ public:
     }
 
     bool wait_and_pop(T& item) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this]{ return !queue_.empty(); });
-    item = std::move(queue_.front());
-    queue_.pop();
-    return true;
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait(lock, [this] { return !queue_.empty(); });
+        item = std::move(queue_.front());
+        queue_.pop();
+        return true;
     }
 };

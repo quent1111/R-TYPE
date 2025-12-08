@@ -1,19 +1,19 @@
 #pragma once
 
 #include "../../engine/ecs/components.hpp"
-#include "../../game-lib/include/components/logic_components.hpp"
-#include "../../game-lib/include/components/game_components.hpp"
-#include "../../game-lib/include/entities/enemy_factory.hpp"
-#include "../../game-lib/include/entities/player_factory.hpp"
-#include "../../game-lib/include/entities/projectile_factory.hpp"
-#include "../../game-lib/include/systems/movement_system.hpp"
-#include "../../game-lib/include/systems/shooting_system.hpp"
-#include "../../game-lib/include/systems/cleanup_system.hpp"
-#include "../../game-lib/include/systems/wave_system.hpp"
-#include "../../game-lib/include/systems/collision_system.hpp"
 #include "../../engine/ecs/entity.hpp"
 #include "../../engine/ecs/registry.hpp"
 #include "../../engine/ecs/sparse_array.hpp"
+#include "../../game-lib/include/components/game_components.hpp"
+#include "../../game-lib/include/components/logic_components.hpp"
+#include "../../game-lib/include/entities/enemy_factory.hpp"
+#include "../../game-lib/include/entities/player_factory.hpp"
+#include "../../game-lib/include/entities/projectile_factory.hpp"
+#include "../../game-lib/include/systems/cleanup_system.hpp"
+#include "../../game-lib/include/systems/collision_system.hpp"
+#include "../../game-lib/include/systems/movement_system.hpp"
+#include "../../game-lib/include/systems/shooting_system.hpp"
+#include "../../game-lib/include/systems/wave_system.hpp"
 #include "../../src/Common/BinarySerializer.hpp"
 #include "UDPServer.hpp"
 
@@ -21,10 +21,7 @@
 #include <optional>
 #include <unordered_map>
 
-enum class GamePhase {
-    Lobby,
-    InGame
-};
+enum class GamePhase { Lobby, InGame };
 
 class Game {
 private:

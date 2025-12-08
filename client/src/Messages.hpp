@@ -26,9 +26,17 @@ struct Message {
     uint8_t powerup_choice_value;
 
     Message(MessageType t, uint8_t input = 0)
-        : type(t), input_mask(input), ready_status(false), weapon_upgrade_choice(0), powerup_choice_value(0) {}
+        : type(t),
+          input_mask(input),
+          ready_status(false),
+          weapon_upgrade_choice(0),
+          powerup_choice_value(0) {}
     Message(MessageType t, bool ready)
-        : type(t), input_mask(0), ready_status(ready), weapon_upgrade_choice(0), powerup_choice_value(0) {}
+        : type(t),
+          input_mask(0),
+          ready_status(ready),
+          weapon_upgrade_choice(0),
+          powerup_choice_value(0) {}
 
     static Message weapon_upgrade(uint8_t choice) {
         Message msg(MessageType::SendWeaponUpgrade);
@@ -41,11 +49,9 @@ struct Message {
         msg.powerup_choice_value = choice;
         return msg;
     }
-    static Message powerup_activate() {
-        return Message(MessageType::SendPowerUpActivate);
-    }
+    static Message powerup_activate() { return Message(MessageType::SendPowerUpActivate); }
 };
-}
+}  // namespace GameToNetwork
 
 namespace NetworkToGame {
 enum class MessageType : uint8_t {
@@ -77,16 +83,35 @@ struct Message {
     uint8_t next_level;
 
     Message(MessageType t)
-        : type(t), is_connected(false), total_players(0), ready_players(0),
-          level(1), kills(0), enemies_needed(0),
-          powerup_type(0), powerup_time_remaining(0.0f), show_powerup_selection(false),
-          current_level(1), enemies_killed(0), next_level(1) {}
+        : type(t),
+          is_connected(false),
+          total_players(0),
+          ready_players(0),
+          level(1),
+          kills(0),
+          enemies_needed(0),
+          powerup_type(0),
+          powerup_time_remaining(0.0f),
+          show_powerup_selection(false),
+          current_level(1),
+          enemies_killed(0),
+          next_level(1) {}
 
     Message(MessageType t, std::map<uint32_t, Entity> ents)
-        : type(t), entities(std::move(ents)), is_connected(false), total_players(0), ready_players(0),
-          level(1), kills(0), enemies_needed(0),
-          powerup_type(0), powerup_time_remaining(0.0f), show_powerup_selection(false),
-          current_level(1), enemies_killed(0), next_level(1) {}
+        : type(t),
+          entities(std::move(ents)),
+          is_connected(false),
+          total_players(0),
+          ready_players(0),
+          level(1),
+          kills(0),
+          enemies_needed(0),
+          powerup_type(0),
+          powerup_time_remaining(0.0f),
+          show_powerup_selection(false),
+          current_level(1),
+          enemies_killed(0),
+          next_level(1) {}
     static Message level_progress(uint32_t lvl, uint32_t killed, uint32_t needed) {
         Message msg(MessageType::LevelProgress);
         msg.level = lvl;
@@ -110,4 +135,4 @@ struct Message {
         return msg;
     }
 };
-}
+}  // namespace NetworkToGame

@@ -116,4 +116,4 @@ private:
     static constexpr std::index_sequence_for<Containers...> _seq{};
 };
 
-}
+}  // namespace containers

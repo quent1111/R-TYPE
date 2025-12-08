@@ -21,6 +21,7 @@ target_link_libraries(r-type_client PRIVATE
     project_options
     project_warnings
     sfml::sfml
+    asio::asio
 )
 
 link_platform_libraries(r-type_client)

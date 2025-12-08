@@ -1,12 +1,13 @@
 #pragma once
 
-#include "states/IState.hpp"
 #include "Game.hpp"
+#include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
-#include "Messages.hpp"
+#include "states/IState.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <memory>
 #include <thread>
 
@@ -30,12 +31,11 @@ public:
 private:
     sf::RenderWindow& m_window;
     std::string m_next_state;
-    
+
     std::shared_ptr<ThreadSafeQueue<GameToNetwork::Message>> m_game_to_network_queue;
     std::shared_ptr<ThreadSafeQueue<NetworkToGame::Message>> m_network_to_game_queue;
-    
+
     std::unique_ptr<Game> m_game;
 };
 
-} // namespace rtype
-
+}  // namespace rtype

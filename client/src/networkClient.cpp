@@ -3,78 +3,77 @@
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
                              ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
                              ThreadSafeQueue<NetworkToGame::Message>& net_to_game)
-    : running_(true), game_to_network_queue_(game_to_net), network_to_game_queue_(net_to_game) {
-    socket_fd_ = socket(AF_INET, SOCK_DGRAM, 0);
-    if (socket_fd_ < 0) {
-        throw std::runtime_error("Impossible de créer le socket");
+    : io_context_(),
+      socket_(io_context_),
+      running_(true),
+      game_to_network_queue_(game_to_net),
+      network_to_game_queue_(net_to_game) {
+    try {
+        asio::ip::udp::resolver resolver(io_context_);
+        auto endpoints = resolver.resolve(asio::ip::udp::v4(), host, std::to_string(port));
+        server_endpoint_ = *endpoints.begin();
+        socket_.open(asio::ip::udp::v4());
+
+        std::cout << "[Client] Connecté au serveur " << host << ":" << port << std::endl;
+
+        network_thread_ = std::thread(&NetworkClient::run, this);
+
+        game_to_network_queue_.push(GameToNetwork::Message(GameToNetwork::MessageType::SendLogin));
+    } catch (std::exception& e) {
+        throw std::runtime_error("Impossible de se connecter au serveur: " + std::string(e.what()));
     }
-
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
-    setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-
-    struct hostent* server = gethostbyname(host.c_str());
-    if (server == nullptr) {
-        close(socket_fd_);
-        throw std::runtime_error("Hôte introuvable: " + host);
-    }
-
-    std::memset(&server_addr_, 0, sizeof(server_addr_));
-    server_addr_.sin_family = AF_INET;
-    std::memcpy(&server_addr_.sin_addr.s_addr, server->h_addr,
-                static_cast<size_t>(server->h_length));
-    server_addr_.sin_port = htons(port);
-
-    std::cout << "[Client] Connecté au serveur " << host << ":" << port << std::endl;
-
-    receiver_thread_ = std::thread(&NetworkClient::receive_loop, this);
-    sender_thread_ = std::thread(&NetworkClient::send_loop, this);
-
-    game_to_network_queue_.push(GameToNetwork::Message(GameToNetwork::MessageType::SendLogin));
 }
 
-void NetworkClient::receive_loop() {
-    std::vector<uint8_t> buffer(65536);
-    struct sockaddr_in from_addr;
-    socklen_t from_len = sizeof(from_addr);
+void NetworkClient::start_receive() {
+    socket_.async_receive_from(asio::buffer(recv_buffer_), server_endpoint_,
+                               [this](std::error_code ec, std::size_t bytes_received) {
+                                   handle_receive(ec, bytes_received);
+                               });
+}
 
-    while (running_) {
-        ssize_t received = recvfrom(socket_fd_, buffer.data(), buffer.size(), 0,
-                        reinterpret_cast<struct sockaddr*>(&from_addr),
-                        &from_len);
+void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_received) {
+    if (!ec && bytes_received >= 4) {
+        uint16_t magic =
+            static_cast<uint16_t>(recv_buffer_[0]) | (static_cast<uint16_t>(recv_buffer_[1]) << 8);
 
-        if (received > 0 && received >= 4) {
-            uint16_t magic =
-                static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
+        if (magic == MAGIC_NUMBER) {
+            uint8_t opcode = recv_buffer_[2];
+            std::vector<uint8_t> buffer(recv_buffer_.begin(),
+                                        recv_buffer_.begin() + bytes_received);
 
-            if (magic == MAGIC_NUMBER) {
-                uint8_t opcode = buffer[2];
-                if (opcode == 0x13) {
-                    decode_entities(buffer, received);
-                } else if (opcode == 0x21) {
-                    decode_lobby_status(buffer, received);
-                } else if (opcode == 0x22) {
-                    decode_start_game(buffer, received);
-                } else if (opcode == 0x30) {
-                    decode_level_start(buffer, received);
-                } else if (opcode == 0x33) {
-                    decode_level_progress(buffer, received);
-                } else if (opcode == 0x31) {
-                    decode_level_complete(buffer, received);
-                } else if (opcode == 0x34) {
-                    decode_powerup_selection(buffer, received);
-                } else if (opcode == 0x36) {
-                    decode_powerup_status(buffer, received);
-                } else {
-                    std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex << static_cast<int>(opcode) << std::dec << std::endl;
-                }
+            if (opcode == 0x13) {
+                decode_entities(buffer, bytes_received);
+            } else if (opcode == 0x21) {
+                decode_lobby_status(buffer, bytes_received);
+            } else if (opcode == 0x22) {
+                decode_start_game(buffer, bytes_received);
+            } else if (opcode == 0x30) {
+                decode_level_start(buffer, bytes_received);
+            } else if (opcode == 0x33) {
+                decode_level_progress(buffer, bytes_received);
+            } else if (opcode == 0x31) {
+                decode_level_complete(buffer, bytes_received);
+            } else if (opcode == 0x34) {
+                decode_powerup_selection(buffer, bytes_received);
+            } else if (opcode == 0x36) {
+                decode_powerup_status(buffer, bytes_received);
             } else {
-                std::cerr << "[NetworkClient] Error: Bad magic number 0x" << std::hex << magic << std::dec << std::endl;
+                std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex
+                          << static_cast<int>(opcode) << std::dec << std::endl;
             }
+        } else {
+            std::cerr << "[NetworkClient] Error: Bad magic number 0x" << std::hex << magic
+                      << std::dec << std::endl;
         }
     }
+
+    if (running_) {
+        start_receive();
+    }
 }
+
+void NetworkClient::receive_loop() {}
+
 void NetworkClient::send_loop() {
     while (running_) {
         GameToNetwork::Message msg(GameToNetwork::MessageType::SendLogin);
@@ -108,8 +107,9 @@ void NetworkClient::send_loop() {
         }
     }
 }
-void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 4) return;
+void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::size_t received) {
+    if (received < 4)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -153,11 +153,15 @@ void NetworkClient::send_login() {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Login;
-
     serializer << std::string("Player");
 
-    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+    socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
+                          [](std::error_code ec, std::size_t) {
+                              if (ec) {
+                                  std::cerr << "[Client] Error sending login: " << ec.message()
+                                            << std::endl;
+                              }
+                          });
     std::cout << "[Client] Asking connexion..." << std::endl;
 }
 
@@ -168,8 +172,13 @@ void NetworkClient::send_input(uint8_t input_mask) {
     serializer << input_mask;
     serializer << static_cast<uint32_t>(0);
 
-    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+    socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
+                          [](std::error_code ec, std::size_t) {
+                              if (ec) {
+                                  std::cerr << "[Client] Error sending input: " << ec.message()
+                                            << std::endl;
+                              }
+                          });
 }
 
 void NetworkClient::send_ready(bool ready) {
@@ -178,12 +187,18 @@ void NetworkClient::send_ready(bool ready) {
     serializer << RType::OpCode::PlayerReady;
     serializer << static_cast<uint8_t>(ready ? 1 : 0);
 
-    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+    socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
+                          [](std::error_code ec, std::size_t) {
+                              if (ec) {
+                                  std::cerr << "[Client] Error sending ready: " << ec.message()
+                                            << std::endl;
+                              }
+                          });
 }
 
-void NetworkClient::decode_lobby_status(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 5) return;
+void NetworkClient::decode_lobby_status(const std::vector<uint8_t>& buffer, std::size_t received) {
+    if (received < 5)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -204,13 +219,15 @@ void NetworkClient::decode_lobby_status(const std::vector<uint8_t>& buffer, ssiz
     }
 }
 
-void NetworkClient::decode_start_game(const std::vector<uint8_t>& /*buffer*/, ssize_t /*received*/) {
+void NetworkClient::decode_start_game(const std::vector<uint8_t>& /*buffer*/,
+                                      std::size_t /*received*/) {
     NetworkToGame::Message msg(NetworkToGame::MessageType::StartGame);
     network_to_game_queue_.push(msg);
 }
 
-void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 4) return;
+void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, std::size_t received) {
+    if (received < 4)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -230,8 +247,10 @@ void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, ssize
     }
 }
 
-void NetworkClient::decode_level_progress(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 8) return;
+void NetworkClient::decode_level_progress(const std::vector<uint8_t>& buffer,
+                                          std::size_t received) {
+    if (received < 8)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -254,8 +273,10 @@ void NetworkClient::decode_level_progress(const std::vector<uint8_t>& buffer, ss
     }
 }
 
-void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 4) return;
+void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer,
+                                          std::size_t received) {
+    if (received < 4)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -275,8 +296,10 @@ void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer, ss
     }
 }
 
-void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 4) return;
+void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer,
+                                             std::size_t received) {
+    if (received < 4)
+        return;
 
     try {
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpSelection);
@@ -288,8 +311,10 @@ void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer,
     }
 }
 
-void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer, ssize_t received) {
-    if (received < 8) return;
+void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
+                                          std::size_t received) {
+    if (received < 8)
+        return;
 
     try {
         RType::BinarySerializer deserializer(buffer);
@@ -317,8 +342,14 @@ void NetworkClient::send_powerup_choice(uint8_t choice) {
     serializer << RType::OpCode::PowerUpChoice;
     serializer << choice;
 
-    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+    socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
+                          [](std::error_code ec, std::size_t) {
+                              if (ec) {
+                                  std::cerr
+                                      << "[Client] Error sending powerup choice: " << ec.message()
+                                      << std::endl;
+                              }
+                          });
 }
 
 void NetworkClient::send_powerup_activate() {
@@ -326,32 +357,42 @@ void NetworkClient::send_powerup_activate() {
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpActivate;
 
-    sendto(socket_fd_, serializer.raw_data(), serializer.size(), 0,
-           reinterpret_cast<const struct sockaddr*>(&server_addr_), sizeof(server_addr_));
+    socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
+                          [](std::error_code ec, std::size_t) {
+                              if (ec) {
+                                  std::cerr
+                                      << "[Client] Error sending powerup activate: " << ec.message()
+                                      << std::endl;
+                              }
+                          });
 }
 
 void NetworkClient::run() {
+    start_receive();
+
+    std::thread send_thread([this]() { send_loop(); });
+
+    io_context_.run();
+
+    if (send_thread.joinable()) {
+        send_thread.join();
+    }
+}
+
+void NetworkClient::stop() {
+    running_ = false;
+    io_context_.stop();
 }
 
 NetworkClient::~NetworkClient() {
     running_ = false;
 
-    game_to_network_queue_.push(
-        GameToNetwork::Message(GameToNetwork::MessageType::Disconnect)
-    );
+    game_to_network_queue_.push(GameToNetwork::Message(GameToNetwork::MessageType::Disconnect));
 
-    if (sender_thread_.joinable()) {
-        sender_thread_.join();
-    }
+    io_context_.stop();
 
-    if (socket_fd_ >= 0) {
-        shutdown(socket_fd_, SHUT_RDWR);
-        close(socket_fd_);
-        socket_fd_ = -1;
-    }
-
-    if (receiver_thread_.joinable()) {
-        receiver_thread_.join();
+    if (network_thread_.joinable()) {
+        network_thread_.join();
     }
 
     std::cout << "[Client] Disconnect from server" << std::endl;

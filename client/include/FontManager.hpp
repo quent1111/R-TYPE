@@ -1,9 +1,10 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include <string>
+
 #include <map>
 #include <memory>
+#include <string>
 
 namespace core {
 
@@ -21,4 +22,4 @@ private:
     const std::string default_font_path_ = "assets/fonts/arial.ttf";
 };
 
-}
+}  // namespace core

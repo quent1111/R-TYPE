@@ -2,9 +2,9 @@
 
 #include <SFML/Graphics.hpp>
 #include <cstdint>
-#include <vector>
 
 #include <chrono>
+#include <vector>
 
 struct Entity {
     uint32_t id{0};

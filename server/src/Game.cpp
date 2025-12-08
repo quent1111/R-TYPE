@@ -12,7 +12,6 @@
 #include <optional>
 #include <random>
 #include <thread>
-#include <thread>
 
 extern std::atomic<bool> server_running;
 
@@ -110,13 +109,14 @@ void Game::broadcast_entity_positions(UDPServer& server) {
     }
 
     for (size_t i = 0; i < tags.size(); ++i) {
-        if (!tags[i].has_value()) continue;
-        if (i >= positions.size() || !positions[i].has_value()) continue;
+        if (!tags[i].has_value())
+            continue;
+        if (i >= positions.size() || !positions[i].has_value())
+            continue;
 
         if (tags[i]->type == RType::EntityType::Enemy ||
             tags[i]->type == RType::EntityType::Projectile ||
             tags[i]->type == RType::EntityType::Obstacle) {
-
             const auto& pos = positions[i].value();
             auto entity_obj = _registry.entity_from_index(i);
             auto vel_opt = _registry.get_component<velocity>(entity_obj);
@@ -133,7 +133,8 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         }
     }
 
-    if (entity_count == 0) return;
+    if (entity_count == 0)
+        return;
 
     _broadcast_serializer.data()[count_position] = static_cast<uint8_t>(entity_count);
     server.send_to_all(_broadcast_serializer.data());
@@ -171,31 +172,32 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
         if (input_mask & KEY_D)
             pos_opt->x += speed;
         if (input_mask & KEY_SPACE) {
-             if (wpn_opt.has_value()) {
-                 auto& wpn = wpn_opt.value();
-                 if (wpn.can_shoot()) {
-                     int damage = wpn.damage;
-                     WeaponUpgradeType visual_type = wpn.upgrade_type;
-                     if (power_cannon_opt.has_value() && power_cannon_opt->is_active()) {
-                         damage = power_cannon_opt->damage;
-                         visual_type = WeaponUpgradeType::PowerShot;
-                     }
-                     if (wpn.upgrade_type == WeaponUpgradeType::TripleShot) {
-                         ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
-                                          500.0f, 0.0f, damage, visual_type);
-                         ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
-                                          500.0f, -100.0f, damage, visual_type);
-                         ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
-                                          500.0f, 100.0f, damage, visual_type);
-                     } else {
-                         ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
-                                          500.0f, 0.0f, damage, visual_type);
-                     }
-                     wpn.reset_shot_timer();
-                 }
-             } else {
-                 ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
-             }
+            if (wpn_opt.has_value()) {
+                auto& wpn = wpn_opt.value();
+                if (wpn.can_shoot()) {
+                    int damage = wpn.damage;
+                    WeaponUpgradeType visual_type = wpn.upgrade_type;
+                    if (power_cannon_opt.has_value() && power_cannon_opt->is_active()) {
+                        damage = power_cannon_opt->damage;
+                        visual_type = WeaponUpgradeType::PowerShot;
+                    }
+                    if (wpn.upgrade_type == WeaponUpgradeType::TripleShot) {
+                        ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
+                                           500.0f, 0.0f, damage, visual_type);
+                        ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
+                                           500.0f, -100.0f, damage, visual_type);
+                        ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
+                                           500.0f, 100.0f, damage, visual_type);
+                    } else {
+                        ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f,
+                                           500.0f, 0.0f, damage, visual_type);
+                    }
+                    wpn.reset_shot_timer();
+                }
+            } else {
+                ::createProjectile(_registry, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f,
+                                   10);
+            }
         }
     }
 }
@@ -271,7 +273,8 @@ void Game::process_network_events(UDPServer& server) {
                         deserializer >> upgrade_choice;
                         handle_weapon_upgrade_choice(client_id, upgrade_choice, server);
                     } catch (...) {
-                        std::cerr << "[Game] Failed to parse WeaponUpgradeChoice payload" << std::endl;
+                        std::cerr << "[Game] Failed to parse WeaponUpgradeChoice payload"
+                                  << std::endl;
                     }
                     break;
                 }
@@ -307,7 +310,8 @@ void Game::process_network_events(UDPServer& server) {
 
 void Game::handle_player_ready(int client_id, bool ready) {
     _client_ready_status[client_id] = ready;
-    std::cout << "[Game] Client " << client_id << " is " << (ready ? "READY" : "NOT READY") << std::endl;
+    std::cout << "[Game] Client " << client_id << " is " << (ready ? "READY" : "NOT READY")
+              << std::endl;
 }
 
 void Game::check_start_game(UDPServer& server) {
@@ -348,7 +352,8 @@ void Game::start_game(UDPServer& server) {
         start_x += 50.0f;
     }
 
-    std::cout << "[Game] Game started with " << _client_ready_status.size() << " players" << std::endl;
+    std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
+              << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     RType::BinarySerializer level_start;
     level_start << RType::MagicNumber::VALUE;
@@ -368,7 +373,8 @@ void Game::broadcast_lobby_status(UDPServer& server) {
     uint8_t ready_players = 0;
 
     for (const auto& [client_id, ready] : _client_ready_status) {
-        if (ready) ready_players++;
+        if (ready)
+            ready_players++;
     }
 
     _broadcast_serializer << total_players;
@@ -462,7 +468,6 @@ void Game::runGameLoop(UDPServer& server) {
     auto previous_time = std::chrono::steady_clock::now();
     std::chrono::duration<double> lag(0.0);
 
-
     while (server_running) {
         auto current_time = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = current_time - previous_time;
@@ -488,7 +493,8 @@ void Game::check_level_completion(UDPServer& server) {
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
             auto& lvl_mgr = level_managers[i].value();
-            if (lvl_mgr.level_completed && !_level_complete_waiting && !_waiting_for_powerup_choice) {
+            if (lvl_mgr.level_completed && !_level_complete_waiting &&
+                !_waiting_for_powerup_choice) {
                 broadcast_level_complete(server);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 broadcast_powerup_selection(server);
@@ -520,7 +526,8 @@ void Game::broadcast_level_info(UDPServer& server) {
 void Game::handle_powerup_choice(int client_id, uint8_t powerup_choice, UDPServer& server) {
     auto player_opt = get_player_entity(client_id);
     if (!player_opt.has_value()) {
-        std::cerr << "[Game] Cannot apply power-up: player not found for client " << client_id << std::endl;
+        std::cerr << "[Game] Cannot apply power-up: player not found for client " << client_id
+                  << std::endl;
         return;
     }
     auto player = player_opt.value();
@@ -618,7 +625,8 @@ void Game::broadcast_level_complete(UDPServer& server) {
 void Game::handle_weapon_upgrade_choice(int client_id, uint8_t upgrade_choice, UDPServer& server) {
     auto player_opt = get_player_entity(client_id);
     if (!player_opt.has_value()) {
-        std::cerr << "[Game] Cannot apply upgrade: player not found for client " << client_id << std::endl;
+        std::cerr << "[Game] Cannot apply upgrade: player not found for client " << client_id
+                  << std::endl;
         return;
     }
     auto player = player_opt.value();

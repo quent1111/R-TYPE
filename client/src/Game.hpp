@@ -77,8 +77,7 @@ private:
     void init_entity_sprite(Entity& entity);
 
 public:
-    Game(sf::RenderWindow& window,
-         ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
+    Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
          ThreadSafeQueue<NetworkToGame::Message>& net_to_game);
     ~Game();
 

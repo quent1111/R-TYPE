@@ -1,4 +1,5 @@
 #include "core/FontManager.hpp"
+
 #include <iostream>
 
 namespace core {
@@ -27,4 +28,4 @@ const sf::Font* FontManager::get_default_font() {
     return load_font(default_font_path_);
 }
 
-}
+}  // namespace core

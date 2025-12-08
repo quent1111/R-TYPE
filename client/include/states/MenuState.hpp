@@ -4,6 +4,7 @@
 #include "ui/MenuComponents.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <memory>
 #include <vector>
 
@@ -38,5 +39,4 @@ private:
     sf::Vector2f m_mouse_pos;
 };
 
-} // namespace rtype
-
+}  // namespace rtype

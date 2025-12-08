@@ -3,15 +3,14 @@
 #include "inputKey.hpp"
 
 #include <SFML/Graphics.hpp>
+#include <cmath>
 
 #include <chrono>
-#include <cmath>
 #include <iostream>
 #include <memory>
 #include <string>
 
-Game::Game(sf::RenderWindow& window,
-           ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
+Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
            ThreadSafeQueue<NetworkToGame::Message>& net_to_game)
     : window_(window),
       game_to_network_queue_(game_to_net),
@@ -102,7 +101,8 @@ void Game::setup_ui() {
     powerup_option1_text_.setFont(font_);
     powerup_option1_text_.setCharacterSize(30);
     powerup_option1_text_.setFillColor(sf::Color::White);
-    powerup_option1_text_.setString("1. POWER CANNON\n\n   5x Damage\n   Press X to use\n   10 seconds");
+    powerup_option1_text_.setString(
+        "1. POWER CANNON\n\n   5x Damage\n   Press X to use\n   10 seconds");
     powerup_option1_text_.setPosition(420.0f, 420.0f);
     powerup_option2_bg_.setSize(sf::Vector2f(400.0f, 200.0f));
     powerup_option2_bg_.setPosition(1120.0f, 400.0f);
@@ -112,7 +112,8 @@ void Game::setup_ui() {
     powerup_option2_text_.setFont(font_);
     powerup_option2_text_.setCharacterSize(30);
     powerup_option2_text_.setFillColor(sf::Color::White);
-    powerup_option2_text_.setString("2. SHIELD\n\n   Kill enemies on touch\n   Press X to use\n   10 seconds");
+    powerup_option2_text_.setString(
+        "2. SHIELD\n\n   Kill enemies on touch\n   Press X to use\n   10 seconds");
     powerup_option2_text_.setPosition(1140.0f, 420.0f);
     powerup_instruction_.setFont(font_);
     powerup_instruction_.setCharacterSize(25);
@@ -214,16 +215,11 @@ void Game::update() {
 }
 
 void Game::init_entity_sprite(Entity& entity) {
-
     if (entity.type == 0x01) {
         if (texture_manager_.has("assets/r-typesheet1.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
 
-            entity.frames = {
-                {99, 0, 33, 17},
-                {132, 0, 33, 17},
-                {165, 0, 33, 17}
-            };
+            entity.frames = {{99, 0, 33, 17}, {132, 0, 33, 17}, {165, 0, 33, 17}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -232,11 +228,7 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x02) {
         if (texture_manager_.has("assets/r-typesheet26.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet26.png"));
-            entity.frames = {
-                {0, 0, 65, 50},
-                {65, 0, 65, 50},
-                {130, 0, 65, 50}
-            };
+            entity.frames = {{0, 0, 65, 50}, {65, 0, 65, 50}, {130, 0, 65, 50}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -245,10 +237,7 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x03) {
         if (texture_manager_.has("assets/r-typesheet1.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
-            entity.frames = {
-                {231, 102, 16, 17},
-                {247, 102, 16, 17}
-            };
+            entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
             entity.frame_duration = 0.08F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -257,13 +246,11 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x05) {
         if (texture_manager_.has("assets/r-typesheet1.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
-            entity.frames = {
-                {330, 289, 28, 34},
-                {362, 289, 28, 34},
-                {394, 289, 28, 34},
-                {426, 289, 28, 34},
-                {0, 0, 1, 1}
-            };
+            entity.frames = {{330, 289, 28, 34},
+                             {362, 289, 28, 34},
+                             {394, 289, 28, 34},
+                             {426, 289, 28, 34},
+                             {0, 0, 1, 1}};
             entity.frame_duration = 0.08F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -404,17 +391,13 @@ void Game::render_level_intro() {
     window_.draw(level_intro_overlay_);
     level_intro_title_.setString("LEVEL " + std::to_string(current_level_));
     sf::FloatRect title_bounds = level_intro_title_.getLocalBounds();
-    level_intro_title_.setPosition(
-        WINDOW_WIDTH / 2 - title_bounds.width / 2,
-        WINDOW_HEIGHT / 2 - 80.0f
-    );
+    level_intro_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2,
+                                   WINDOW_HEIGHT / 2 - 80.0f);
     window_.draw(level_intro_title_);
     level_intro_subtitle_.setString("KILL " + std::to_string(enemies_needed_) + " ENEMIES");
     sf::FloatRect sub_bounds = level_intro_subtitle_.getLocalBounds();
-    level_intro_subtitle_.setPosition(
-        WINDOW_WIDTH / 2 - sub_bounds.width / 2,
-        WINDOW_HEIGHT / 2 + 20.0f
-    );
+    level_intro_subtitle_.setPosition(WINDOW_WIDTH / 2 - sub_bounds.width / 2,
+                                      WINDOW_HEIGHT / 2 + 20.0f);
     window_.draw(level_intro_subtitle_);
 }
 
@@ -424,7 +407,8 @@ void Game::render_level_hud() {
     }
     level_text_.setString("Level " + std::to_string(current_level_));
     window_.draw(level_text_);
-    progress_text_.setString("Enemies: " + std::to_string(enemies_killed_) + " / " + std::to_string(enemies_needed_));
+    progress_text_.setString("Enemies: " + std::to_string(enemies_killed_) + " / " +
+                             std::to_string(enemies_needed_));
     window_.draw(progress_text_);
     window_.draw(progress_bar_bg_);
     float progress = 0.0f;
@@ -441,20 +425,14 @@ void Game::render_powerup_selection() {
     }
     window_.draw(powerup_overlay_);
     sf::FloatRect title_bounds = powerup_title_.getLocalBounds();
-    powerup_title_.setPosition(
-        WINDOW_WIDTH / 2 - title_bounds.width / 2,
-        200.0f
-    );
+    powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 200.0f);
     window_.draw(powerup_title_);
     window_.draw(powerup_option1_bg_);
     window_.draw(powerup_option1_text_);
     window_.draw(powerup_option2_bg_);
     window_.draw(powerup_option2_text_);
     sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
-    powerup_instruction_.setPosition(
-        WINDOW_WIDTH / 2 - inst_bounds.width / 2,
-        650.0f
-    );
+    powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 650.0f);
     window_.draw(powerup_instruction_);
 }
 
@@ -488,6 +466,4 @@ void Game::render_powerup_active() {
     }
 }
 
-void Game::run() {
-}
-
+void Game::run() {}
