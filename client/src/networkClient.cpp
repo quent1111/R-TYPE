@@ -80,6 +80,10 @@ void NetworkClient::send_loop() {
 
         game_to_network_queue_.wait_and_pop(msg);
 
+        if (!running_) {
+            break;
+        }
+
         switch (msg.type) {
             case GameToNetwork::MessageType::SendLogin:
                 send_login();
@@ -381,6 +385,9 @@ void NetworkClient::run() {
 
 void NetworkClient::stop() {
     running_ = false;
+
+    game_to_network_queue_.push(GameToNetwork::Message(GameToNetwork::MessageType::Disconnect));
+
     io_context_.stop();
 }
 
