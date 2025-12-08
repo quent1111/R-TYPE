@@ -6,3 +6,5 @@
 
 entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage, 
                         WeaponUpgradeType upgrade_type = WeaponUpgradeType::None);
+
+entity createEnemyProjectile(registry& reg, float x, float y, float vx, float vy, int damage = 15);
