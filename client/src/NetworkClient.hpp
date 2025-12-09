@@ -31,6 +31,8 @@ private:
     ThreadSafeQueue<GameToNetwork::Message>& game_to_network_queue_;
     ThreadSafeQueue<NetworkToGame::Message>& network_to_game_queue_;
 
+    uint32_t my_network_id_ = 0;
+
     void start_receive();
     void handle_receive(std::error_code ec, std::size_t bytes_received);
 
@@ -42,6 +44,7 @@ public:
     void receive_loop();
     void send_loop();
     void decode_entities(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_login_ack(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_lobby_status(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_start_game(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_level_start(const std::vector<uint8_t>& buffer, std::size_t received);
@@ -56,6 +59,8 @@ public:
     void send_powerup_activate();
     void stop();
     void run();
+
+    uint32_t get_my_network_id() const { return my_network_id_; }
 
     ~NetworkClient();
 };

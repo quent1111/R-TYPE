@@ -69,6 +69,7 @@ enum class MessageType : uint8_t {
 struct Message {
     MessageType type;
     std::map<uint32_t, Entity> entities;
+    uint32_t my_network_id;
     bool is_connected;
     int total_players;
     int ready_players;
@@ -84,6 +85,7 @@ struct Message {
 
     Message(MessageType t)
         : type(t),
+          my_network_id(0),
           is_connected(false),
           total_players(0),
           ready_players(0),
@@ -100,6 +102,7 @@ struct Message {
     Message(MessageType t, std::map<uint32_t, Entity> ents)
         : type(t),
           entities(std::move(ents)),
+          my_network_id(0),
           is_connected(false),
           total_players(0),
           ready_players(0),

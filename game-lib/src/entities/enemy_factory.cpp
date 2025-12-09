@@ -15,10 +15,13 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.register_component<damage_on_contact>();
     reg.register_component<enemy_tag>();
     reg.register_component<entity_tag>();
+    reg.register_component<weapon>();
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
     reg.add_component(enemy, health{10});
+
+    reg.add_component(enemy, weapon{0.5f, 300.0f, 15});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet26.png";
@@ -51,9 +54,10 @@ void spawnEnemyWave(registry& reg, int count) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
+    std::uniform_real_distribution<float> dis_x(2000.0f, 2300.0f);
 
     for (int i = 0; i < count; ++i) {
-        float spawn_x = 2000.0f;
+        float spawn_x = dis_x(gen);
         float spawn_y = dis_y(gen);
         createBasicEnemy(reg, spawn_x, spawn_y);
     }

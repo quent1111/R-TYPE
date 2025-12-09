@@ -33,6 +33,7 @@ private:
     bool is_running_;
     bool has_focus_ = true;
     std::map<uint32_t, Entity> entities_;
+    uint32_t my_network_id_ = 0;
 
     uint8_t current_level_ = 1;
     uint16_t enemies_killed_ = 0;
@@ -65,6 +66,10 @@ private:
     sf::CircleShape shield_visual_;
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;
+
+    sf::RectangleShape health_bar_bg_;
+    sf::RectangleShape health_bar_fill_;
+    sf::Text health_text_;
 
     void render_level_intro();
     void render_level_hud();
