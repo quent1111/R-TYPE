@@ -388,6 +388,15 @@ void Game::render() {
             draw_y = e.prev_y + (e.y - e.prev_y) * alpha;
         }
         e.sprite.setPosition(draw_x, draw_y);
+
+        if (e.type == 0x03) {
+            if (e.vx != 0.0f || e.vy != 0.0f) {
+                float angle_rad = std::atan2(e.vy, e.vx);
+                float angle_deg = angle_rad * 180.0f / 3.14159265f;
+                e.sprite.setRotation(angle_deg);
+            }
+        }
+
         window_.draw(e.sprite);
     }
 
