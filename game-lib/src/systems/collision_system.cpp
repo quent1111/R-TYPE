@@ -15,6 +15,7 @@ void collisionSystem(registry& reg) {
     auto& level_managers = reg.get_components<level_manager>();
     auto& shields = reg.get_components<shield>();
 
+    // Collision entre ennemis et le bouclier du joueur
     for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
         if (player_tags[p] && positions[p] && shields[p]) {
             auto& player_pos = positions[p].value();
@@ -48,6 +49,7 @@ void collisionSystem(registry& reg) {
         }
     }
 
+    // Collision entre projectiles ennemis et le joueur
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             bool is_enemy_projectile = (i < enemy_tags.size() && enemy_tags[i].has_value());
@@ -106,6 +108,51 @@ void collisionSystem(registry& reg) {
         }
     }
 
+    // Collision entre projectiles (joueur vs ennemi)
+    for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
+        if (projectile_tags[i] && positions[i] && collision_boxes[i]) {
+            bool is_enemy_projectile_i = (i < enemy_tags.size() && enemy_tags[i].has_value());
+
+            auto& proj_pos_i = positions[i].value();
+            auto& proj_box_i = collision_boxes[i].value();
+
+            for (std::size_t j = i + 1; j < positions.size() && j < projectile_tags.size(); ++j) {
+                if (projectile_tags[j] && positions[j] && collision_boxes[j]) {
+                    bool is_enemy_projectile_j = (j < enemy_tags.size() && enemy_tags[j].has_value());
+
+                    if (is_enemy_projectile_i != is_enemy_projectile_j) {
+                        auto& proj_pos_j = positions[j].value();
+                        auto& proj_box_j = collision_boxes[j].value();
+
+                        float pi_left = proj_pos_i.x + proj_box_i.offset_x;
+                        float pi_top = proj_pos_i.y + proj_box_i.offset_y;
+                        float pi_right = pi_left + proj_box_i.width;
+                        float pi_bottom = pi_top + proj_box_i.height;
+
+                        float pj_left = proj_pos_j.x + proj_box_j.offset_x;
+                        float pj_top = proj_pos_j.y + proj_box_j.offset_y;
+                        float pj_right = pj_left + proj_box_j.width;
+                        float pj_bottom = pj_top + proj_box_j.height;
+
+                        if (pi_left < pj_right && pi_right > pj_left &&
+                            pi_top < pj_bottom && pi_bottom > pj_top) {
+
+                            auto proj_entity_i = reg.entity_from_index(i);
+                            reg.remove_component<entity_tag>(proj_entity_i);
+                            reg.kill_entity(proj_entity_i);
+
+                            auto proj_entity_j = reg.entity_from_index(j);
+                            reg.remove_component<entity_tag>(proj_entity_j);
+                            reg.kill_entity(proj_entity_j);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Collision entre projectiles ennemis et le joueur
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             bool is_enemy_projectile = (i < enemy_tags.size() && enemy_tags[i].has_value());
@@ -136,8 +183,23 @@ void collisionSystem(registry& reg) {
 
                     if (p_left < pl_right && p_right > pl_left &&
                         p_top < pl_bottom && p_bottom > pl_top) {
-                        player_hp.current -= proj_dmg.damage_amount;
-                        if (player_hp.current < 0) player_hp.current = 0;
+
+                        bool has_active_shield = false;
+                        if (j < shields.size() && shields[j].has_value()) {
+                            has_active_shield = shields[j]->is_active();
+                        }
+
+                        if (has_active_shield) {
+                            std::cout << "[Collision] Projectile blocked by shield!" << std::endl;
+                        } else {
+                            player_hp.current -= proj_dmg.damage_amount;
+                            if (player_hp.current < 0) player_hp.current = 0;
+
+                            if (player_hp.is_dead()) {
+                                std::cout << "[Collision] Player killed!" << std::endl;
+                                createExplosion(reg, player_pos.x, player_pos.y);
+                            }
+                        }
 
                         if (proj_dmg.destroy_on_hit) {
                             auto proj_entity = reg.entity_from_index(i);
@@ -145,10 +207,6 @@ void collisionSystem(registry& reg) {
                             reg.kill_entity(proj_entity);
                         }
 
-                        if (player_hp.is_dead()) {
-                            std::cout << "[Collision] Player killed!" << std::endl;
-                            createExplosion(reg, player_pos.x, player_pos.y);
-                        }
                         break;
                     }
                 }
