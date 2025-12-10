@@ -105,13 +105,12 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             _broadcast_serializer << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             _broadcast_serializer << vy;
-            
-            // Ajouter la santé pour les joueurs
+
             int current_health = health_opt.has_value() ? health_opt->current : 100;
             int max_health = health_opt.has_value() ? health_opt->maximum : 100;
             _broadcast_serializer << static_cast<int32_t>(current_health);
             _broadcast_serializer << static_cast<int32_t>(max_health);
-            
+
             entity_count++;
         }
     }
@@ -172,19 +171,20 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
     }
 
     auto& pos_opt = _registry.get_component<position>(player);
+    auto& vel_opt = _registry.get_component<velocity>(player);
     auto& wpn_opt = _registry.get_component<weapon>(player);
     auto& power_cannon_opt = _registry.get_component<power_cannon>(player);
 
-    if (pos_opt.has_value()) {
-        float speed = 10.0f;
+    if (pos_opt.has_value() && vel_opt.has_value()) {
+        float speed = 300.0f;
         if (input_mask & KEY_Z)
-            pos_opt->y -= speed;
+            vel_opt->vy = -speed;
         if (input_mask & KEY_S)
-            pos_opt->y += speed;
+            vel_opt->vy = speed;
         if (input_mask & KEY_Q)
-            pos_opt->x -= speed;
+            vel_opt->vx = -speed;
         if (input_mask & KEY_D)
-            pos_opt->x += speed;
+            vel_opt->vx = speed;
         if (input_mask & KEY_SPACE) {
             if (wpn_opt.has_value()) {
                 auto& wpn = wpn_opt.value();
@@ -217,6 +217,17 @@ void Game::handle_player_input(int client_id, const std::vector<uint8_t>& data) 
 }
 
 void Game::process_network_events(UDPServer& server) {
+    if (_game_phase == GamePhase::InGame) {
+        auto& velocities = _registry.get_components<velocity>();
+        auto& player_tags = _registry.get_components<player_tag>();
+        for (std::size_t i = 0; i < velocities.size() && i < player_tags.size(); ++i) {
+            if (velocities[i].has_value() && player_tags[i].has_value()) {
+                velocities[i]->vx = 0.0f;
+                velocities[i]->vy = 0.0f;
+            }
+        }
+    }
+
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {
         if (packet.data.empty() || packet.data.size() < 3) {
@@ -273,7 +284,8 @@ void Game::process_network_events(UDPServer& server) {
                         ack_serializer << client_id;
 
                         server.send_to_client(client_id, ack_serializer.data());
-                        std::cout << "[Game] Sent LoginAck with network ID " << client_id << " to client" << std::endl;
+                        std::cout << "[Game] Sent LoginAck with network ID " << client_id
+                                  << " to client" << std::endl;
                     }
                     break;
                 }

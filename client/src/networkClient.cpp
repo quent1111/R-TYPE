@@ -127,7 +127,7 @@ void NetworkClient::decode_login_ack(const std::vector<uint8_t>& buffer, std::si
 
         uint32_t network_id;
         deserializer >> network_id;
-        
+
         my_network_id_ = network_id;
         std::cout << "[NetworkClient] Received my network ID: " << my_network_id_ << std::endl;
 

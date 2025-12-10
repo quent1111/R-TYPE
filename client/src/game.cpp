@@ -236,10 +236,14 @@ void Game::init_entity_sprite(Entity& entity) {
         if (texture_manager_.has("assets/r-typesheet1.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
 
-            entity.frames = {{99, 0, 33, 17}, {132, 0, 33, 17}, {165, 0, 33, 17}};
-            entity.frame_duration = 0.15F;
-            entity.loop = true;
-            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.frames = {{99, 0, 33, 17},
+                             {132, 0, 33, 17},
+                             {165, 0, 33, 17},
+                             {198, 0, 33, 17},
+                             {231, 0, 33, 17}};
+            entity.current_frame_index = 2;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[2]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x02) {
@@ -276,6 +280,71 @@ void Game::init_entity_sprite(Entity& entity) {
     }
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
     entity.sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+}
+
+void Game::update_ship_tilt(Entity& entity, float) {
+    if (entity.type != 0x01 || entity.frames.size() != 5) {
+        return;
+    }
+
+    int target_frame = 2;
+    const float velocity_threshold = 50.0f;
+    float target_rotation = 0.0f;
+
+    if (entity.vy < -velocity_threshold) {
+        if (entity.vy < -200.0f) {
+            target_frame = 4;
+            target_rotation = -15.0f;
+        } else {
+            target_frame = 3;
+            target_rotation = -8.0f;
+        }
+    } else if (entity.vy > velocity_threshold) {
+        if (entity.vy > 200.0f) {
+            target_frame = 0;
+            target_rotation = 15.0f;
+        } else {
+            target_frame = 1;
+            target_rotation = 8.0f;
+        }
+    }
+    else if (std::abs(entity.vy) < velocity_threshold * 0.5f) {
+        if (entity.vx > velocity_threshold) {
+            target_rotation = 15.0f;
+        } else if (entity.vx < -velocity_threshold) {
+            target_rotation = -15.0f;
+        }
+    }
+
+    int current = static_cast<int>(entity.current_frame_index);
+    if (current != target_frame) {
+        if (current < target_frame) {
+            current = std::min(current + 1, target_frame);
+        } else {
+            current = std::max(current - 1, target_frame);
+        }
+        entity.current_frame_index = static_cast<size_t>(current);
+        entity.sprite.setTextureRect(entity.frames[entity.current_frame_index]);
+    }
+
+    float current_rotation = entity.sprite.getRotation();
+    if (current_rotation > 180.0f) {
+        current_rotation -= 360.0f;
+    }
+
+    float rotation_diff = target_rotation - current_rotation;
+    float rotation_speed = 120.0f;
+    float max_change = rotation_speed * (1.0f / 60.0f);
+
+    if (std::abs(rotation_diff) > max_change) {
+        if (rotation_diff > 0) {
+            entity.sprite.setRotation(current_rotation + max_change);
+        } else {
+            entity.sprite.setRotation(current_rotation - max_change);
+        }
+    } else {
+        entity.sprite.setRotation(target_rotation);
+    }
 }
 
 void Game::process_network_messages() {
@@ -363,7 +432,13 @@ void Game::render() {
     float dt = 1.0F / 60.0F;
     for (auto& pair : entities_) {
         Entity& e = pair.second;
-        e.update_animation(dt);
+
+        if (e.type == 0x01) {
+            update_ship_tilt(e, dt);
+        } else {
+            e.update_animation(dt);
+        }
+
         float draw_x = e.x;
         float draw_y = e.y;
         auto prev_t = e.prev_time;
@@ -411,10 +486,12 @@ void Game::render() {
         if (entity.type == 0x01 && id == my_network_id_) {
             static int last_health = -1;
             if (entity.health != last_health) {
-                std::cout << "[Health] My player (ID=" << my_network_id_ << ") HP: " << entity.health << "/" << entity.max_health << std::endl;
+                std::cout << "[Health] My player (ID=" << my_network_id_
+                          << ") HP: " << entity.health << "/" << entity.max_health << std::endl;
                 last_health = entity.health;
             }
-            float health_percentage = static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
+            float health_percentage =
+                static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
 
             sf::Color health_color;
             if (health_percentage > 0.6f) {
@@ -428,7 +505,8 @@ void Game::render() {
             health_bar_fill_.setFillColor(health_color);
             health_bar_fill_.setSize(sf::Vector2f(296.0f * health_percentage, 26.0f));
 
-            health_text_.setString("HP: " + std::to_string(entity.health) + " / " + std::to_string(entity.max_health));
+            health_text_.setString("HP: " + std::to_string(entity.health) + " / " +
+                                   std::to_string(entity.max_health));
 
             window_.draw(health_bar_bg_);
             window_.draw(health_bar_fill_);

@@ -80,6 +80,7 @@ private:
     void setup_ui();
 
     void init_entity_sprite(Entity& entity);
+    void update_ship_tilt(Entity& entity, float dt);
 
 public:
     Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
