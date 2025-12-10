@@ -448,10 +448,13 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
-                if (msg.powerup_type != 0) {
-                    powerup_type_ = msg.powerup_type;
+                player_powerups_[msg.powerup_player_id] = {msg.powerup_type, msg.powerup_time_remaining};
+                if (msg.powerup_player_id == my_network_id_) {
+                    if (msg.powerup_type != 0) {
+                        powerup_type_ = msg.powerup_type;
+                    }
+                    powerup_time_remaining_ = msg.powerup_time_remaining;
                 }
-                powerup_time_remaining_ = msg.powerup_time_remaining;
                 break;
             case NetworkToGame::MessageType::GameOver:
                 show_game_over_ = true;
@@ -625,12 +628,14 @@ void Game::render_powerup_active() {
     }
     window_.draw(powerup_hint_bg_);
     window_.draw(powerup_hint_text_);
-    if (powerup_type_ == 2 && powerup_time_remaining_ > 0.0f) {
-        for (const auto& [id, entity] : entities_) {
-            if (entity.type == 0x01) {
-                shield_visual_.setPosition(entity.x, entity.y);
+    for (const auto& [player_id, powerup_info] : player_powerups_) {
+        uint8_t type = powerup_info.first;
+        float time = powerup_info.second;
+        if (type == 2 && time > 0.0f) {
+            auto it = entities_.find(player_id);
+            if (it != entities_.end() && it->second.type == 0x01) {
+                shield_visual_.setPosition(it->second.x, it->second.y);
                 window_.draw(shield_visual_);
-                break;
             }
         }
     }

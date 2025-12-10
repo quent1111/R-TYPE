@@ -670,9 +670,10 @@ void Game::broadcast_powerup_status(UDPServer& server) {
         RType::BinarySerializer serializer;
         serializer << RType::MagicNumber::VALUE;
         serializer << RType::OpCode::PowerUpStatus;
+        serializer << static_cast<uint32_t>(client_id);
         serializer << powerup_type;
         serializer << time_remaining;
-        server.send_to_client(client_id, serializer.data());
+        server.send_to_all(serializer.data());
     }
 }
 

@@ -49,6 +49,7 @@ private:
     uint8_t powerup_type_ = 0;
     float powerup_time_remaining_ = 0.0f;
     bool has_x_key_been_released_ = true;
+    std::map<uint32_t, std::pair<uint8_t, float>> player_powerups_;
 
     sf::Text level_intro_title_;
     sf::Text level_intro_subtitle_;

@@ -352,7 +352,7 @@ void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<
 
 void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
                                           std::size_t received) {
-    if (received < 8)
+    if (received < 12)
         return;
 
     try {
@@ -361,11 +361,13 @@ void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
         uint8_t opcode;
         deserializer >> magic >> opcode;
 
+        uint32_t player_id;
         uint8_t powerup_type;
         float time_remaining;
-        deserializer >> powerup_type >> time_remaining;
+        deserializer >> player_id >> powerup_type >> time_remaining;
 
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpStatus);
+        msg.powerup_player_id = player_id;
         msg.powerup_type = powerup_type;
         msg.powerup_time_remaining = time_remaining;
         network_to_game_queue_.push(msg);

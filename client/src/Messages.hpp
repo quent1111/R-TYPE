@@ -77,6 +77,7 @@ struct Message {
     uint32_t level;
     uint32_t kills;
     uint32_t enemies_needed;
+    uint32_t powerup_player_id;
     uint8_t powerup_type;
     float powerup_time_remaining;
     bool show_powerup_selection;
@@ -93,6 +94,7 @@ struct Message {
           level(1),
           kills(0),
           enemies_needed(0),
+          powerup_player_id(0),
           powerup_type(0),
           powerup_time_remaining(0.0f),
           show_powerup_selection(false),
