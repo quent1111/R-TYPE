@@ -285,8 +285,14 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(1.5F, 1.5F);
         }
     } else if (entity.type == 0x03) {
-        if (texture_manager_.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+        std::string sprite_sheet = (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+
+        if (!texture_manager_.has(sprite_sheet)) {
+            sprite_sheet = "assets/r-typesheet1.png";
+        }
+
+        if (texture_manager_.has(sprite_sheet)) {
+            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
             entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
             entity.frame_duration = 0.08F;
             entity.loop = true;
