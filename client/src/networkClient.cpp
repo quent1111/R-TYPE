@@ -59,6 +59,8 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_powerup_selection(buffer, bytes_received);
             } else if (opcode == 0x36) {
                 decode_powerup_status(buffer, bytes_received);
+            } else if (opcode == 0x40) {
+                decode_game_over(buffer, bytes_received);
             } else {
                 std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex
                           << static_cast<int>(opcode) << std::dec << std::endl;
@@ -333,7 +335,7 @@ void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer,
     }
 }
 
-void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer,
+void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<uint8_t>& buffer,
                                              std::size_t received) {
     if (received < 4)
         return;
@@ -402,6 +404,12 @@ void NetworkClient::send_powerup_activate() {
                                       << std::endl;
                               }
                           });
+}
+
+void NetworkClient::decode_game_over([[maybe_unused]] const std::vector<uint8_t>& buffer,
+                                     [[maybe_unused]] std::size_t received) {
+    NetworkToGame::Message msg(NetworkToGame::MessageType::GameOver);
+    network_to_game_queue_.push(msg);
 }
 
 void NetworkClient::run() {

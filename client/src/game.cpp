@@ -162,6 +162,19 @@ void Game::setup_ui() {
     health_text_.setPosition(20.0f, 165.0f);
     health_text_.setStyle(sf::Text::Bold);
     health_text_.setString("HP: 100 / 100");
+    
+    // Game over screen
+    game_over_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    game_over_overlay_.setFillColor(sf::Color(0, 0, 0, 200));
+    
+    texture_manager_.load("assets/gameover.png");
+    if (texture_manager_.has("assets/gameover.png")) {
+        game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover.png"));
+        // Center the sprite
+        auto bounds = game_over_sprite_.getLocalBounds();
+        game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+        game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+    }
 }
 
 void Game::handle_input() {
@@ -223,6 +236,16 @@ void Game::update() {
     bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
     bg_sprite2_.setPosition(WINDOW_WIDTH - bg_scroll_offset_, 0);
     process_network_messages();
+    
+    // Game over timer
+    if (show_game_over_) {
+        game_over_timer_ += dt;
+        if (game_over_timer_ >= game_over_duration_) {
+            is_running_ = false;
+        }
+        return;  // Don't update other game logic during game over
+    }
+    
     if (show_level_intro_) {
         level_intro_timer_ += dt;
         if (level_intro_timer_ >= level_intro_duration_) {
@@ -307,8 +330,7 @@ void Game::update_ship_tilt(Entity& entity, float) {
             target_frame = 1;
             target_rotation = 8.0f;
         }
-    }
-    else if (std::abs(entity.vy) < velocity_threshold * 0.5f) {
+    } else if (std::abs(entity.vy) < velocity_threshold * 0.5f) {
         if (entity.vx > velocity_threshold) {
             target_rotation = 15.0f;
         } else if (entity.vx < -velocity_threshold) {
@@ -419,6 +441,10 @@ void Game::process_network_messages() {
                 }
                 powerup_time_remaining_ = msg.powerup_time_remaining;
                 break;
+            case NetworkToGame::MessageType::GameOver:
+                show_game_over_ = true;
+                game_over_timer_ = 0.0f;
+                break;
         }
     }
 }
@@ -484,12 +510,6 @@ void Game::render() {
 
     for (const auto& [id, entity] : entities_) {
         if (entity.type == 0x01 && id == my_network_id_) {
-            static int last_health = -1;
-            if (entity.health != last_health) {
-                std::cout << "[Health] My player (ID=" << my_network_id_
-                          << ") HP: " << entity.health << "/" << entity.max_health << std::endl;
-                last_health = entity.health;
-            }
             float health_percentage =
                 static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
 
@@ -519,6 +539,7 @@ void Game::render() {
     render_powerup_active();
     render_level_intro();
     render_powerup_selection();
+    render_game_over();
 }
 
 void Game::render_level_intro() {
@@ -601,6 +622,14 @@ void Game::render_powerup_active() {
             }
         }
     }
+}
+
+void Game::render_game_over() {
+    if (!show_game_over_) {
+        return;
+    }
+    window_.draw(game_over_overlay_);
+    window_.draw(game_over_sprite_);
 }
 
 void Game::run() {}

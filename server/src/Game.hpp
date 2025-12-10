@@ -37,12 +37,15 @@ private:
     float _level_broadcast_accumulator = 0.0f;
     float _level_complete_timer = 0.0f;
     float _powerup_broadcast_accumulator = 0.0f;
+    float _game_over_timer = 0.0f;
+    float _game_over_broadcast_accumulator = 0.0f;
     bool _level_complete_waiting = false;
     bool _waiting_for_powerup_choice = false;
+    bool _waiting_for_game_over_reset = false;
     GamePhase _game_phase = GamePhase::Lobby;
 
     void process_network_events(UDPServer& server);
-    void update_game_state(float dt);
+    void update_game_state(UDPServer& server, float dt);
     void send_periodic_updates(UDPServer& server, float dt);
 
     void handle_player_input(int client_id, const std::vector<uint8_t>& data);
@@ -58,6 +61,10 @@ private:
     void broadcast_powerup_selection(UDPServer& server);
     void broadcast_powerup_status(UDPServer& server);
     void advance_level(UDPServer& server);
+    bool check_all_players_dead();
+    void respawn_dead_players(UDPServer& server);
+    void broadcast_game_over(UDPServer& server);
+    void reset_game(UDPServer& server);
 
 public:
     Game();

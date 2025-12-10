@@ -32,6 +32,9 @@ private:
 
     bool is_running_;
     bool has_focus_ = true;
+    bool show_game_over_ = false;
+    float game_over_timer_ = 0.0f;
+    float game_over_duration_ = 3.0f;
     std::map<uint32_t, Entity> entities_;
     uint32_t my_network_id_ = 0;
 
@@ -70,11 +73,15 @@ private:
     sf::RectangleShape health_bar_bg_;
     sf::RectangleShape health_bar_fill_;
     sf::Text health_text_;
+    
+    sf::Sprite game_over_sprite_;
+    sf::RectangleShape game_over_overlay_;
 
     void render_level_intro();
     void render_level_hud();
     void render_powerup_selection();
     void render_powerup_active();
+    void render_game_over();
 
     void process_network_messages();
     void setup_ui();

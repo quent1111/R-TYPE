@@ -63,7 +63,8 @@ enum class MessageType : uint8_t {
     LevelComplete,
     LevelStart,
     PowerUpSelection,
-    PowerUpStatus
+    PowerUpStatus,
+    GameOver
 };
 
 struct Message {

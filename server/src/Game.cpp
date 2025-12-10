@@ -88,7 +88,6 @@ void Game::broadcast_entity_positions(UDPServer& server) {
     auto& tags = _registry.get_components<entity_tag>();
     auto& positions = _registry.get_components<position>();
 
-    // Joueurs
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto pos_opt = _registry.get_component<position>(player);
@@ -97,7 +96,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
-            _broadcast_serializer << static_cast<uint32_t>(entity_id);
+            _broadcast_serializer << static_cast<uint32_t>(client_id);
             _broadcast_serializer << static_cast<uint8_t>(RType::EntityType::Player);
             _broadcast_serializer << pos.x;
             _broadcast_serializer << pos.y;
@@ -128,7 +127,15 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             auto entity_obj = _registry.entity_from_index(i);
             auto vel_opt = _registry.get_component<velocity>(entity_obj);
 
-            _broadcast_serializer << static_cast<uint32_t>(i);
+            uint32_t network_id;
+            if (tags[i]->type == RType::EntityType::Enemy) {
+                network_id = 10000 + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::Projectile) {
+                network_id = 20000 + static_cast<uint32_t>(i);
+            } else {
+                network_id = 30000 + static_cast<uint32_t>(i);
+            }
+            _broadcast_serializer << network_id;
             _broadcast_serializer << static_cast<uint8_t>(tags[i]->type);
             _broadcast_serializer << pos.x;
             _broadcast_serializer << pos.y;
@@ -369,7 +376,7 @@ void Game::check_start_game(UDPServer& server) {
 }
 
 void Game::start_game(UDPServer& server) {
-    std::cout << "[Game] ===== STARTING GAME =====" << std::endl;
+    std::cout << "[Game] Starting game..." << std::endl;
 
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
@@ -417,8 +424,32 @@ void Game::broadcast_lobby_status(UDPServer& server) {
     server.send_to_all(_broadcast_serializer.data());
 }
 
-void Game::update_game_state(float dt) {
+void Game::update_game_state(UDPServer& server, float dt) {
     if (_game_phase != GamePhase::InGame) {
+        return;
+    }
+
+    if (_waiting_for_game_over_reset) {
+        _game_over_timer += dt;
+        _game_over_broadcast_accumulator += dt;
+        if (_game_over_broadcast_accumulator >= 0.1f) {
+            broadcast_game_over(server);
+            _game_over_broadcast_accumulator = 0.0f;
+        }
+        if (_game_over_timer >= 2.0f) {
+            reset_game(server);
+            _waiting_for_game_over_reset = false;
+            _game_over_timer = 0.0f;
+            _game_over_broadcast_accumulator = 0.0f;
+        }
+        return;
+    }
+
+    if (check_all_players_dead()) {
+        _waiting_for_game_over_reset = true;
+        _game_over_timer = 0.0f;
+        _game_over_broadcast_accumulator = 0.0f;
+        broadcast_game_over(server);
         return;
     }
 
@@ -456,6 +487,10 @@ void Game::send_periodic_updates(UDPServer& server, float dt) {
     const float lobby_broadcast_interval = 0.5f;
     const float cleanup_interval = 1.0f;
     const float level_broadcast_interval = 0.5f;
+
+    if (_waiting_for_game_over_reset) {
+        return;
+    }
 
     if (_game_phase == GamePhase::Lobby) {
         _lobby_broadcast_accumulator += dt;
@@ -511,7 +546,7 @@ void Game::runGameLoop(UDPServer& server) {
 
         while (lag >= fixed_timestep) {
             process_network_events(server);
-            update_game_state(dt);
+            update_game_state(server, dt);
             send_periodic_updates(server, dt);
             lag -= fixed_timestep;
         }
@@ -702,6 +737,9 @@ void Game::advance_level(UDPServer& server) {
         if (level_managers[i].has_value()) {
             auto& lvl_mgr = level_managers[i].value();
             lvl_mgr.advance_to_next_level();
+
+            respawn_dead_players(server);
+
             RType::BinarySerializer serializer;
             serializer << RType::MagicNumber::VALUE;
             serializer << RType::OpCode::LevelStart;
@@ -710,4 +748,100 @@ void Game::advance_level(UDPServer& server) {
             break;
         }
     }
+}
+
+bool Game::check_all_players_dead() {
+    if (_client_entity_ids.empty()) {
+        return false;
+    }
+
+    int alive_players = 0;
+    for (const auto& [client_id, entity_id] : _client_entity_ids) {
+        auto player = _registry.entity_from_index(entity_id);
+        auto health_opt = _registry.get_component<health>(player);
+
+        if (health_opt.has_value() && health_opt->current > 0) {
+            alive_players++;
+        }
+    }
+
+    return alive_players == 0;
+}
+
+void Game::respawn_dead_players([[maybe_unused]] UDPServer& server) {
+    std::vector<int> dead_client_ids;
+
+    for (const auto& [client_id, entity_id] : _client_entity_ids) {
+        auto player = _registry.entity_from_index(entity_id);
+        auto health_opt = _registry.get_component<health>(player);
+
+        if (!health_opt.has_value() || health_opt->current <= 0) {
+            dead_client_ids.push_back(client_id);
+        }
+    }
+
+    for (int client_id : dead_client_ids) {
+        remove_player(client_id);
+        float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
+        float start_y = 300.0f;
+        create_player(client_id, start_x, start_y);
+        std::cout << "[Game] Respawned player for client " << client_id << std::endl;
+    }
+}
+
+void Game::broadcast_game_over(UDPServer& server) {
+    std::cout << "[Game] Broadcasting GameOver (opcode 0x40) to all clients..." << std::endl;
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::GameOver;
+    
+    for (int i = 0; i < 20; ++i) {
+        serializer << static_cast<uint8_t>(0xFF);
+    }
+    
+    server.send_to_all(serializer.data());
+}
+
+void Game::reset_game([[maybe_unused]] UDPServer& server) {
+    auto& level_managers = _registry.get_components<level_manager>();
+    std::optional<size_t> level_mgr_idx;
+
+    for (size_t i = 0; i < level_managers.size(); ++i) {
+        if (level_managers[i].has_value()) {
+            level_mgr_idx = i;
+            break;
+        }
+    }
+
+    _client_entity_ids.clear();
+
+    for (auto& [client_id, ready] : _client_ready_status) {
+        ready = false;
+    }
+
+    auto& positions = _registry.get_components<position>();
+    auto& velocities = _registry.get_components<velocity>();
+    auto& healths = _registry.get_components<health>();
+
+    for (size_t i = 0; i < positions.size(); ++i) {
+        if (positions[i].has_value() || velocities[i].has_value() || healths[i].has_value()) {
+            if (level_mgr_idx.has_value() && i == level_mgr_idx.value()) {
+                continue;
+            }
+            auto ent = _registry.entity_from_index(i);
+            _registry.kill_entity(ent);
+        }
+    }
+
+    if (level_mgr_idx.has_value()) {
+        auto& lvl_mgr = level_managers[level_mgr_idx.value()].value();
+        lvl_mgr.current_level = 1;
+        lvl_mgr.enemies_killed_this_level = 0;
+    }
+
+    _game_phase = GamePhase::Lobby;
+    _level_complete_waiting = false;
+    _waiting_for_powerup_choice = false;
+
+    std::cout << "[Game] Game reset. Back to lobby." << std::endl;
 }
