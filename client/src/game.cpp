@@ -28,6 +28,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     try {
         texture_manager_.load("assets/bg.png");
         texture_manager_.load("assets/r-typesheet1.png");
+        texture_manager_.load("assets/r-typesheet1.3.png");
         texture_manager_.load("assets/r-typesheet26.png");
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
@@ -236,16 +237,15 @@ void Game::update() {
     bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
     bg_sprite2_.setPosition(WINDOW_WIDTH - bg_scroll_offset_, 0);
     process_network_messages();
-    
-    // Game over timer
+
     if (show_game_over_) {
         game_over_timer_ += dt;
         if (game_over_timer_ >= game_over_duration_) {
             is_running_ = false;
         }
-        return;  // Don't update other game logic during game over
+        return;
     }
-    
+
     if (show_level_intro_) {
         level_intro_timer_ += dt;
         if (level_intro_timer_ >= level_intro_duration_) {
@@ -256,14 +256,20 @@ void Game::update() {
 
 void Game::init_entity_sprite(Entity& entity) {
     if (entity.type == 0x01) {
-        if (texture_manager_.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+        std::string sprite_sheet = (entity.id == 2) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
-            entity.frames = {{99, 0, 33, 17},
-                             {132, 0, 33, 17},
-                             {165, 0, 33, 17},
-                             {198, 0, 33, 17},
-                             {231, 0, 33, 17}};
+        if (!texture_manager_.has(sprite_sheet)) {
+            sprite_sheet = "assets/r-typesheet1.png";
+        }
+
+        if (texture_manager_.has(sprite_sheet)) {
+            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
+
+            entity.frames = {{100, 0, 33, 17},
+                             {133, 0, 33, 17},
+                             {166, 0, 33, 17},
+                             {199, 0, 33, 17},
+                             {232, 0, 33, 17}};
             entity.current_frame_index = 2;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[2]);
