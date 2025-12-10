@@ -67,7 +67,10 @@ private:
     sf::Text powerup_option2_text_;
     sf::Text powerup_instruction_;
     sf::Text powerup_active_text_;
-    sf::CircleShape shield_visual_;
+    sf::Sprite shield_visual_;
+    std::vector<sf::IntRect> shield_frames_;
+    std::map<uint32_t, int> player_shield_frame_;
+    std::map<uint32_t, float> player_shield_anim_timer_;
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;
 

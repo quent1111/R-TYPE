@@ -30,6 +30,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_manager_.load("assets/r-typesheet1.png");
         texture_manager_.load("assets/r-typesheet1.3.png");
         texture_manager_.load("assets/r-typesheet26.png");
+        texture_manager_.load("assets/shield.png");
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
@@ -127,11 +128,16 @@ void Game::setup_ui() {
     powerup_active_text_.setPosition(10, 150);
     powerup_active_text_.setStyle(sf::Text::Bold);
 
-    shield_visual_.setRadius(100.0f);
-    shield_visual_.setFillColor(sf::Color(100, 200, 255, 80));
-    shield_visual_.setOutlineColor(sf::Color(0, 255, 255, 220));
-    shield_visual_.setOutlineThickness(5.0f);
-    shield_visual_.setOrigin(100.0f, 100.0f);
+    shield_frames_ = {
+        {0, 0, 27, 27},
+        {27, 0, 34, 34},
+        {61, 0, 42, 42},
+        {103, 0, 51, 51},
+        {154, 0, 55, 55}
+    };
+
+    shield_visual_.setTextureRect(shield_frames_[0]);
+    shield_visual_.setScale(2.0f, 2.0f);
 
     powerup_hint_text_.setFont(font_);
     powerup_hint_text_.setCharacterSize(28);
@@ -163,15 +169,13 @@ void Game::setup_ui() {
     health_text_.setPosition(20.0f, 165.0f);
     health_text_.setStyle(sf::Text::Bold);
     health_text_.setString("HP: 100 / 100");
-    
-    // Game over screen
+
     game_over_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     game_over_overlay_.setFillColor(sf::Color(0, 0, 0, 200));
-    
+
     texture_manager_.load("assets/gameover.png");
     if (texture_manager_.has("assets/gameover.png")) {
         game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover.png"));
-        // Center the sprite
         auto bounds = game_over_sprite_.getLocalBounds();
         game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
         game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
@@ -237,6 +241,32 @@ void Game::update() {
     bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
     bg_sprite2_.setPosition(WINDOW_WIDTH - bg_scroll_offset_, 0);
     process_network_messages();
+
+    for (auto& [player_id, powerup_info] : player_powerups_) {
+        uint8_t type = powerup_info.first;
+        float time = powerup_info.second;
+        if (type == 2) {
+            if (player_shield_anim_timer_.find(player_id) == player_shield_anim_timer_.end()) {
+                player_shield_anim_timer_[player_id] = 0.0f;
+                player_shield_frame_[player_id] = 0;
+            }
+            player_shield_anim_timer_[player_id] += dt;
+            if (time > 1.0f) {
+                if (player_shield_anim_timer_[player_id] < 0.3f) {
+                    int target_frame = static_cast<int>((player_shield_anim_timer_[player_id] / 0.3f) * 4.0f);
+                    player_shield_frame_[player_id] = std::min(target_frame, 4);
+                } else {
+                    player_shield_frame_[player_id] = 4;
+                }
+            } else if (time > 0.0f && time <= 1.0f) {
+                int target_frame = 4 - static_cast<int>((1.0f - time) * 4.0f);
+                player_shield_frame_[player_id] = std::max(0, target_frame);
+            } else {
+                player_shield_anim_timer_.erase(player_id);
+                player_shield_frame_.erase(player_id);
+            }
+        }
+    }
 
     if (show_game_over_) {
         game_over_timer_ += dt;
@@ -634,8 +664,20 @@ void Game::render_powerup_active() {
         if (type == 2 && time > 0.0f) {
             auto it = entities_.find(player_id);
             if (it != entities_.end() && it->second.type == 0x01) {
-                shield_visual_.setPosition(it->second.x, it->second.y);
-                window_.draw(shield_visual_);
+                auto frame_it = player_shield_frame_.find(player_id);
+                if (frame_it != player_shield_frame_.end()) {
+                    int frame_index = frame_it->second;
+                    if (frame_index >= 0 && frame_index < static_cast<int>(shield_frames_.size())) {
+                        if (texture_manager_.has("assets/shield.png")) {
+                            shield_visual_.setTexture(*texture_manager_.get("assets/shield.png"));
+                        }
+                        shield_visual_.setTextureRect(shield_frames_[frame_index]);
+                        sf::FloatRect bounds = shield_visual_.getLocalBounds();
+                        shield_visual_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                        shield_visual_.setPosition(it->second.x, it->second.y);
+                        window_.draw(shield_visual_);
+                    }
+                }
             }
         }
     }
