@@ -15,7 +15,6 @@ void collisionSystem(registry& reg) {
     auto& level_managers = reg.get_components<level_manager>();
     auto& shields = reg.get_components<shield>();
 
-    // Collision entre ennemis et le bouclier du joueur
     for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
         if (player_tags[p] && positions[p] && shields[p]) {
             auto& player_pos = positions[p].value();
@@ -49,7 +48,6 @@ void collisionSystem(registry& reg) {
         }
     }
 
-    // Collision entre projectiles ennemis et le joueur
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             bool is_enemy_projectile = (i < enemy_tags.size() && enemy_tags[i].has_value());
@@ -108,7 +106,6 @@ void collisionSystem(registry& reg) {
         }
     }
 
-    // Collision entre projectiles (joueur vs ennemi)
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i]) {
             bool is_enemy_projectile_i = (i < enemy_tags.size() && enemy_tags[i].has_value());
@@ -152,7 +149,6 @@ void collisionSystem(registry& reg) {
         }
     }
 
-    // Collision entre projectiles ennemis et le joueur
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             bool is_enemy_projectile = (i < enemy_tags.size() && enemy_tags[i].has_value());

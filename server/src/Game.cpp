@@ -13,6 +13,11 @@
 #include <random>
 #include <thread>
 
+// Network entity ID offsets
+constexpr uint32_t ENEMY_ID_OFFSET = 10000;
+constexpr uint32_t PROJECTILE_ID_OFFSET = 20000;
+constexpr uint32_t OTHER_ID_OFFSET = 30000;
+
 extern std::atomic<bool> server_running;
 
 Game::Game() {
@@ -129,11 +134,11 @@ void Game::broadcast_entity_positions(UDPServer& server) {
 
             uint32_t network_id;
             if (tags[i]->type == RType::EntityType::Enemy) {
-                network_id = 10000 + static_cast<uint32_t>(i);
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Projectile) {
-                network_id = 20000 + static_cast<uint32_t>(i);
+                network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
             } else {
-                network_id = 30000 + static_cast<uint32_t>(i);
+                network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
             }
             _broadcast_serializer << network_id;
             _broadcast_serializer << static_cast<uint8_t>(tags[i]->type);
