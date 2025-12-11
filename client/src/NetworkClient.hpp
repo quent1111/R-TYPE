@@ -52,6 +52,7 @@ public:
     void decode_level_complete(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_powerup_selection(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_powerup_status(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_game_over(const std::vector<uint8_t>& buffer, std::size_t received);
     void send_login();
     void send_input(uint8_t input_mask);
     void send_ready(bool ready);

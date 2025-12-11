@@ -32,6 +32,9 @@ private:
 
     bool is_running_;
     bool has_focus_ = true;
+    bool show_game_over_ = false;
+    float game_over_timer_ = 0.0f;
+    float game_over_duration_ = 3.0f;
     std::map<uint32_t, Entity> entities_;
     uint32_t my_network_id_ = 0;
 
@@ -46,6 +49,7 @@ private:
     uint8_t powerup_type_ = 0;
     float powerup_time_remaining_ = 0.0f;
     bool has_x_key_been_released_ = true;
+    std::map<uint32_t, std::pair<uint8_t, float>> player_powerups_;
 
     sf::Text level_intro_title_;
     sf::Text level_intro_subtitle_;
@@ -63,23 +67,31 @@ private:
     sf::Text powerup_option2_text_;
     sf::Text powerup_instruction_;
     sf::Text powerup_active_text_;
-    sf::CircleShape shield_visual_;
+    sf::Sprite shield_visual_;
+    std::vector<sf::IntRect> shield_frames_;
+    std::map<uint32_t, int> player_shield_frame_;
+    std::map<uint32_t, float> player_shield_anim_timer_;
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;
 
     sf::RectangleShape health_bar_bg_;
     sf::RectangleShape health_bar_fill_;
     sf::Text health_text_;
+    
+    sf::Sprite game_over_sprite_;
+    sf::RectangleShape game_over_overlay_;
 
     void render_level_intro();
     void render_level_hud();
     void render_powerup_selection();
     void render_powerup_active();
+    void render_game_over();
 
     void process_network_messages();
     void setup_ui();
 
     void init_entity_sprite(Entity& entity);
+    void update_ship_tilt(Entity& entity, float dt);
 
 public:
     Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& game_to_net,

@@ -28,7 +28,9 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     try {
         texture_manager_.load("assets/bg.png");
         texture_manager_.load("assets/r-typesheet1.png");
+        texture_manager_.load("assets/r-typesheet1.3.png");
         texture_manager_.load("assets/r-typesheet26.png");
+        texture_manager_.load("assets/shield.png");
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
@@ -126,11 +128,16 @@ void Game::setup_ui() {
     powerup_active_text_.setPosition(10, 150);
     powerup_active_text_.setStyle(sf::Text::Bold);
 
-    shield_visual_.setRadius(100.0f);
-    shield_visual_.setFillColor(sf::Color(100, 200, 255, 80));
-    shield_visual_.setOutlineColor(sf::Color(0, 255, 255, 220));
-    shield_visual_.setOutlineThickness(5.0f);
-    shield_visual_.setOrigin(100.0f, 100.0f);
+    shield_frames_ = {
+        {0, 0, 27, 27},
+        {27, 0, 34, 34},
+        {61, 0, 42, 42},
+        {103, 0, 51, 51},
+        {154, 0, 55, 55}
+    };
+
+    shield_visual_.setTextureRect(shield_frames_[0]);
+    shield_visual_.setScale(2.0f, 2.0f);
 
     powerup_hint_text_.setFont(font_);
     powerup_hint_text_.setCharacterSize(28);
@@ -162,6 +169,17 @@ void Game::setup_ui() {
     health_text_.setPosition(20.0f, 165.0f);
     health_text_.setStyle(sf::Text::Bold);
     health_text_.setString("HP: 100 / 100");
+
+    game_over_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    game_over_overlay_.setFillColor(sf::Color(0, 0, 0, 200));
+
+    texture_manager_.load("assets/gameover.png");
+    if (texture_manager_.has("assets/gameover.png")) {
+        game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover.png"));
+        auto bounds = game_over_sprite_.getLocalBounds();
+        game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+        game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+    }
 }
 
 void Game::handle_input() {
@@ -223,6 +241,41 @@ void Game::update() {
     bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
     bg_sprite2_.setPosition(WINDOW_WIDTH - bg_scroll_offset_, 0);
     process_network_messages();
+
+    for (auto& [player_id, powerup_info] : player_powerups_) {
+        uint8_t type = powerup_info.first;
+        float time = powerup_info.second;
+        if (type == 2) {
+            if (player_shield_anim_timer_.find(player_id) == player_shield_anim_timer_.end()) {
+                player_shield_anim_timer_[player_id] = 0.0f;
+                player_shield_frame_[player_id] = 0;
+            }
+            player_shield_anim_timer_[player_id] += dt;
+            if (time > 1.0f) {
+                if (player_shield_anim_timer_[player_id] < 0.3f) {
+                    int target_frame = static_cast<int>((player_shield_anim_timer_[player_id] / 0.3f) * 4.0f);
+                    player_shield_frame_[player_id] = std::min(target_frame, 4);
+                } else {
+                    player_shield_frame_[player_id] = 4;
+                }
+            } else if (time > 0.0f && time <= 1.0f) {
+                int target_frame = 4 - static_cast<int>((1.0f - time) * 4.0f);
+                player_shield_frame_[player_id] = std::max(0, target_frame);
+            } else {
+                player_shield_anim_timer_.erase(player_id);
+                player_shield_frame_.erase(player_id);
+            }
+        }
+    }
+
+    if (show_game_over_) {
+        game_over_timer_ += dt;
+        if (game_over_timer_ >= game_over_duration_) {
+            is_running_ = false;
+        }
+        return;
+    }
+
     if (show_level_intro_) {
         level_intro_timer_ += dt;
         if (level_intro_timer_ >= level_intro_duration_) {
@@ -233,13 +286,23 @@ void Game::update() {
 
 void Game::init_entity_sprite(Entity& entity) {
     if (entity.type == 0x01) {
-        if (texture_manager_.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+        std::string sprite_sheet = (entity.id == 2) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
-            entity.frames = {{99, 0, 33, 17}, {132, 0, 33, 17}, {165, 0, 33, 17}};
-            entity.frame_duration = 0.15F;
-            entity.loop = true;
-            entity.sprite.setTextureRect(entity.frames[0]);
+        if (!texture_manager_.has(sprite_sheet)) {
+            sprite_sheet = "assets/r-typesheet1.png";
+        }
+
+        if (texture_manager_.has(sprite_sheet)) {
+            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
+
+            entity.frames = {{100, 0, 33, 17},
+                             {133, 0, 33, 17},
+                             {166, 0, 33, 17},
+                             {199, 0, 33, 17},
+                             {232, 0, 33, 17}};
+            entity.current_frame_index = 2;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[2]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x02) {
@@ -252,8 +315,14 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(1.5F, 1.5F);
         }
     } else if (entity.type == 0x03) {
-        if (texture_manager_.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+        std::string sprite_sheet = (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+
+        if (!texture_manager_.has(sprite_sheet)) {
+            sprite_sheet = "assets/r-typesheet1.png";
+        }
+
+        if (texture_manager_.has(sprite_sheet)) {
+            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
             entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
             entity.frame_duration = 0.08F;
             entity.loop = true;
@@ -276,6 +345,70 @@ void Game::init_entity_sprite(Entity& entity) {
     }
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
     entity.sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+}
+
+void Game::update_ship_tilt(Entity& entity, float) {
+    if (entity.type != 0x01 || entity.frames.size() != 5) {
+        return;
+    }
+
+    int target_frame = 2;
+    const float velocity_threshold = 50.0f;
+    float target_rotation = 0.0f;
+
+    if (entity.vy < -velocity_threshold) {
+        if (entity.vy < -200.0f) {
+            target_frame = 4;
+            target_rotation = -15.0f;
+        } else {
+            target_frame = 3;
+            target_rotation = -8.0f;
+        }
+    } else if (entity.vy > velocity_threshold) {
+        if (entity.vy > 200.0f) {
+            target_frame = 0;
+            target_rotation = 15.0f;
+        } else {
+            target_frame = 1;
+            target_rotation = 8.0f;
+        }
+    } else if (std::abs(entity.vy) < velocity_threshold * 0.5f) {
+        if (entity.vx > velocity_threshold) {
+            target_rotation = 15.0f;
+        } else if (entity.vx < -velocity_threshold) {
+            target_rotation = -15.0f;
+        }
+    }
+
+    int current = static_cast<int>(entity.current_frame_index);
+    if (current != target_frame) {
+        if (current < target_frame) {
+            current = std::min(current + 1, target_frame);
+        } else {
+            current = std::max(current - 1, target_frame);
+        }
+        entity.current_frame_index = static_cast<size_t>(current);
+        entity.sprite.setTextureRect(entity.frames[entity.current_frame_index]);
+    }
+
+    float current_rotation = entity.sprite.getRotation();
+    if (current_rotation > 180.0f) {
+        current_rotation -= 360.0f;
+    }
+
+    float rotation_diff = target_rotation - current_rotation;
+    float rotation_speed = 120.0f;
+    float max_change = rotation_speed * (1.0f / 60.0f);
+
+    if (std::abs(rotation_diff) > max_change) {
+        if (rotation_diff > 0) {
+            entity.sprite.setRotation(current_rotation + max_change);
+        } else {
+            entity.sprite.setRotation(current_rotation - max_change);
+        }
+    } else {
+        entity.sprite.setRotation(target_rotation);
+    }
 }
 
 void Game::process_network_messages() {
@@ -345,10 +478,17 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
-                if (msg.powerup_type != 0) {
-                    powerup_type_ = msg.powerup_type;
+                player_powerups_[msg.powerup_player_id] = {msg.powerup_type, msg.powerup_time_remaining};
+                if (msg.powerup_player_id == my_network_id_) {
+                    if (msg.powerup_type != 0) {
+                        powerup_type_ = msg.powerup_type;
+                    }
+                    powerup_time_remaining_ = msg.powerup_time_remaining;
                 }
-                powerup_time_remaining_ = msg.powerup_time_remaining;
+                break;
+            case NetworkToGame::MessageType::GameOver:
+                show_game_over_ = true;
+                game_over_timer_ = 0.0f;
                 break;
         }
     }
@@ -363,7 +503,13 @@ void Game::render() {
     float dt = 1.0F / 60.0F;
     for (auto& pair : entities_) {
         Entity& e = pair.second;
-        e.update_animation(dt);
+
+        if (e.type == 0x01) {
+            update_ship_tilt(e, dt);
+        } else {
+            e.update_animation(dt);
+        }
+
         float draw_x = e.x;
         float draw_y = e.y;
         auto prev_t = e.prev_time;
@@ -388,6 +534,15 @@ void Game::render() {
             draw_y = e.prev_y + (e.y - e.prev_y) * alpha;
         }
         e.sprite.setPosition(draw_x, draw_y);
+
+        if (e.type == 0x03) {
+            if (e.vx != 0.0f || e.vy != 0.0f) {
+                float angle_rad = std::atan2(e.vy, e.vx);
+                float angle_deg = angle_rad * 180.0f / 3.14159265f;
+                e.sprite.setRotation(angle_deg);
+            }
+        }
+
         window_.draw(e.sprite);
     }
 
@@ -400,12 +555,8 @@ void Game::render() {
 
     for (const auto& [id, entity] : entities_) {
         if (entity.type == 0x01 && id == my_network_id_) {
-            static int last_health = -1;
-            if (entity.health != last_health) {
-                std::cout << "[Health] My player (ID=" << my_network_id_ << ") HP: " << entity.health << "/" << entity.max_health << std::endl;
-                last_health = entity.health;
-            }
-            float health_percentage = static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
+            float health_percentage =
+                static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
 
             sf::Color health_color;
             if (health_percentage > 0.6f) {
@@ -419,7 +570,8 @@ void Game::render() {
             health_bar_fill_.setFillColor(health_color);
             health_bar_fill_.setSize(sf::Vector2f(296.0f * health_percentage, 26.0f));
 
-            health_text_.setString("HP: " + std::to_string(entity.health) + " / " + std::to_string(entity.max_health));
+            health_text_.setString("HP: " + std::to_string(entity.health) + " / " +
+                                   std::to_string(entity.max_health));
 
             window_.draw(health_bar_bg_);
             window_.draw(health_bar_fill_);
@@ -432,6 +584,7 @@ void Game::render() {
     render_powerup_active();
     render_level_intro();
     render_powerup_selection();
+    render_game_over();
 }
 
 void Game::render_level_intro() {
@@ -505,15 +658,37 @@ void Game::render_powerup_active() {
     }
     window_.draw(powerup_hint_bg_);
     window_.draw(powerup_hint_text_);
-    if (powerup_type_ == 2 && powerup_time_remaining_ > 0.0f) {
-        for (const auto& [id, entity] : entities_) {
-            if (entity.type == 0x01) {
-                shield_visual_.setPosition(entity.x, entity.y);
-                window_.draw(shield_visual_);
-                break;
+    for (const auto& [player_id, powerup_info] : player_powerups_) {
+        uint8_t type = powerup_info.first;
+        float time = powerup_info.second;
+        if (type == 2 && time > 0.0f) {
+            auto it = entities_.find(player_id);
+            if (it != entities_.end() && it->second.type == 0x01) {
+                auto frame_it = player_shield_frame_.find(player_id);
+                if (frame_it != player_shield_frame_.end()) {
+                    int frame_index = frame_it->second;
+                    if (frame_index >= 0 && frame_index < static_cast<int>(shield_frames_.size())) {
+                        if (texture_manager_.has("assets/shield.png")) {
+                            shield_visual_.setTexture(*texture_manager_.get("assets/shield.png"));
+                        }
+                        shield_visual_.setTextureRect(shield_frames_[frame_index]);
+                        sf::FloatRect bounds = shield_visual_.getLocalBounds();
+                        shield_visual_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                        shield_visual_.setPosition(it->second.x, it->second.y);
+                        window_.draw(shield_visual_);
+                    }
+                }
             }
         }
     }
+}
+
+void Game::render_game_over() {
+    if (!show_game_over_) {
+        return;
+    }
+    window_.draw(game_over_overlay_);
+    window_.draw(game_over_sprite_);
 }
 
 void Game::run() {}

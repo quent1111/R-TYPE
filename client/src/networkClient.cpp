@@ -59,6 +59,8 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_powerup_selection(buffer, bytes_received);
             } else if (opcode == 0x36) {
                 decode_powerup_status(buffer, bytes_received);
+            } else if (opcode == 0x40) {
+                decode_game_over(buffer, bytes_received);
             } else {
                 std::cerr << "[NetworkClient] Warning: Unknown opcode 0x" << std::hex
                           << static_cast<int>(opcode) << std::dec << std::endl;
@@ -127,7 +129,7 @@ void NetworkClient::decode_login_ack(const std::vector<uint8_t>& buffer, std::si
 
         uint32_t network_id;
         deserializer >> network_id;
-        
+
         my_network_id_ = network_id;
         std::cout << "[NetworkClient] Received my network ID: " << my_network_id_ << std::endl;
 
@@ -333,7 +335,7 @@ void NetworkClient::decode_level_complete(const std::vector<uint8_t>& buffer,
     }
 }
 
-void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer,
+void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<uint8_t>& buffer,
                                              std::size_t received) {
     if (received < 4)
         return;
@@ -350,7 +352,7 @@ void NetworkClient::decode_powerup_selection(const std::vector<uint8_t>& buffer,
 
 void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
                                           std::size_t received) {
-    if (received < 8)
+    if (received < 12)
         return;
 
     try {
@@ -359,11 +361,13 @@ void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
         uint8_t opcode;
         deserializer >> magic >> opcode;
 
+        uint32_t player_id;
         uint8_t powerup_type;
         float time_remaining;
-        deserializer >> powerup_type >> time_remaining;
+        deserializer >> player_id >> powerup_type >> time_remaining;
 
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpStatus);
+        msg.powerup_player_id = player_id;
         msg.powerup_type = powerup_type;
         msg.powerup_time_remaining = time_remaining;
         network_to_game_queue_.push(msg);
@@ -402,6 +406,12 @@ void NetworkClient::send_powerup_activate() {
                                       << std::endl;
                               }
                           });
+}
+
+void NetworkClient::decode_game_over([[maybe_unused]] const std::vector<uint8_t>& buffer,
+                                     [[maybe_unused]] std::size_t received) {
+    NetworkToGame::Message msg(NetworkToGame::MessageType::GameOver);
+    network_to_game_queue_.push(msg);
 }
 
 void NetworkClient::run() {
