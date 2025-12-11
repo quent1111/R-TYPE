@@ -33,17 +33,31 @@ int main(int argc, char** argv) {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
+    std::string bind_address = "127.0.0.1";
     unsigned short port = 4242;
-    if (argc > 1) {
-        port = static_cast<unsigned short>(std::stoi(argv[1]));
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-h" && i + 1 < argc) {
+            bind_address = argv[++i];
+        } else if (arg == "-p" && i + 1 < argc) {
+            try {
+                port = static_cast<unsigned short>(std::stoul(argv[++i]));
+            } catch (...) {
+                std::cerr << "[Error] Invalid port specified, using default 4242" << std::endl;
+                port = 4242;
+            }
+        } else {
+        }
     }
 
     std::cout << "R-Type Server Starting..." << std::endl;
+    std::cout << "Bind: " << bind_address << std::endl;
     std::cout << "Port: " << port << std::endl;
 
     try {
         asio::io_context io_context;
-        UDPServer server(io_context, port);
+        UDPServer server(io_context, bind_address, port);
 
         std::thread network_thread(network_loop, std::ref(server));
         std::thread game_thread(game_loop, std::ref(server));

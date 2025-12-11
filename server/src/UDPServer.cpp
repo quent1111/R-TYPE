@@ -4,18 +4,34 @@
 
 #include <iostream>
 
-UDPServer::UDPServer(asio::io_context& io_context, unsigned short port)
+UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address, unsigned short port)
     : io_context_(io_context),
       work_guard_(io_context.get_executor()),
       socket_(io_context),
       next_client_id_(1),
       running_(true) {
     try {
-        socket_.open(asio::ip::udp::v6());
-        socket_.set_option(asio::ip::v6_only(false));
-        socket_.bind(asio::ip::udp::endpoint(asio::ip::udp::v6(), port));
-        std::cout << "[Network] UDP Server listening on port " << port << " (Dual Stack)"
-                  << std::endl;
+        if (bind_address.empty()) {
+            socket_.open(asio::ip::udp::v6());
+            socket_.set_option(asio::ip::v6_only(false));
+            socket_.bind(asio::ip::udp::endpoint(asio::ip::udp::v6(), port));
+            std::cout << "[Network] UDP Server listening on port " << port << " (Dual Stack)"
+                      << std::endl;
+        } else {
+            asio::ip::address addr = asio::ip::make_address(bind_address);
+            if (addr.is_v6()) {
+                socket_.open(asio::ip::udp::v6());
+                socket_.set_option(asio::ip::v6_only(false));
+                socket_.bind(asio::ip::udp::endpoint(addr, port));
+                std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
+                          << " (IPv6 / dual-stack)" << std::endl;
+            } else {
+                socket_.open(asio::ip::udp::v4());
+                socket_.bind(asio::ip::udp::endpoint(addr, port));
+                std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
+                          << " (IPv4)" << std::endl;
+            }
+        }
     } catch (const std::exception& e) {
         try {
             socket_.close();
