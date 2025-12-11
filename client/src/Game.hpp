@@ -100,6 +100,7 @@ public:
 
     void run();
     void handle_input();
+    void handle_event(const sf::Event& event);
     void update();
     void render();
     bool is_running() const { return is_running_; }
