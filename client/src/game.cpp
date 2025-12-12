@@ -190,17 +190,17 @@ void Game::handle_event(const sf::Event& event) {
     // Handle powerup selection clicks
     if (show_powerup_selection_ && event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-            sf::Vector2f mouse_pos(static_cast<float>(event.mouseButton.x),
-                                   static_cast<float>(event.mouseButton.y));
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f mouse_pos = window_.mapPixelToCoords(pixel_pos);
 
-            // Check if click is on option 1
+            // option 1
             if (powerup_option1_bg_.getGlobalBounds().contains(mouse_pos)) {
                 game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(1));
                 show_powerup_selection_ = false;
                 powerup_type_ = 1;
                 std::cout << "[Game] Powerup 1 selected via click" << std::endl;
             }
-            // Check if click is on option 2
+            // option 2
             else if (powerup_option2_bg_.getGlobalBounds().contains(mouse_pos)) {
                 game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(2));
                 show_powerup_selection_ = false;

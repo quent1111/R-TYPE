@@ -84,8 +84,8 @@ void MenuState::on_quit_clicked() {
 
 void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
-        m_mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x),
-                                   static_cast<float>(event.mouseMove.y));
+        sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
+        m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         for (auto& button : m_buttons) {
             button->handle_mouse_move(m_mouse_pos);
         }
@@ -93,8 +93,8 @@ void MenuState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-            sf::Vector2f click_pos(static_cast<float>(event.mouseButton.x),
-                                   static_cast<float>(event.mouseButton.y));
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f click_pos = m_window.mapPixelToCoords(pixel_pos);
             for (auto& button : m_buttons) {
                 button->handle_mouse_click(click_pos);
             }
