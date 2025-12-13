@@ -29,6 +29,8 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_manager_.load("assets/bg.png");
         texture_manager_.load("assets/r-typesheet1.png");
         texture_manager_.load("assets/r-typesheet1.3.png");
+        texture_manager_.load("assets/r-typesheet1.4.png");
+        texture_manager_.load("assets/r-typesheet1.5.png");
         texture_manager_.load("assets/r-typesheet26.png");
         texture_manager_.load("assets/shield.png");
     } catch (const std::exception& e) {
@@ -315,7 +317,16 @@ void Game::update() {
 
 void Game::init_entity_sprite(Entity& entity) {
     if (entity.type == 0x01) {
-        std::string sprite_sheet = (entity.id == 2) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+        std::string sprite_sheet;
+        if (entity.id == 2) {
+            sprite_sheet = "assets/r-typesheet1.3.png";
+        } else if (entity.id == 3) {
+            sprite_sheet = "assets/r-typesheet1.4.png";
+        } else if (entity.id == 4) {
+            sprite_sheet = "assets/r-typesheet1.5.png";
+        } else {
+            sprite_sheet = "assets/r-typesheet1.png";
+        }
 
         if (!texture_manager_.has(sprite_sheet)) {
             sprite_sheet = "assets/r-typesheet1.png";
