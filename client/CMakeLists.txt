@@ -4,6 +4,8 @@ add_executable(r-type_client
     src/main_menu.cpp
     src/game.cpp
     src/networkClient.cpp
+    src/AudioManager.cpp
+    src/EffectsManager.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
     src/states/LobbyState.cpp

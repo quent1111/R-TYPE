@@ -800,11 +800,11 @@ void Game::broadcast_game_over(UDPServer& server) {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::GameOver;
-    
+
     for (int i = 0; i < 20; ++i) {
         serializer << static_cast<uint8_t>(0xFF);
     }
-    
+
     server.send_to_all(serializer.data());
 }
 
