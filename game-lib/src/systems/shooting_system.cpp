@@ -16,7 +16,7 @@ void shootingSystem(registry& reg, float dt) {
     }
 }
 
-void enemyShootingSystem(registry& reg, float dt) {
+void enemyShootingSystem(registry& reg, float /*dt*/) {
     auto& enemies = reg.get_components<enemy_tag>();
     auto& weapons = reg.get_components<weapon>();
     auto& positions = reg.get_components<position>();

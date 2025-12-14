@@ -586,13 +586,13 @@ void Game::process_network_messages() {
                         sf::Vector2f enemy_pos(entity.x, entity.y);
                         EffectsManager::getInstance().spawnExplosion(enemy_pos, 25);
 
-                        float shake_intensity = 16.0f + (combo_mult - 1) * 4.0f;
+                        float shake_intensity = 16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
                         EffectsManager::getInstance().triggerScreenShake(shake_intensity, 0.25f);
 
                         sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
                         EffectsManager::getInstance().spawnScoreParticles(enemy_pos, score_pos, 12);
 
-                        current_score_ += 100 * combo_mult;
+                        current_score_ += static_cast<uint32_t>(100 * combo_mult);
                         EffectsManager::getInstance().triggerScoreBounce();
                         AudioManager::getInstance().playSound(AudioManager::SoundType::Coin);
                     }
@@ -890,11 +890,11 @@ void Game::render_powerup_active() {
                 auto frame_it = player_shield_frame_.find(player_id);
                 if (frame_it != player_shield_frame_.end()) {
                     int frame_index = frame_it->second;
-                    if (frame_index >= 0 && frame_index < static_cast<int>(shield_frames_.size())) {
+                    if (frame_index >= 0 && static_cast<size_t>(frame_index) < shield_frames_.size()) {
                         if (texture_manager_.has("assets/shield.png")) {
                             shield_visual_.setTexture(*texture_manager_.get("assets/shield.png"));
                         }
-                        shield_visual_.setTextureRect(shield_frames_[frame_index]);
+                        shield_visual_.setTextureRect(shield_frames_[static_cast<size_t>(frame_index)]);
                         sf::FloatRect bounds = shield_visual_.getLocalBounds();
                         shield_visual_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                         shield_visual_.setPosition(it->second.x, it->second.y);

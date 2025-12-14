@@ -187,10 +187,12 @@ float EffectsManager::getDamageFlashAlpha() const {
 }
 
 void EffectsManager::addComboKill() {
+    combo_timer_ = 0.0f;
     combo_kills_++;
 
     if (combo_kills_ >= kills_per_level_ && combo_multiplier_ < 5) {
         combo_multiplier_++;
+        combo_kills_ = 0;
     }
 }
 
@@ -203,7 +205,8 @@ int EffectsManager::getComboMultiplier() const {
 }
 
 float EffectsManager::getComboProgress() const {
-    return static_cast<float>(combo_kills_) / static_cast<float>(kills_per_level_);
+    float progress = static_cast<float>(combo_kills_) / static_cast<float>(kills_per_level_);
+    return std::min(progress, 1.0f);
 }
 
 float EffectsManager::getComboTimer() const {
