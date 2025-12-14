@@ -7,6 +7,7 @@
 #include "../../game-lib/include/components/game_components.hpp"
 #include "../../game-lib/include/components/logic_components.hpp"
 #include "../../game-lib/include/entities/enemy_factory.hpp"
+#include "../../game-lib/include/entities/boss_factory.hpp"
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
 #include "../../game-lib/include/systems/cleanup_system.hpp"
@@ -43,6 +44,13 @@ private:
     bool _waiting_for_powerup_choice = false;
     bool _waiting_for_game_over_reset = false;
     GamePhase _game_phase = GamePhase::Lobby;
+    
+    // Boss management for level 5
+    std::optional<entity> _boss_entity;
+    float _boss_animation_timer = 0.0f;
+    float _boss_shoot_timer = 0.0f;
+    float _boss_shoot_cooldown = 2.0f;  // 2 seconds between shots
+    bool _boss_animation_complete = false;
 
     void process_network_events(UDPServer& server);
     void update_game_state(UDPServer& server, float dt);
@@ -65,6 +73,9 @@ private:
     void respawn_dead_players(UDPServer& server);
     void broadcast_game_over(UDPServer& server);
     void reset_game(UDPServer& server);
+    void spawn_boss_level_5(UDPServer& server);
+    void update_boss_behavior(UDPServer& server, float dt);
+    void boss_shoot_projectile(UDPServer& server);
 
 public:
     Game();

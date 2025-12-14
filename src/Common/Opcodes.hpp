@@ -32,7 +32,8 @@ enum class EntityType : uint8_t {
     Enemy       = 0x02,
     Projectile  = 0x03,
     Powerup     = 0x04,
-    Obstacle    = 0x05
+    Obstacle    = 0x05,
+    Boss        = 0x06
 };
 
 struct MagicNumber {

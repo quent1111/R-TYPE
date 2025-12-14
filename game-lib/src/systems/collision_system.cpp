@@ -10,6 +10,7 @@ void collisionSystem(registry& reg) {
     auto& damage_contacts = reg.get_components<damage_on_contact>();
     auto& healths = reg.get_components<health>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
+    auto& boss_tags = reg.get_components<boss_tag>();
     auto& projectile_tags = reg.get_components<projectile_tag>();
     auto& player_tags = reg.get_components<player_tag>();
     auto& level_managers = reg.get_components<level_manager>();
@@ -41,6 +42,37 @@ void collisionSystem(registry& reg) {
                             auto enemy_entity = reg.entity_from_index(e);
                             reg.remove_component<entity_tag>(enemy_entity);
                             reg.kill_entity(enemy_entity);
+                        }
+                    }
+                }
+                
+                for (std::size_t b = 0; b < positions.size() && b < boss_tags.size(); ++b) {
+                    if (boss_tags[b] && positions[b] && healths[b]) {
+                        auto& boss_pos = positions[b].value();
+                        auto& boss_hp = healths[b].value();
+
+                        if (player_shield.is_enemy_in_range(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y)) {
+                            boss_hp.current -= 10;
+                            if (boss_hp.current < 0) boss_hp.current = 0;
+
+                            if (boss_hp.is_dead()) {
+                                createExplosion(reg, boss_pos.x, boss_pos.y);
+
+                                for (size_t k = 0; k < level_managers.size(); ++k) {
+                                    if (level_managers[k].has_value()) {
+                                        auto& lvl = level_managers[k].value();
+                                        int remaining = lvl.enemies_needed_for_next_level - lvl.enemies_killed_this_level;
+                                        for (int m = 0; m < remaining; ++m) {
+                                            lvl.on_enemy_killed();
+                                        }
+                                        break;
+                                    }
+                                }
+
+                                auto boss_entity = reg.entity_from_index(b);
+                                reg.remove_component<entity_tag>(boss_entity);
+                                reg.kill_entity(boss_entity);
+                            }
                         }
                     }
                 }
@@ -95,6 +127,56 @@ void collisionSystem(registry& reg) {
                             for (size_t k = 0; k < level_managers.size(); ++k) {
                                 if (level_managers[k].has_value()) {
                                     level_managers[k]->on_enemy_killed();
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            for (std::size_t j = 0; j < positions.size() && j < boss_tags.size(); ++j) {
+                if (i == j) continue;
+
+                if (j < projectile_tags.size() && projectile_tags[j].has_value()) continue;
+
+                if (boss_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
+                    auto& boss_pos = positions[j].value();
+                    auto& boss_box = collision_boxes[j].value();
+                    auto& boss_hp = healths[j].value();
+
+                    float p_left = proj_pos.x + proj_box.offset_x;
+                    float p_top = proj_pos.y + proj_box.offset_y;
+                    float p_right = p_left + proj_box.width;
+                    float p_bottom = p_top + proj_box.height;
+
+                    float b_left = boss_pos.x + boss_box.offset_x;
+                    float b_top = boss_pos.y + boss_box.offset_y;
+                    float b_right = b_left + boss_box.width;
+                    float b_bottom = b_top + boss_box.height;
+
+                    if (p_left < b_right && p_right > b_left &&
+                        p_top < b_bottom && p_bottom > b_top) {
+                        boss_hp.current -= proj_dmg.damage_amount;
+                        if (boss_hp.current < 0) boss_hp.current = 0;
+
+                        if (proj_dmg.destroy_on_hit) {
+                            auto proj_entity = reg.entity_from_index(i);
+                            reg.remove_component<entity_tag>(proj_entity);
+                            reg.kill_entity(proj_entity);
+                        }
+
+                        if (boss_hp.is_dead()) {
+                            createExplosion(reg, boss_pos.x, boss_pos.y);
+
+                            for (size_t k = 0; k < level_managers.size(); ++k) {
+                                if (level_managers[k].has_value()) {
+                                    auto& lvl = level_managers[k].value();
+                                    int remaining = lvl.enemies_needed_for_next_level - lvl.enemies_killed_this_level;
+                                    for (int m = 0; m < remaining; ++m) {
+                                        lvl.on_enemy_killed();
+                                    }
                                     break;
                                 }
                             }

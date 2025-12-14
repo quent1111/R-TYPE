@@ -39,10 +39,17 @@ void waveSystem(registry& reg, float dt) {
         if (wave_managers[i]) {
             auto& manager = wave_managers[i].value();
 
+            bool is_boss_level = false;
             for (size_t j = 0; j < level_managers.size(); ++j) {
                 if (level_managers[j].has_value()) {
                     auto& lvl_mgr = level_managers[j].value();
                     int level = lvl_mgr.current_level;
+
+                    // Au niveau 5, c'est le niveau boss - pas de spawn d'ennemis normaux
+                    if (level == 5) {
+                        is_boss_level = true;
+                        break;
+                    }
 
                     manager.spawn_interval = 3.0f - (level - 1) * 0.2f;
                     if (manager.spawn_interval < 1.0f) manager.spawn_interval = 1.0f;
@@ -53,10 +60,13 @@ void waveSystem(registry& reg, float dt) {
                 }
             }
 
-            manager.timer += dt;
-            if (manager.timer >= manager.spawn_interval) {
-                manager.timer = 0.0f;
-                spawnEnemyWave(reg, manager.enemies_per_wave);
+            // Ne pas spawner d'ennemis normaux pendant le niveau boss
+            if (!is_boss_level) {
+                manager.timer += dt;
+                if (manager.timer >= manager.spawn_interval) {
+                    manager.timer = 0.0f;
+                    spawnEnemyWave(reg, manager.enemies_per_wave);
+                }
             }
         }
     }

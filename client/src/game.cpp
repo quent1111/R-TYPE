@@ -31,6 +31,9 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_manager_.load("assets/r-typesheet1.3.png");
         texture_manager_.load("assets/r-typesheet26.png");
         texture_manager_.load("assets/shield.png");
+        texture_manager_.load("assets/r-typesheet30.gif");
+        texture_manager_.load("assets/r-typesheet30a.gif");
+        std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
@@ -371,7 +374,42 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
+    } else if (entity.type == 0x06) {
+        if (texture_manager_.has("assets/r-typesheet30.gif")) {
+            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
+            entity.frames = {
+                {0, 0,    185, 204},
+                {0, 215,  185, 204},
+                {0, 428,  185, 204},
+                {0, 642,  185, 204},
+                {0, 859,  185, 204},
+                {0, 1071, 185, 204},
+                {0, 1283, 185, 204},
+                {0, 1496, 185, 204}
+            };
+
+            entity.frame_duration = 1.15F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+    } else if (entity.type == 0x07) {
+        if (texture_manager_.has("assets/r-typesheet30a.gif")) {
+            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30a.gif"));
+
+            entity.frames = {
+                {0,  0, 33, 33},
+                {33, 0, 33, 33},
+                {66, 0, 33, 33}
+            };
+
+            entity.frame_duration = 0.1F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(3.0F, 3.0F);
+        }
     }
+
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
     entity.sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
 }
@@ -497,7 +535,7 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::LevelStart:
                 current_level_ = static_cast<uint8_t>(msg.level);
                 enemies_killed_ = 0;
-                enemies_needed_ = static_cast<uint16_t>(20 + (msg.level - 1) * 10);
+                enemies_needed_ = static_cast<uint16_t>(msg.level);  // Match server logic: level N needs N enemies
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 break;

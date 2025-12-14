@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <cmath>
 
 #include <chrono>
 #include <iostream>
@@ -33,6 +34,7 @@ Game::Game() {
     _registry.register_component<damage_on_contact>();
     _registry.register_component<player_tag>();
     _registry.register_component<enemy_tag>();
+    _registry.register_component<boss_tag>();
     _registry.register_component<projectile_tag>();
     _registry.register_component<bounded_movement>();
     _registry.register_component<explosion_tag>();
@@ -125,9 +127,8 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         if (i >= positions.size() || !positions[i].has_value())
             continue;
 
-        if (tags[i]->type == RType::EntityType::Enemy ||
-            tags[i]->type == RType::EntityType::Projectile ||
-            tags[i]->type == RType::EntityType::Obstacle) {
+        // Broadcast toutes les entités non-joueurs (Enemy, Boss, Projectile, Obstacle, et types custom comme 0x07)
+        if (tags[i]->type != RType::EntityType::Player) {
             const auto& pos = positions[i].value();
             auto entity_obj = _registry.entity_from_index(i);
             auto vel_opt = _registry.get_component<velocity>(entity_obj);
@@ -135,11 +136,15 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             uint32_t network_id;
             if (tags[i]->type == RType::EntityType::Enemy) {
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::Boss) {
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Projectile) {
                 network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
             } else {
+                // Pour les types custom (0x07, etc.) utiliser OTHER_ID_OFFSET
                 network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
             }
+            
             _broadcast_serializer << network_id;
             _broadcast_serializer << static_cast<uint8_t>(tags[i]->type);
             _broadcast_serializer << pos.x;
@@ -400,6 +405,7 @@ void Game::start_game(UDPServer& server) {
 
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     RType::BinarySerializer level_start;
     level_start << RType::MagicNumber::VALUE;
@@ -463,6 +469,10 @@ void Game::update_game_state(UDPServer& server, float dt) {
     waveSystem(_registry, dt);
     movementSystem(_registry, dt);
     collisionSystem(_registry);
+    
+    // Update boss behavior (shooting projectiles)
+    update_boss_behavior(server, dt);
+    
     auto& cannons = _registry.get_components<power_cannon>();
     auto& shields = _registry.get_components<shield>();
     for (std::size_t i = 0; i < cannons.size(); ++i) {
@@ -612,6 +622,7 @@ void Game::handle_powerup_choice(int client_id, uint8_t powerup_choice, UDPServe
         _registry.emplace_component<shield>(player);
     }
     _waiting_for_powerup_choice = false;
+    _level_complete_waiting = false;
     broadcast_powerup_status(server);
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     advance_level(server);
@@ -744,7 +755,15 @@ void Game::advance_level(UDPServer& server) {
             auto& lvl_mgr = level_managers[i].value();
             lvl_mgr.advance_to_next_level();
 
+            std::cout << "[Game] Advanced to level " << lvl_mgr.current_level << std::endl;
+
             respawn_dead_players(server);
+
+            // Spawn boss at level 5
+            if (lvl_mgr.current_level == 5) {
+                std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
+                spawn_boss_level_5(server);
+            }
 
             RType::BinarySerializer serializer;
             serializer << RType::MagicNumber::VALUE;
@@ -849,5 +868,130 @@ void Game::reset_game([[maybe_unused]] UDPServer& server) {
     _level_complete_waiting = false;
     _waiting_for_powerup_choice = false;
 
+    _boss_entity = std::nullopt;
+    _boss_animation_timer = 0.0f;
+    _boss_shoot_timer = 0.0f;
+    _boss_animation_complete = false;
+
     std::cout << "[Game] Game reset. Back to lobby." << std::endl;
+}
+
+void Game::spawn_boss_level_5(UDPServer& server) {
+    float boss_x = 1700.0f;
+    float boss_y = 540.0f;
+    
+    entity boss = _registry.spawn_entity();
+    
+    _registry.add_component(boss, position{boss_x, boss_y});
+    
+    _registry.add_component(boss, velocity{0.0f, 0.0f});
+    
+    _registry.add_component(boss, health{2000, 2000});
+    
+    _registry.add_component(boss, damage_on_contact{100, false});
+    
+    _registry.add_component(boss, collision_box{450.0f, 500.0f, -225.0f, -250.0f});
+    
+    _registry.add_component(boss, boss_tag{});
+    _registry.add_component(boss, entity_tag{RType::EntityType::Boss});
+    
+    _boss_entity = boss;
+    _boss_animation_timer = 0.0f;
+    _boss_shoot_timer = 0.0f;
+    _boss_animation_complete = false;
+    
+    std::cout << "[BOSS] Level 5 boss spawned at position (" << boss_x << ", " << boss_y << ")" << std::endl;
+    std::cout << "[BOSS] Boss will remain stationary and shoot projectiles" << std::endl;
+}
+
+void Game::update_boss_behavior(UDPServer& server, float dt) {
+    if (!_boss_entity.has_value()) {
+        return;
+    }
+    
+    auto boss_health_opt = _registry.get_component<health>(_boss_entity.value());
+    if (!boss_health_opt.has_value() || boss_health_opt->current <= 0) {
+        std::cout << "[BOSS] Boss has been defeated!" << std::endl;
+        _boss_entity = std::nullopt;
+        return;
+    }
+    
+    _boss_animation_timer += dt;
+    
+    if (_boss_animation_timer >= 9.2f && !_boss_animation_complete) {
+        _boss_animation_complete = true;
+        _boss_shoot_timer = 0.0f;
+        std::cout << "[BOSS] Animation complete! Boss will now start shooting!" << std::endl;
+    }
+    
+    if (_boss_animation_complete) {
+        _boss_shoot_timer += dt;
+        
+        if (_boss_shoot_timer >= _boss_shoot_cooldown) {
+            boss_shoot_projectile(server);
+            _boss_shoot_timer = 0.0f;
+        }
+    }
+}
+
+void Game::boss_shoot_projectile(UDPServer& server) {
+    if (!_boss_entity.has_value()) {
+        return;
+    }
+    
+    auto boss_pos_opt = _registry.get_component<position>(_boss_entity.value());
+    if (!boss_pos_opt.has_value()) {
+        return;
+    }
+    
+    float boss_x = boss_pos_opt->x;
+    float boss_y = boss_pos_opt->y;
+    
+    std::vector<std::pair<float, float>> player_positions;
+    for (const auto& [client_id, entity_id] : _client_entity_ids) {
+        auto player = _registry.entity_from_index(entity_id);
+        auto player_pos_opt = _registry.get_component<position>(player);
+        auto player_health_opt = _registry.get_component<health>(player);
+        
+        if (player_pos_opt.has_value() && player_health_opt.has_value() && player_health_opt->current > 0) {
+            player_positions.push_back({player_pos_opt->x, player_pos_opt->y});
+        }
+    }
+    
+    if (player_positions.empty()) {
+        return;
+    }
+    
+    for (const auto& [target_x, target_y] : player_positions) {
+        float dx = target_x - boss_x;
+        float dy = target_y - boss_y;
+        float distance = std::sqrt(dx * dx + dy * dy);
+        
+        if (distance < 1.0f) {
+            continue;
+        }
+        
+        float speed = 200.0f;
+        float vx = (dx / distance) * speed;
+        float vy = (dy / distance) * speed;
+        
+        auto projectile = _registry.spawn_entity();
+        
+        _registry.add_component(projectile, position{boss_x - 100.0f, boss_y});
+        
+        _registry.add_component(projectile, velocity{vx, vy});
+        
+        _registry.add_component(projectile, health{20, 20});
+        
+        _registry.add_component(projectile, collision_box{50.0f, 50.0f});
+        _registry.add_component(projectile, damage_on_contact{30, false});
+        
+        _registry.add_component(projectile, projectile_tag{});
+        _registry.add_component(projectile, enemy_tag{});
+        
+        _registry.add_component(projectile, entity_tag{static_cast<RType::EntityType>(0x07)});
+        
+        std::cout << "[BOSS] Fired projectile 0x07 towards player at (" << target_x << ", " << target_y << ")" << std::endl;
+        std::cout << "[BOSS] Projectile velocity: (" << vx << ", " << vy << ")" << std::endl;
+    }
 }

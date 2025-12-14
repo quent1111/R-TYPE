@@ -8,6 +8,7 @@ add_library(game_logic STATIC
     src/systems/wave_system.cpp
     src/entities/player_factory.cpp
     src/entities/enemy_factory.cpp
+    src/entities/boss_factory.cpp
     src/entities/projectile_factory.cpp
     src/entities/explosion_factory.cpp
 )
