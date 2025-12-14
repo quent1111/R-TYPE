@@ -82,7 +82,7 @@ void EffectsManager::update(float dt) {
             it->position += it->velocity * dt;
         }
 
-        it->size = 4.0f * (1.0f - progress * 0.5f);
+        it->size = 8.0f * (1.0f - progress * 0.3f);
 
         ++it;
     }
@@ -127,13 +127,11 @@ void EffectsManager::spawnScoreParticles(sf::Vector2f from_pos, sf::Vector2f to_
         float speed = randomFloat(100.0f, 300.0f);
         particle.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
 
-        particle.lifetime = randomFloat(0.4f, 0.7f);
+        particle.lifetime = randomFloat(0.5f, 0.9f);
         particle.max_lifetime = particle.lifetime;
-        particle.size = randomFloat(3.0f, 6.0f);
+        particle.size = randomFloat(6.0f, 10.0f);
 
-        auto brightness = static_cast<sf::Uint8>(randomFloat(200.0f, 255.0f));
-        particle.color = sf::Color(
-            brightness, static_cast<sf::Uint8>(static_cast<float>(brightness) * 0.8f), 50, 255);
+        particle.color = sf::Color(255, 215, 0, 255);
 
         score_particles_.push_back(particle);
     }

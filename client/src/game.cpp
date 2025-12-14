@@ -590,7 +590,7 @@ void Game::process_network_messages() {
                         EffectsManager::getInstance().triggerScreenShake(shake_intensity, 0.25f);
 
                         sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
-                        EffectsManager::getInstance().spawnScoreParticles(enemy_pos, score_pos, 6);
+                        EffectsManager::getInstance().spawnScoreParticles(enemy_pos, score_pos, 12);
 
                         current_score_ += 100 * combo_mult;
                         EffectsManager::getInstance().triggerScoreBounce();
@@ -624,6 +624,7 @@ void Game::process_network_messages() {
                 enemies_needed_ = static_cast<uint16_t>(20 + (msg.level - 1) * 10);
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
+                prev_enemies_killed_ = 0;
                 break;
             case NetworkToGame::MessageType::LevelComplete:
                 break;
