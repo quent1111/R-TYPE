@@ -374,7 +374,7 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
-    } else if (entity.type == 0x06) {
+    } else if (entity.type == 0x08) {
         if (texture_manager_.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
             entity.frames = {
