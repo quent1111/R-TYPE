@@ -27,15 +27,20 @@ public:
         std::cout << "🎯 Network Components Covered:\n";
         std::cout << "   ✅ BinarySerializer  - Read/write primitives & strings\n";
         std::cout << "   ✅ Protocol          - OpCode & EntityType validation\n";
-        std::cout << "   ✅ Packet Structure  - Login, Input, EntityPosition\n";
+        std::cout << "   ✅ Packet Structure  - Login, Input, EntityPosition, PowerUp\n";
         std::cout << "   ✅ Magic Numbers     - Protocol validation (0xB542)\n";
+        std::cout << "   ✅ Advanced Serialization - Mixed types, empty/large strings\n";
+        std::cout << "   ✅ Advanced Packets  - Spawn, Destroy, Level, GameOver\n";
         std::cout << "\n";
 
         std::cout << "🧪 Functionality Tested:\n";
-        std::cout << "   • Binary serialization/deserialization\n";
+        std::cout << "   • Binary serialization/deserialization (all types)\n";
         std::cout << "   • Buffer overflow protection\n";
-        std::cout << "   • Packet encoding/decoding\n";
-        std::cout << "   • Protocol opcode validation\n";
+        std::cout << "   • Packet encoding/decoding for all opcodes\n";
+        std::cout << "   • Protocol opcode validation & uniqueness\n";
+        std::cout << "   • Reset, clear, reserve operations\n";
+        std::cout << "   • Negative numbers and doubles\n";
+        std::cout << "   • Multiple entity updates in single packet\n";
         std::cout << "\n";
 
         if (failed == 0) {

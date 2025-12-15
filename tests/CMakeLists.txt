@@ -37,6 +37,9 @@ add_executable(test_network
     network/test_protocol.cpp
     network/test_serialization.cpp
     network/test_udp_socket.cpp
+    # Advanced tests
+    network/test_serialization_advanced.cpp
+    network/test_protocol_advanced.cpp
 )
 
 target_include_directories(test_network PRIVATE
@@ -66,6 +69,12 @@ add_executable(test_game
     game/test_shield.cpp
     game/test_weapon.cpp
     game/test_power_cannon.cpp
+    # Advanced tests
+    game/test_collision_components.cpp
+    game/test_movement_components.cpp
+    game/test_weapon_advanced.cpp
+    game/test_powerups.cpp
+    game/test_health_advanced.cpp
 )
 
 target_include_directories(test_game PRIVATE

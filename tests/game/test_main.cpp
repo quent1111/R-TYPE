@@ -38,21 +38,29 @@ public:
         // Composants couverts
         std::cout << "🎯 Components Covered:\n";
         std::cout << "   ✅ level_manager     - Level progression & enemy tracking\n";
-        std::cout << "   ✅ health            - Player/enemy health states\n";
+        std::cout << "   ✅ health            - Player/enemy health states & healing\n";
         std::cout << "   ✅ shield            - Shield activation & range detection\n";
         std::cout << "   ✅ weapon            - Firing rate & upgrades (PowerShot, TripleShot)\n";
         std::cout << "   ✅ power_cannon      - Power-up activation & duration\n";
         std::cout << "   ✅ damage_on_contact - Collision damage mechanics\n";
         std::cout << "   ✅ collision_box     - AABB collision detection\n";
+        std::cout << "   ✅ controllable      - Player movement speed\n";
+        std::cout << "   ✅ bounded_movement  - Screen boundary constraints\n";
+        std::cout << "   ✅ wave_manager      - Enemy spawn waves\n";
+        std::cout << "   ✅ multi_hitbox      - Complex entity hitboxes\n";
         std::cout << "\n";
 
         // Fonctionnalités testées
         std::cout << "🧪 Functionality Tested:\n";
         std::cout << "   • Enemy kill tracking and level completion\n";
-        std::cout << "   • Health percentage calculation\n";
+        std::cout << "   • Health percentage calculation & damage/healing\n";
         std::cout << "   • Shield expiration and enemy detection\n";
         std::cout << "   • Weapon fire timing and upgrade effects\n";
-        std::cout << "   • Power-up duration management\n";
+        std::cout << "   • Power-up duration management & reactivation\n";
+        std::cout << "   • AABB collision detection\n";
+        std::cout << "   • Movement boundary clamping\n";
+        std::cout << "   • Wave spawning timers\n";
+        std::cout << "   • Multi-part hitbox systems\n";
         std::cout << "\n";
 
         // Afficher un message en fonction du résultat
