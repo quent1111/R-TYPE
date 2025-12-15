@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <cmath>
 #include "../../client/src/Entity.hpp"
 
 TEST(ClientEntityAdvanced, VelocityMagnitude) {
