@@ -32,6 +32,8 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_manager_.load("assets/r-typesheet1.4.png");
         texture_manager_.load("assets/r-typesheet1.5.png");
         texture_manager_.load("assets/r-typesheet26.png");
+        texture_manager_.load("assets/r-typesheet24.png");
+        texture_manager_.load("assets/ennemi-projectile.png");
         texture_manager_.load("assets/shield.png");
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
@@ -213,9 +215,9 @@ void Game::setup_ui() {
     game_over_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     game_over_overlay_.setFillColor(sf::Color(0, 0, 0, 200));
 
-    texture_manager_.load("assets/gameover.png");
-    if (texture_manager_.has("assets/gameover.png")) {
-        game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover.png"));
+    texture_manager_.load("assets/gameover2.png");
+    if (texture_manager_.has("assets/gameover2.png")) {
+        game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover2.png"));
         auto bounds = game_over_sprite_.getLocalBounds();
         game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
         game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
@@ -423,21 +425,45 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(1.5F, 1.5F);
         }
-    } else if (entity.type == 0x03) {
-        std::string sprite_sheet =
-            (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
-
-        if (!texture_manager_.has(sprite_sheet)) {
-            sprite_sheet = "assets/r-typesheet1.png";
+    } else if (entity.type == 0x06) {
+        if (texture_manager_.has("assets/r-typesheet24.png")) {
+            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet24.png"));
+            entity.frames = {{0, 0, 65, 66}, {65, 0, 65, 66}, {130, 0, 65, 66}, 
+                           {195, 0, 65, 66}, {260, 0, 66, 66}};
+            entity.frame_duration = 0.12F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            sf::FloatRect temp_bounds = entity.sprite.getLocalBounds();
+            entity.sprite.setOrigin(temp_bounds.width / 2.0f, temp_bounds.height / 2.0f);
+            entity.sprite.setScale(-1.5F, 1.5F);
+            return;
         }
+    } else if (entity.type == 0x03) {
+        bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
 
-        if (texture_manager_.has(sprite_sheet)) {
-            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
-            entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
-            entity.frame_duration = 0.08F;
+        if (is_enemy2_projectile && texture_manager_.has("assets/ennemi-projectile.png")) {
+            entity.sprite.setTexture(*texture_manager_.get("assets/ennemi-projectile.png"));
+            entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
+            entity.frame_duration = 0.1F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
+        } else {
+            std::string sprite_sheet =
+                (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+
+            if (!texture_manager_.has(sprite_sheet)) {
+                sprite_sheet = "assets/r-typesheet1.png";
+            }
+
+            if (texture_manager_.has(sprite_sheet)) {
+                entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
+                entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
+                entity.frame_duration = 0.08F;
+                entity.loop = true;
+                entity.sprite.setTextureRect(entity.frames[0]);
+                entity.sprite.setScale(2.0F, 2.0F);
+            }
         }
     } else if (entity.type == 0x05) {
         if (texture_manager_.has("assets/r-typesheet1.png")) {
@@ -577,7 +603,7 @@ void Game::process_network_messages() {
                 }
 
                 for (const auto& [id, entity] : entities_) {
-                    if (entity.type == 0x02 && next.find(id) == next.end()) {
+                    if ((entity.type == 0x02 || entity.type == 0x06) && next.find(id) == next.end()) {
                         AudioManager::getInstance().playSound(AudioManager::SoundType::HitSound);
 
                         EffectsManager::getInstance().addComboKill();
@@ -609,7 +635,6 @@ void Game::process_network_messages() {
                 break;
             case NetworkToGame::MessageType::LevelProgress: {
                 uint16_t new_kills = static_cast<uint16_t>(msg.kills);
-                // Play explosion sound when an enemy is killed
                 if (new_kills > prev_enemies_killed_) {
                     AudioManager::getInstance().playSound(AudioManager::SoundType::Explosion);
                 }
