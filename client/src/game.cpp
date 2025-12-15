@@ -389,9 +389,12 @@ void Game::init_entity_sprite(Entity& entity) {
             };
 
             entity.frame_duration = 1.15F;
-            entity.loop = true;
+            entity.loop = false;
+            entity.ping_pong = true;
+            entity.forward = true;
+            entity.pause_at_end = 0.01f;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);
+            entity.sprite.setScale(3.5F, 3.5F);
         }
     } else if (entity.type == 0x07) {
         if (texture_manager_.has("assets/r-typesheet30a.gif")) {

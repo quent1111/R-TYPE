@@ -42,6 +42,25 @@ struct collision_box {
         : width(w), height(h), offset_x(ox), offset_y(oy) {}
 };
 
+// Multiple hitboxes for complex entities (e.g., boss with head/body/tail)
+struct multi_hitbox {
+    struct hitbox_part {
+        float width;
+        float height;
+        float offset_x;
+        float offset_y;
+        
+        constexpr hitbox_part(float w = 50.0f, float h = 50.0f, float ox = 0.0f, float oy = 0.0f) noexcept
+            : width(w), height(h), offset_x(ox), offset_y(oy) {}
+    };
+    
+    std::vector<hitbox_part> parts;
+    
+    multi_hitbox() = default;
+    explicit multi_hitbox(std::vector<hitbox_part> hitbox_parts)
+        : parts(std::move(hitbox_parts)) {}
+};
+
 struct controllable {
     float speed;
     constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}

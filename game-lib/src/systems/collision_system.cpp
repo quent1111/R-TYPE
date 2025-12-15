@@ -7,6 +7,7 @@
 void collisionSystem(registry& reg) {
     auto& positions = reg.get_components<position>();
     auto& collision_boxes = reg.get_components<collision_box>();
+    auto& multi_hitboxes = reg.get_components<multi_hitbox>();
     auto& damage_contacts = reg.get_components<damage_on_contact>();
     auto& healths = reg.get_components<health>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
@@ -141,9 +142,8 @@ void collisionSystem(registry& reg) {
 
                 if (j < projectile_tags.size() && projectile_tags[j].has_value()) continue;
 
-                if (boss_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
+                if (boss_tags[j] && positions[j] && healths[j]) {
                     auto& boss_pos = positions[j].value();
-                    auto& boss_box = collision_boxes[j].value();
                     auto& boss_hp = healths[j].value();
 
                     float p_left = proj_pos.x + proj_box.offset_x;
@@ -151,13 +151,38 @@ void collisionSystem(registry& reg) {
                     float p_right = p_left + proj_box.width;
                     float p_bottom = p_top + proj_box.height;
 
-                    float b_left = boss_pos.x + boss_box.offset_x;
-                    float b_top = boss_pos.y + boss_box.offset_y;
-                    float b_right = b_left + boss_box.width;
-                    float b_bottom = b_top + boss_box.height;
+                    bool hit_detected = false;
 
-                    if (p_left < b_right && p_right > b_left &&
-                        p_top < b_bottom && p_bottom > b_top) {
+                    // Check multi-hitbox if present
+                    if (j < multi_hitboxes.size() && multi_hitboxes[j].has_value()) {
+                        auto& boss_multi = multi_hitboxes[j].value();
+                        for (const auto& part : boss_multi.parts) {
+                            float b_left = boss_pos.x + part.offset_x;
+                            float b_top = boss_pos.y + part.offset_y;
+                            float b_right = b_left + part.width;
+                            float b_bottom = b_top + part.height;
+
+                            if (p_left < b_right && p_right > b_left &&
+                                p_top < b_bottom && p_bottom > b_top) {
+                                hit_detected = true;
+                                break;
+                            }
+                        }
+                    } else if (j < collision_boxes.size() && collision_boxes[j].has_value()) {
+                        // Fallback to single collision box
+                        auto& boss_box = collision_boxes[j].value();
+                        float b_left = boss_pos.x + boss_box.offset_x;
+                        float b_top = boss_pos.y + boss_box.offset_y;
+                        float b_right = b_left + boss_box.width;
+                        float b_bottom = b_top + boss_box.height;
+
+                        if (p_left < b_right && p_right > b_left &&
+                            p_top < b_bottom && p_bottom > b_top) {
+                            hit_detected = true;
+                        }
+                    }
+
+                    if (hit_detected) {
                         boss_hp.current -= proj_dmg.damage_amount;
                         if (boss_hp.current < 0) boss_hp.current = 0;
 
@@ -216,13 +241,27 @@ void collisionSystem(registry& reg) {
                         if (pi_left < pj_right && pi_right > pj_left &&
                             pi_top < pj_bottom && pi_bottom > pj_top) {
 
-                            auto proj_entity_i = reg.entity_from_index(i);
-                            reg.remove_component<entity_tag>(proj_entity_i);
-                            reg.kill_entity(proj_entity_i);
+                            std::size_t enemy_idx = is_enemy_projectile_i ? i : j;
+                            std::size_t player_proj_idx = is_enemy_projectile_i ? j : i;
 
-                            auto proj_entity_j = reg.entity_from_index(j);
-                            reg.remove_component<entity_tag>(proj_entity_j);
-                            reg.kill_entity(proj_entity_j);
+                            auto proj_entity_player = reg.entity_from_index(player_proj_idx);
+                            reg.remove_component<entity_tag>(proj_entity_player);
+                            reg.kill_entity(proj_entity_player);
+
+                            if (enemy_idx < healths.size() && healths[enemy_idx].has_value()) {
+                                auto& enemy_hp = healths[enemy_idx].value();
+                                enemy_hp.current -= 1;
+                                if (enemy_hp.current <= 0) {
+                                    auto proj_entity_enemy = reg.entity_from_index(enemy_idx);
+                                    reg.remove_component<entity_tag>(proj_entity_enemy);
+                                    reg.kill_entity(proj_entity_enemy);
+                                }
+                            } else {
+                                auto proj_entity_enemy = reg.entity_from_index(enemy_idx);
+                                reg.remove_component<entity_tag>(proj_entity_enemy);
+                                reg.kill_entity(proj_entity_enemy);
+                            }
+
                             break;
                         }
                     }

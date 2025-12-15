@@ -31,6 +31,7 @@ Game::Game() {
     _registry.register_component<controllable>();
     _registry.register_component<weapon>();
     _registry.register_component<collision_box>();
+    _registry.register_component<multi_hitbox>();
     _registry.register_component<damage_on_contact>();
     _registry.register_component<player_tag>();
     _registry.register_component<enemy_tag>();
@@ -819,11 +820,11 @@ void Game::broadcast_game_over(UDPServer& server) {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::GameOver;
-    
+
     for (int i = 0; i < 20; ++i) {
         serializer << static_cast<uint8_t>(0xFF);
     }
-    
+
     server.send_to_all(serializer.data());
 }
 
@@ -868,65 +869,110 @@ void Game::reset_game([[maybe_unused]] UDPServer& server) {
     _level_complete_waiting = false;
     _waiting_for_powerup_choice = false;
 
+    if (_boss_entity.has_value()) {
+        try {
+            auto boss_entity = _boss_entity.value();
+            _registry.remove_component<entity_tag>(boss_entity);
+            _registry.kill_entity(boss_entity);
+        } catch (...) {
+        }
+    }
     _boss_entity = std::nullopt;
     _boss_animation_timer = 0.0f;
     _boss_shoot_timer = 0.0f;
     _boss_animation_complete = false;
+    _boss_entrance_complete = false;
 
     std::cout << "[Game] Game reset. Back to lobby." << std::endl;
 }
 
 void Game::spawn_boss_level_5(UDPServer& server) {
-    float boss_x = 1700.0f;
+    float boss_spawn_x = 2400.0f;
     float boss_y = 540.0f;
-    
+    _boss_target_x = 1500.0f;
+
     entity boss = _registry.spawn_entity();
-    
-    _registry.add_component(boss, position{boss_x, boss_y});
-    
-    _registry.add_component(boss, velocity{0.0f, 0.0f});
-    
+
+    _registry.add_component(boss, position{boss_spawn_x, boss_y});
+
+    _registry.add_component(boss, velocity{-150.0f, 0.0f});
+
     _registry.add_component(boss, health{2000, 2000});
-    
-    _registry.add_component(boss, damage_on_contact{100, false});
-    
-    _registry.add_component(boss, collision_box{450.0f, 500.0f, -225.0f, -250.0f});
-    
+
+    _registry.add_component(boss, damage_on_contact{50, false});
+
+    multi_hitbox boss_hitboxes;
+    boss_hitboxes.parts = {
+        multi_hitbox::hitbox_part{250.0f, 250.0f, -200.0f, -350.0f},
+        multi_hitbox::hitbox_part{350.0f, 500.0f, 25.0f, -100.0f},
+        multi_hitbox::hitbox_part{200.0f, 200.0f, -100.0f,  220.0f}
+    };
+    _registry.add_component(boss, boss_hitboxes);
+
     _registry.add_component(boss, boss_tag{});
     _registry.add_component(boss, entity_tag{RType::EntityType::Boss});
-    
+
     _boss_entity = boss;
     _boss_animation_timer = 0.0f;
     _boss_shoot_timer = 0.0f;
     _boss_animation_complete = false;
-    
-    std::cout << "[BOSS] Level 5 boss spawned at position (" << boss_x << ", " << boss_y << ")" << std::endl;
-    std::cout << "[BOSS] Boss will remain stationary and shoot projectiles" << std::endl;
+    _boss_entrance_complete = false;
+
+    std::cout << "[BOSS] Level 5 boss spawning from right side..." << std::endl;
+    std::cout << "[BOSS] Boss will enter the screen and stop at X=" << _boss_target_x << std::endl;
 }
 
 void Game::update_boss_behavior(UDPServer& server, float dt) {
     if (!_boss_entity.has_value()) {
         return;
     }
-    
+
     auto boss_health_opt = _registry.get_component<health>(_boss_entity.value());
     if (!boss_health_opt.has_value() || boss_health_opt->current <= 0) {
-        std::cout << "[BOSS] Boss has been defeated!" << std::endl;
+        std::cout << "[BOSS] Boss has been defeated! Removing boss entity..." << std::endl;
+        try {
+            auto boss_entity = _boss_entity.value();
+            _registry.remove_component<entity_tag>(boss_entity);
+            _registry.kill_entity(boss_entity);
+        } catch (...) {
+        }
         _boss_entity = std::nullopt;
         return;
     }
-    
+
+    if (!_boss_entrance_complete) {
+        auto& positions = _registry.get_components<position>();
+        auto& velocities = _registry.get_components<velocity>();
+
+        std::size_t boss_idx = static_cast<std::size_t>(_boss_entity.value());
+
+        if (boss_idx < positions.size() && positions[boss_idx].has_value()) {
+            if (positions[boss_idx]->x <= _boss_target_x) {
+                positions[boss_idx]->x = _boss_target_x;
+
+                if (boss_idx < velocities.size() && velocities[boss_idx].has_value()) {
+                    velocities[boss_idx]->vx = 0.0f;
+                    velocities[boss_idx]->vy = 0.0f;
+                }
+
+                _boss_entrance_complete = true;
+                std::cout << "[BOSS] Boss entrance complete! Stopped at X=" << _boss_target_x << std::endl;
+            }
+        }
+        return;
+    }
+
     _boss_animation_timer += dt;
-    
+
     if (_boss_animation_timer >= 9.2f && !_boss_animation_complete) {
         _boss_animation_complete = true;
         _boss_shoot_timer = 0.0f;
         std::cout << "[BOSS] Animation complete! Boss will now start shooting!" << std::endl;
     }
-    
+
     if (_boss_animation_complete) {
         _boss_shoot_timer += dt;
-        
+
         if (_boss_shoot_timer >= _boss_shoot_cooldown) {
             boss_shoot_projectile(server);
             _boss_shoot_timer = 0.0f;
@@ -938,59 +984,59 @@ void Game::boss_shoot_projectile(UDPServer& server) {
     if (!_boss_entity.has_value()) {
         return;
     }
-    
+
     auto boss_pos_opt = _registry.get_component<position>(_boss_entity.value());
     if (!boss_pos_opt.has_value()) {
         return;
     }
-    
+
     float boss_x = boss_pos_opt->x;
     float boss_y = boss_pos_opt->y;
-    
+
     std::vector<std::pair<float, float>> player_positions;
     for (const auto& [client_id, entity_id] : _client_entity_ids) {
         auto player = _registry.entity_from_index(entity_id);
         auto player_pos_opt = _registry.get_component<position>(player);
         auto player_health_opt = _registry.get_component<health>(player);
-        
+
         if (player_pos_opt.has_value() && player_health_opt.has_value() && player_health_opt->current > 0) {
             player_positions.push_back({player_pos_opt->x, player_pos_opt->y});
         }
     }
-    
+
     if (player_positions.empty()) {
         return;
     }
-    
+
     for (const auto& [target_x, target_y] : player_positions) {
         float dx = target_x - boss_x;
         float dy = target_y - boss_y;
         float distance = std::sqrt(dx * dx + dy * dy);
-        
+
         if (distance < 1.0f) {
             continue;
         }
-        
-        float speed = 200.0f;
+
+        float speed = 400.0f;
         float vx = (dx / distance) * speed;
         float vy = (dy / distance) * speed;
-        
+
         auto projectile = _registry.spawn_entity();
-        
+
         _registry.add_component(projectile, position{boss_x - 100.0f, boss_y});
-        
+
         _registry.add_component(projectile, velocity{vx, vy});
-        
-        _registry.add_component(projectile, health{20, 20});
-        
+
+        _registry.add_component(projectile, health{3, 3});
+
         _registry.add_component(projectile, collision_box{50.0f, 50.0f});
-        _registry.add_component(projectile, damage_on_contact{30, false});
-        
+        _registry.add_component(projectile, damage_on_contact{50, false});
+
         _registry.add_component(projectile, projectile_tag{});
         _registry.add_component(projectile, enemy_tag{});
-        
+
         _registry.add_component(projectile, entity_tag{static_cast<RType::EntityType>(0x07)});
-        
+
         std::cout << "[BOSS] Fired projectile 0x07 towards player at (" << target_x << ", " << target_y << ")" << std::endl;
         std::cout << "[BOSS] Projectile velocity: (" << vx << ", " << vy << ")" << std::endl;
     }
