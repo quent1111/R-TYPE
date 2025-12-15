@@ -51,7 +51,7 @@ void waveSystem(registry& reg, float dt) {
                         break;
                     }
 
-                    manager.spawn_interval = 3.0f - (level - 1) * 0.2f;
+                    manager.spawn_interval = 3.0f - static_cast<float>(level - 1) * 0.2f;
                     if (manager.spawn_interval < 1.0f) manager.spawn_interval = 1.0f;
 
                     manager.enemies_per_wave = 3 + (level - 1);

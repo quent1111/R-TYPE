@@ -4,7 +4,8 @@
 
 #include <iostream>
 
-UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address, unsigned short port)
+UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address,
+                     unsigned short port)
     : io_context_(io_context),
       work_guard_(io_context.get_executor()),
       socket_(io_context),

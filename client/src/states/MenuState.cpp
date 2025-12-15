@@ -1,5 +1,7 @@
 #include "states/MenuState.hpp"
 
+#include "AudioManager.hpp"
+
 #include <iostream>
 
 namespace rtype {
@@ -15,6 +17,10 @@ void MenuState::on_enter() {
     m_title.reset();
     m_footer.reset();
     setup_ui();
+
+    auto& audio = AudioManager::getInstance();
+    audio.loadSounds();
+    audio.playMusic("assets/sounds/menu-loop.ogg", true);
 }
 
 void MenuState::on_exit() {
@@ -74,11 +80,13 @@ void MenuState::setup_ui() {
 
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_next_state = "lobby";
 }
 
 void MenuState::on_quit_clicked() {
     std::cout << "[MenuState] Quit button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_window.close();
 }
 

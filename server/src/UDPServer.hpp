@@ -12,8 +12,8 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <vector>
 #include <string>
+#include <vector>
 
 class UDPServer {
 private:

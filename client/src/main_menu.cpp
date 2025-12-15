@@ -18,11 +18,9 @@ int main(int argc, char* argv[]) {
     window.setFramerateLimit(60);
 
     try {
-        // Default host/port
         std::string host = "127.0.0.1";
         unsigned short port = 4242;
 
-        // Parse command line args: -h <host> -p <port>
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
             if (arg == "-h" && i + 1 < argc) {
@@ -31,18 +29,17 @@ int main(int argc, char* argv[]) {
                 try {
                     port = static_cast<unsigned short>(std::stoul(argv[++i]));
                 } catch (...) {
-                    std::cerr << "[main] Port invalide, utilisation du port par défaut 4242" << std::endl;
+                    std::cerr << "[main] Port invalide, utilisation du port par défaut 4242"
+                              << std::endl;
                     port = 4242;
                 }
             } else if (!arg.empty() && arg[0] != '-') {
-                // Positional fallback: first non-flag -> host, second -> port
                 if (host == "127.0.0.1") {
                     host = arg;
                 } else {
                     try {
                         port = static_cast<unsigned short>(std::stoul(arg));
                     } catch (...) {
-                        // ignore invalid
                     }
                 }
             }
@@ -54,7 +51,7 @@ int main(int argc, char* argv[]) {
 
         std::cout << "[main] Connecting to server..." << std::endl;
         auto network_client = std::make_shared<NetworkClient>(host, port, *game_to_network_queue,
-                                                               *network_to_game_queue);
+                                                              *network_to_game_queue);
         std::cout << "[main] NetworkClient connected and running.\n";
 
         rtype::StateManager state_manager;

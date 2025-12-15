@@ -14,7 +14,6 @@
 #include <random>
 #include <thread>
 
-// Network entity ID offsets
 constexpr uint32_t ENEMY_ID_OFFSET = 10000;
 constexpr uint32_t PROJECTILE_ID_OFFSET = 20000;
 constexpr uint32_t OTHER_ID_OFFSET = 30000;
@@ -128,14 +127,15 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         if (i >= positions.size() || !positions[i].has_value())
             continue;
 
-        // Broadcast toutes les entités non-joueurs (Enemy, Boss, Projectile, Obstacle, et types custom comme 0x07)
+        // Broadcast toutes les entités non-joueurs (Enemy, Enemy2, Boss, Projectile, Obstacle)
         if (tags[i]->type != RType::EntityType::Player) {
             const auto& pos = positions[i].value();
             auto entity_obj = _registry.entity_from_index(i);
             auto vel_opt = _registry.get_component<velocity>(entity_obj);
 
             uint32_t network_id;
-            if (tags[i]->type == RType::EntityType::Enemy) {
+            if (tags[i]->type == RType::EntityType::Enemy ||
+                tags[i]->type == RType::EntityType::Enemy2) {
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Boss) {
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
