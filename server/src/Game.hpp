@@ -21,6 +21,7 @@
 #include <atomic>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 enum class GamePhase { Lobby, InGame };
 
@@ -43,8 +44,9 @@ private:
     bool _level_complete_waiting = false;
     bool _waiting_for_powerup_choice = false;
     bool _waiting_for_game_over_reset = false;
+    std::unordered_set<int> _players_who_chose_powerup;
     GamePhase _game_phase = GamePhase::Lobby;
-    
+
     // Boss management for level 5
     std::optional<entity> _boss_entity;
     float _boss_animation_timer = 0.0f;
