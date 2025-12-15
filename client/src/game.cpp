@@ -482,6 +482,7 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(4.0F, 4.0F);
         }
     } else if (entity.type == 0x08) {
+        // Boss entity - main boss sprite (r-typesheet30.gif)
         if (texture_manager_.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
             entity.frames = {
@@ -504,6 +505,7 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(3.5F, 3.5F);
         }
     } else if (entity.type == 0x07) {
+        // Boss projectile (r-typesheet30a.gif)
         if (texture_manager_.has("assets/r-typesheet30a.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30a.gif"));
 
