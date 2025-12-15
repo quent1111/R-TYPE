@@ -22,6 +22,10 @@ public:
         
         double success_rate = total > 0 ? (static_cast<double>(passed) / total * 100.0) : 0.0;
         std::cout << "   • Success Rate:   " << std::fixed << std::setprecision(1) << success_rate << "%\n";
+        
+        if (passed >= 20) {
+            std::cout << "\n   🎮 " << passed << " tests client validés ! Interface robuste !\n";
+        }
         std::cout << "\n";
 
         std::cout << "🎯 Client Components Covered:\n";

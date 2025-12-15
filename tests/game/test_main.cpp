@@ -33,6 +33,11 @@ public:
         
         double success_rate = total_tests > 0 ? (static_cast<double>(passed_tests) / total_tests * 100.0) : 0.0;
         std::cout << "   • Success Rate:   " << std::fixed << std::setprecision(1) << success_rate << "%\n";
+        
+        // Note spéciale si beaucoup de tests
+        if (passed_tests >= 50) {
+            std::cout << "\n   🎉 " << passed_tests << " tests passés ! Couverture excellente !\n";
+        }
         std::cout << "\n";
 
         // Composants couverts

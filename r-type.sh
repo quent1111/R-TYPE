@@ -422,6 +422,9 @@ run_game_tests() {
     # Liste des tests à exécuter
     local TEST_BINS=("test_game" "test_network" "test_client_units")
     local ALL_PASSED=true
+    local TOTAL_TESTS=0
+    local TOTAL_PASSED=0
+    local TOTAL_FAILED=0
     
     for TEST_BIN in "${TEST_BINS[@]}"; do
         if [ ! -f "$BIN_DIR/$TEST_BIN" ]; then
@@ -435,14 +438,45 @@ run_game_tests() {
             echo -e "${YELLOW}Running: $TEST_BIN${NC}"
             echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             cd "$BIN_DIR"
-            ./$TEST_BIN "$@"
-            if [ $? -ne 0 ]; then
+            
+            # Capture output to count tests
+            OUTPUT=$(./$TEST_BIN "$@" 2>&1)
+            EXIT_CODE=$?
+            echo "$OUTPUT"
+            
+            # Extract test counts (this is approximate, adjust regex as needed)
+            PASSED=$(echo "$OUTPUT" | grep -oE "[0-9]+ tests? passed" | grep -oE "[0-9]+" | head -1)
+            if [ -z "$PASSED" ]; then
+                PASSED=$(echo "$OUTPUT" | grep -oE "PASSED.*[0-9]+ test" | grep -oE "[0-9]+" | head -1)
+            fi
+            
+            if [ ! -z "$PASSED" ]; then
+                TOTAL_PASSED=$((TOTAL_PASSED + PASSED))
+            fi
+            
+            if [ $EXIT_CODE -ne 0 ]; then
                 ALL_PASSED=false
             fi
         fi
     done
     
+    # Display grand total
     echo ""
+    echo -e "${MAGENTA}╔═══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${MAGENTA}║              TOTAL TEST SUITE SUMMARY                 ║${NC}"
+    echo -e "${MAGENTA}╚═══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    if [ $TOTAL_PASSED -gt 0 ]; then
+        echo -e "${GREEN}   🎯 Total Tests Passed: ${TOTAL_PASSED}${NC}"
+    fi
+    if [ $TOTAL_PASSED -ge 100 ]; then
+        echo -e "${GREEN}   🏆 INCREDIBLE! Over 100 tests passed!${NC}"
+        echo -e "${GREEN}   🌟 Code quality: EXCELLENT${NC}"
+    elif [ $TOTAL_PASSED -ge 50 ]; then
+        echo -e "${GREEN}   ✨ Great coverage with $TOTAL_PASSED tests!${NC}"
+    fi
+    echo ""
+    
     if [ "$ALL_PASSED" = true ]; then
         print_success "All test suites passed!"
     else

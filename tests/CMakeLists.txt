@@ -40,6 +40,8 @@ add_executable(test_network
     # Advanced tests
     network/test_serialization_advanced.cpp
     network/test_protocol_advanced.cpp
+    network/test_opcodes.cpp
+    network/test_serializer_edge_cases.cpp
 )
 
 target_include_directories(test_network PRIVATE
@@ -75,6 +77,8 @@ add_executable(test_game
     game/test_weapon_advanced.cpp
     game/test_powerups.cpp
     game/test_health_advanced.cpp
+    game/test_tags.cpp
+    game/test_edge_cases.cpp
 )
 
 target_include_directories(test_game PRIVATE
@@ -143,6 +147,8 @@ add_executable(test_client_units
     client/test_main_client.cpp
     client/test_entity.cpp
     client/test_safe_queue.cpp
+    client/test_entity_advanced.cpp
+    client/test_queue_advanced.cpp
 )
 
 target_include_directories(test_client_units PRIVATE
