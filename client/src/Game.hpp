@@ -1,5 +1,7 @@
 #pragma once
 
+#include "AudioManager.hpp"
+#include "EffectsManager.hpp"
 #include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
@@ -77,12 +79,30 @@ private:
     sf::RectangleShape health_bar_bg_;
     sf::RectangleShape health_bar_fill_;
     sf::Text health_text_;
-    
+
     sf::Sprite game_over_sprite_;
     sf::RectangleShape game_over_overlay_;
 
+    sf::Text score_text_;
+    uint32_t current_score_ = 0;
+    uint32_t displayed_score_ = 0;
+
+    sf::Text timer_text_;
+    float game_time_ = 0.0f;
+    bool timer_running_ = false;
+
+    sf::Text combo_text_;
+    sf::RectangleShape combo_bar_bg_;
+    sf::RectangleShape combo_bar_fill_;
+    sf::RectangleShape combo_timer_bar_;
+
+    bool was_shooting_ = false;
+    uint16_t prev_enemies_killed_ = 0;
+    int prev_player_health_ = -1;
+
     void render_level_intro();
     void render_level_hud();
+    void render_combo_bar();
     void render_powerup_selection();
     void render_powerup_active();
     void render_game_over();
@@ -100,6 +120,7 @@ public:
 
     void run();
     void handle_input();
+    void handle_event(const sf::Event& event);
     void update();
     void render();
     bool is_running() const { return is_running_; }

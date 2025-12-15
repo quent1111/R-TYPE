@@ -85,3 +85,41 @@ entity createEnemyProjectile(registry& reg, float x, float y, float vx, float vy
 
     return projectile;
 }
+
+entity createEnemy2Projectile(registry& reg, float x, float y, float vx, float vy, int damage) {
+    entity projectile = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();
+    reg.register_component<enemy_tag>();
+
+    // 2 frames animation from ennemi-projectile.png (36x19 total, so 18x19 per frame)
+    std::vector<sf::IntRect> enemy2_projectile_frames = {
+        {0, 0, 18, 19},
+        {18, 0, 18, 19}
+    };
+
+    float scale = 2.0f;
+    float collision_w = 30.0f;
+    float collision_h = 30.0f;
+
+    reg.add_component(projectile, position{x, y});
+    reg.add_component(projectile, velocity{vx, vy});
+    reg.add_component(projectile,
+                      sprite_component{"assets/ennemi-projectile.png", 0, 0, 18, 19, scale});
+    reg.add_component(projectile,
+                      animation_component{enemy2_projectile_frames, 0.1f, true});
+    reg.add_component(projectile, collision_box{collision_w, collision_h});
+    reg.add_component(projectile, damage_on_contact{damage, true});
+    reg.add_component(projectile, projectile_tag{});
+    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
+    reg.add_component(projectile, enemy_tag{});
+
+    return projectile;
+}

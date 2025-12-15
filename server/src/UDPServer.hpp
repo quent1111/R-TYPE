@@ -12,6 +12,7 @@
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <vector>
 
 class UDPServer {
@@ -28,7 +29,7 @@ private:
     bool running_;
 
 public:
-    UDPServer(asio::io_context& io_context, unsigned short port);
+    UDPServer(asio::io_context& io_context, const std::string& bind_address, unsigned short port);
     ~UDPServer();
 
     void start_receive();

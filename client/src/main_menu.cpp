@@ -12,18 +12,46 @@
 #include <memory>
 #include <thread>
 
-int main() {
+int main(int argc, char* argv[]) {
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-TYPE - Multiplayer");
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(60);
 
     try {
+        std::string host = "127.0.0.1";
+        unsigned short port = 4242;
+
+        for (int i = 1; i < argc; ++i) {
+            std::string arg = argv[i];
+            if (arg == "-h" && i + 1 < argc) {
+                host = argv[++i];
+            } else if (arg == "-p" && i + 1 < argc) {
+                try {
+                    port = static_cast<unsigned short>(std::stoul(argv[++i]));
+                } catch (...) {
+                    std::cerr << "[main] Port invalide, utilisation du port par défaut 4242"
+                              << std::endl;
+                    port = 4242;
+                }
+            } else if (!arg.empty() && arg[0] != '-') {
+                if (host == "127.0.0.1") {
+                    host = arg;
+                } else {
+                    try {
+                        port = static_cast<unsigned short>(std::stoul(arg));
+                    } catch (...) {
+                    }
+                }
+            }
+        }
+
+        std::cout << "[main] Connecting to server " << host << ":" << port << std::endl;
         auto game_to_network_queue = std::make_shared<ThreadSafeQueue<GameToNetwork::Message>>();
         auto network_to_game_queue = std::make_shared<ThreadSafeQueue<NetworkToGame::Message>>();
 
         std::cout << "[main] Connecting to server..." << std::endl;
-        auto network_client = std::make_shared<NetworkClient>(
-            "127.0.0.1", 4242, *game_to_network_queue, *network_to_game_queue);
+        auto network_client = std::make_shared<NetworkClient>(host, port, *game_to_network_queue,
+                                                              *network_to_game_queue);
         std::cout << "[main] NetworkClient connected and running.\n";
 
         rtype::StateManager state_manager;

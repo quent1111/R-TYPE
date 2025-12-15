@@ -1,5 +1,7 @@
 #include "states/LobbyState.hpp"
 
+#include "AudioManager.hpp"
+
 #include <iostream>
 
 namespace rtype {
@@ -22,7 +24,6 @@ void LobbyState::on_enter() {
         std::cerr << "[LobbyState] Warning: Could not load font\n";
     }
 
-    // Nettoyer tous les composants UI avant de les recréer
     m_buttons.clear();
     m_corners.clear();
     m_side_panels.clear();
@@ -31,6 +32,7 @@ void LobbyState::on_enter() {
     m_footer.reset();
 
     setup_ui();
+
 }
 
 void LobbyState::on_exit() {
@@ -42,17 +44,13 @@ void LobbyState::setup_ui() {
     sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
                         static_cast<float>(window_size.y) / 2.0f);
 
-    // Background animé
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
-    // Titre stylisé
     m_title =
         std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, center.y - 280.0f), 84);
 
-    // Footer
     m_footer = std::make_unique<ui::MenuFooter>(window_size);
 
-    // Décorations des coins
     m_corners.push_back(
         std::make_unique<ui::CornerDecoration>(sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
@@ -64,13 +62,11 @@ void LobbyState::setup_ui() {
                      static_cast<float>(window_size.y) - 80.0f),
         true, true));
 
-    // Panneaux latéraux
     m_side_panels.push_back(
         std::make_unique<ui::SidePanel>(sf::Vector2f(50.0f, center.y - 50.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
         sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, center.y - 50.0f), false));
 
-    // Textes d'info avec style amélioré
     m_status_text.setFont(m_font);
     m_status_text.setCharacterSize(28);
     m_status_text.setFillColor(sf::Color(100, 200, 255));
@@ -124,6 +120,7 @@ void LobbyState::setup_ui() {
 
 void LobbyState::on_ready_clicked() {
     std::cout << "[LobbyState] Ready button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_is_ready = !m_is_ready;
 
     if (m_is_ready) {
@@ -145,6 +142,7 @@ void LobbyState::on_ready_clicked() {
 
 void LobbyState::on_back_clicked() {
     std::cout << "[LobbyState] Back button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_next_state = "menu";
 }
 
@@ -188,8 +186,8 @@ void LobbyState::process_network_messages() {
 
 void LobbyState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
-        m_mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x),
-                                   static_cast<float>(event.mouseMove.y));
+        sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
+        m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         for (auto& button : m_buttons) {
             button->handle_mouse_move(m_mouse_pos);
         }
@@ -197,8 +195,8 @@ void LobbyState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-            sf::Vector2f click_pos(static_cast<float>(event.mouseButton.x),
-                                   static_cast<float>(event.mouseButton.y));
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f click_pos = m_window.mapPixelToCoords(pixel_pos);
             for (auto& button : m_buttons) {
                 button->handle_mouse_click(click_pos);
             }
@@ -215,7 +213,6 @@ void LobbyState::handle_event(const sf::Event& event) {
 void LobbyState::update(float dt) {
     process_network_messages();
 
-    // Animation de tous les composants UI
     if (m_background) {
         m_background->update(dt);
     }
@@ -232,16 +229,14 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    // Mise à jour des infos de lobby avec style
     std::string count_str =
         std::to_string(m_ready_players) + " / " + std::to_string(m_total_players) + " READY";
     m_player_count_text.setString(count_str);
 
-    // Couleur qui change selon le statut
     if (m_ready_players == m_total_players && m_total_players > 0) {
-        m_player_count_text.setFillColor(sf::Color(100, 255, 100));  // Vert quand prêt
+        m_player_count_text.setFillColor(sf::Color(100, 255, 100));
     } else {
-        m_player_count_text.setFillColor(sf::Color(255, 220, 100));  // Jaune sinon
+        m_player_count_text.setFillColor(sf::Color(255, 220, 100));
     }
 
     sf::FloatRect bounds = m_player_count_text.getLocalBounds();
@@ -249,38 +244,31 @@ void LobbyState::update(float dt) {
 }
 
 void LobbyState::render(sf::RenderWindow& window) {
-    // Fond animé
     if (m_background) {
         m_background->render(window);
     }
 
-    // Panneaux latéraux (derrière tout)
     for (auto& panel : m_side_panels) {
         panel->render(window);
     }
 
-    // Décorations des coins
     for (auto& corner : m_corners) {
         corner->render(window);
     }
 
-    // Titre stylisé
     if (m_title) {
         m_title->render(window);
     }
 
-    // Compteur de joueurs uniquement
     window.draw(m_player_count_text);
 
-    // Boutons
     for (auto& button : m_buttons) {
         button->render(window);
     }
 
-    // Footer (au-dessus de tout)
     if (m_footer) {
         m_footer->render(window);
     }
 }
 
-}  // namespace rtype
+}

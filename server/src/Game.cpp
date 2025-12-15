@@ -13,7 +13,6 @@
 #include <random>
 #include <thread>
 
-// Network entity ID offsets
 constexpr uint32_t ENEMY_ID_OFFSET = 10000;
 constexpr uint32_t PROJECTILE_ID_OFFSET = 20000;
 constexpr uint32_t OTHER_ID_OFFSET = 30000;
@@ -126,6 +125,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             continue;
 
         if (tags[i]->type == RType::EntityType::Enemy ||
+            tags[i]->type == RType::EntityType::Enemy2 ||
             tags[i]->type == RType::EntityType::Projectile ||
             tags[i]->type == RType::EntityType::Obstacle) {
             const auto& pos = positions[i].value();
@@ -133,7 +133,8 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             auto vel_opt = _registry.get_component<velocity>(entity_obj);
 
             uint32_t network_id;
-            if (tags[i]->type == RType::EntityType::Enemy) {
+            if (tags[i]->type == RType::EntityType::Enemy ||
+                tags[i]->type == RType::EntityType::Enemy2) {
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Projectile) {
                 network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
@@ -800,11 +801,11 @@ void Game::broadcast_game_over(UDPServer& server) {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::GameOver;
-    
+
     for (int i = 0; i < 20; ++i) {
         serializer << static_cast<uint8_t>(0xFF);
     }
-    
+
     server.send_to_all(serializer.data());
 }
 

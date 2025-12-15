@@ -1,5 +1,7 @@
 #include "states/MenuState.hpp"
 
+#include "AudioManager.hpp"
+
 #include <iostream>
 
 namespace rtype {
@@ -15,6 +17,10 @@ void MenuState::on_enter() {
     m_title.reset();
     m_footer.reset();
     setup_ui();
+
+    auto& audio = AudioManager::getInstance();
+    audio.loadSounds();
+    audio.playMusic("assets/sounds/menu-loop.ogg", true);
 }
 
 void MenuState::on_exit() {
@@ -74,18 +80,20 @@ void MenuState::setup_ui() {
 
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_next_state = "lobby";
 }
 
 void MenuState::on_quit_clicked() {
     std::cout << "[MenuState] Quit button clicked\n";
+    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
     m_window.close();
 }
 
 void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
-        m_mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x),
-                                   static_cast<float>(event.mouseMove.y));
+        sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
+        m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         for (auto& button : m_buttons) {
             button->handle_mouse_move(m_mouse_pos);
         }
@@ -93,8 +101,8 @@ void MenuState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::MouseButtonPressed) {
         if (event.mouseButton.button == sf::Mouse::Left) {
-            sf::Vector2f click_pos(static_cast<float>(event.mouseButton.x),
-                                   static_cast<float>(event.mouseButton.y));
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f click_pos = m_window.mapPixelToCoords(pixel_pos);
             for (auto& button : m_buttons) {
                 button->handle_mouse_click(click_pos);
             }
