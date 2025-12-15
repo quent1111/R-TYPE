@@ -42,6 +42,25 @@ struct collision_box {
         : width(w), height(h), offset_x(ox), offset_y(oy) {}
 };
 
+// Multiple hitboxes for complex entities (e.g., boss with head/body/tail)
+struct multi_hitbox {
+    struct hitbox_part {
+        float width;
+        float height;
+        float offset_x;
+        float offset_y;
+        
+        constexpr hitbox_part(float w = 50.0f, float h = 50.0f, float ox = 0.0f, float oy = 0.0f) noexcept
+            : width(w), height(h), offset_x(ox), offset_y(oy) {}
+    };
+    
+    std::vector<hitbox_part> parts;
+    
+    multi_hitbox() = default;
+    explicit multi_hitbox(std::vector<hitbox_part> hitbox_parts)
+        : parts(std::move(hitbox_parts)) {}
+};
+
 struct controllable {
     float speed;
     constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}
@@ -106,7 +125,7 @@ struct wave_manager {
 struct level_manager {
     int current_level = 1;
     int enemies_killed_this_level = 0;
-    int enemies_needed_for_next_level = 20;
+    int enemies_needed_for_next_level = 1;  // Start with just 1 enemy for level 1
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
     float level_start_delay = 3.0f;  // Délai de 3 secondes au début de chaque niveau
@@ -116,7 +135,7 @@ struct level_manager {
     
     constexpr void on_enemy_killed() noexcept {
         enemies_killed_this_level++;
-        if (enemies_killed_this_level == enemies_needed_for_next_level) {
+        if (enemies_killed_this_level >= enemies_needed_for_next_level) {
             level_completed = true;
             awaiting_upgrade_choice = true;
         }
@@ -127,8 +146,8 @@ struct level_manager {
         enemies_killed_this_level = 0;
         level_completed = false;
         awaiting_upgrade_choice = false;
-        // Augmente la difficulté
-        enemies_needed_for_next_level = 20 + (current_level - 1) * 10;
+        // Augmente la difficulté: level 1 = 1 enemy, level 2 = 2 enemies, level 3+ = current_level enemies
+        enemies_needed_for_next_level = current_level;
         // Réinitialiser le timer de délai
         level_start_timer = 0.0f;
     }
@@ -227,6 +246,7 @@ struct shield {
 // Tags
 struct player_tag {};
 struct enemy_tag {};
+struct boss_tag {};
 struct projectile_tag {};
 struct explosion_tag {
     float lifetime;
