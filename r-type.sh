@@ -57,6 +57,7 @@ ${YELLOW}COMMANDS:${NC}
     ${GREEN}client${NC}              Build and run the client
     ${GREEN}server${NC}              Build and run the server
     ${GREEN}test${NC}                Build and run tests
+    ${GREEN}tests${NC}               Build and run game unit tests only
     ${GREEN}coverage${NC}            Generate code coverage report
     ${GREEN}valgrind${NC}            Run memory leak analysis
     ${GREEN}clean${NC}               Clean build directory
@@ -84,6 +85,9 @@ ${YELLOW}EXAMPLES:${NC}
 
     ${CYAN}# Run tests${NC}
     ./r-type.sh test
+
+    ${CYAN}# Run game unit tests only${NC}
+    ./r-type.sh tests
 
     ${CYAN}# Run client${NC}
     ./r-type.sh client
@@ -411,6 +415,42 @@ run_tests() {
     print_success "All tests passed!"
 }
 
+run_game_tests() {
+    print_step "Running all unit tests..."
+    local BIN_DIR=$(get_bin_dir)
+    
+    # Liste des tests à exécuter
+    local TEST_BINS=("test_game" "test_network" "test_client_units")
+    local ALL_PASSED=true
+    
+    for TEST_BIN in "${TEST_BINS[@]}"; do
+        if [ ! -f "$BIN_DIR/$TEST_BIN" ]; then
+            print_warning "$TEST_BIN not found, building..."
+            do_build "$TEST_BIN"
+            BIN_DIR=$(get_bin_dir)
+        fi
+        
+        if [ -f "$BIN_DIR/$TEST_BIN" ]; then
+            echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}Running: $TEST_BIN${NC}"
+            echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            cd "$BIN_DIR"
+            ./$TEST_BIN "$@"
+            if [ $? -ne 0 ]; then
+                ALL_PASSED=false
+            fi
+        fi
+    done
+    
+    echo ""
+    if [ "$ALL_PASSED" = true ]; then
+        print_success "All test suites passed!"
+    else
+        print_error "Some test suites failed"
+        exit 1
+    fi
+}
+
 generate_coverage() {
     print_step "Generating code coverage report..."
     if [ "$BUILD_TYPE" != "Debug" ]; then
@@ -564,6 +604,14 @@ main() {
             print_banner
             do_build
             run_tests
+            ;;
+        tests)
+            print_banner
+            # Build tous les tests
+            do_build "test_game"
+            do_build "test_network"
+            do_build "test_client_units"
+            run_game_tests "$@"
             ;;
         coverage)
             print_banner
