@@ -73,6 +73,7 @@ private:
     void broadcast_powerup_selection(UDPServer& server);
     void broadcast_powerup_status(UDPServer& server);
     void advance_level(UDPServer& server);
+    void clear_enemies_and_projectiles();
     bool check_all_players_dead();
     void respawn_dead_players(UDPServer& server);
     void broadcast_game_over(UDPServer& server);

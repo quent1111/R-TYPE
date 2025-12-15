@@ -581,7 +581,13 @@ void Game::check_level_completion(UDPServer& server) {
             auto& lvl_mgr = level_managers[i].value();
             if (lvl_mgr.level_completed && !_level_complete_waiting &&
                 !_waiting_for_powerup_choice) {
+                
+                std::cout << "[Game] Level " << static_cast<int>(lvl_mgr.current_level) 
+                          << " completed! Clearing enemies..." << std::endl;
+                
                 _players_who_chose_powerup.clear();  // Reset pour le nouveau niveau
+                clear_enemies_and_projectiles();      // Nettoyer ennemis et projectiles
+                
                 broadcast_level_complete(server);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 broadcast_powerup_selection(server);
@@ -784,7 +790,6 @@ void Game::advance_level(UDPServer& server) {
 
             respawn_dead_players(server);
 
-            // Spawn boss at level 5
             if (lvl_mgr.current_level == 5) {
                 std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
                 spawn_boss_level_5(server);
@@ -798,6 +803,50 @@ void Game::advance_level(UDPServer& server) {
             break;
         }
     }
+}
+
+void Game::clear_enemies_and_projectiles() {
+    auto& enemy_tags = _registry.get_components<enemy_tag>();
+    auto& projectile_tags = _registry.get_components<projectile_tag>();
+    auto& boss_tags = _registry.get_components<boss_tag>();
+
+    int enemies_cleared = 0;
+    int projectiles_cleared = 0;
+    int bosses_cleared = 0;
+
+    for (std::size_t i = 0; i < enemy_tags.size(); ++i) {
+        if (enemy_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            enemies_cleared++;
+        }
+    }
+
+    for (std::size_t i = 0; i < projectile_tags.size(); ++i) {
+        if (projectile_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            projectiles_cleared++;
+        }
+    }
+
+    for (std::size_t i = 0; i < boss_tags.size(); ++i) {
+        if (boss_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            bosses_cleared++;
+        }
+    }
+
+    if (_boss_entity.has_value()) {
+        _boss_entity = std::nullopt;
+    }
+
+    std::cout << "[Game] Cleared level: " << enemies_cleared << " enemies, " 
+              << projectiles_cleared << " projectiles, " << bosses_cleared << " bosses" << std::endl;
 }
 
 bool Game::check_all_players_dead() {
