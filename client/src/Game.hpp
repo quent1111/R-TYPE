@@ -63,10 +63,10 @@ private:
 
     sf::RectangleShape powerup_overlay_;
     sf::Text powerup_title_;
-    sf::RectangleShape powerup_option1_bg_;
-    sf::RectangleShape powerup_option2_bg_;
-    sf::Text powerup_option1_text_;
-    sf::Text powerup_option2_text_;
+    sf::Sprite powerup_card1_sprite_;
+    sf::Sprite powerup_card2_sprite_;
+    sf::Text powerup_number1_text_;
+    sf::Text powerup_number2_text_;
     sf::Text powerup_instruction_;
     sf::Text powerup_active_text_;
     sf::Sprite shield_visual_;

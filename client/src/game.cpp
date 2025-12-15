@@ -145,33 +145,34 @@ void Game::setup_ui() {
     powerup_title_.setFillColor(sf::Color::Yellow);
     powerup_title_.setStyle(sf::Text::Bold);
     powerup_title_.setString("CHOOSE YOUR POWER-UP");
-    powerup_option1_bg_.setSize(sf::Vector2f(400.0f, 200.0f));
-    powerup_option1_bg_.setPosition(400.0f, 400.0f);
-    powerup_option1_bg_.setFillColor(sf::Color(50, 50, 150, 200));
-    powerup_option1_bg_.setOutlineColor(sf::Color::White);
-    powerup_option1_bg_.setOutlineThickness(3.0f);
-    powerup_option1_text_.setFont(font_);
-    powerup_option1_text_.setCharacterSize(30);
-    powerup_option1_text_.setFillColor(sf::Color::White);
-    powerup_option1_text_.setString(
-        "1. POWER CANNON\n\n   5x Damage\n   Press X to use\n   10 seconds");
-    powerup_option1_text_.setPosition(420.0f, 420.0f);
-    powerup_option2_bg_.setSize(sf::Vector2f(400.0f, 200.0f));
-    powerup_option2_bg_.setPosition(1120.0f, 400.0f);
-    powerup_option2_bg_.setFillColor(sf::Color(150, 50, 50, 200));
-    powerup_option2_bg_.setOutlineColor(sf::Color::White);
-    powerup_option2_bg_.setOutlineThickness(3.0f);
-    powerup_option2_text_.setFont(font_);
-    powerup_option2_text_.setCharacterSize(30);
-    powerup_option2_text_.setFillColor(sf::Color::White);
-    powerup_option2_text_.setString(
-        "2. SHIELD\n\n   Kill enemies on touch\n   Press X to use\n   10 seconds");
-    powerup_option2_text_.setPosition(1140.0f, 420.0f);
+    auto& bonus_texture = texture_manager_.load("assets/bonus.png");
+    const int card_width = 459;
+    const int card_height = 759;
+    powerup_card1_sprite_.setTexture(bonus_texture);
+    powerup_card1_sprite_.setTextureRect(sf::IntRect(card_width * 2, 0, card_width, card_height));
+    powerup_card1_sprite_.setScale(0.6f, 0.6f);
+    powerup_card1_sprite_.setPosition(560.0f, 300.0f);
+    powerup_card2_sprite_.setTexture(bonus_texture);
+    powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
+    powerup_card2_sprite_.setScale(0.6f, 0.6f);
+    powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
+    powerup_number1_text_.setFont(font_);
+    powerup_number1_text_.setCharacterSize(50);
+    powerup_number1_text_.setFillColor(sf::Color::Yellow);
+    powerup_number1_text_.setStyle(sf::Text::Bold);
+    powerup_number1_text_.setString("1");
+    powerup_number1_text_.setPosition(670.0f, 720.0f);
+    powerup_number2_text_.setFont(font_);
+    powerup_number2_text_.setCharacterSize(50);
+    powerup_number2_text_.setFillColor(sf::Color::Yellow);
+    powerup_number2_text_.setStyle(sf::Text::Bold);
+    powerup_number2_text_.setString("2");
+    powerup_number2_text_.setPosition(1305.0f, 720.0f);
     powerup_instruction_.setFont(font_);
     powerup_instruction_.setCharacterSize(25);
     powerup_instruction_.setFillColor(sf::Color::Cyan);
-    powerup_instruction_.setString("Press 1 or 2 to choose");
-    powerup_instruction_.setPosition(760.0f, 650.0f);
+    powerup_instruction_.setString("Press 1 or 2 to choose (or click on a card)");
+    powerup_instruction_.setPosition(660.0f, 850.0f);
     powerup_active_text_.setFont(font_);
     powerup_active_text_.setCharacterSize(22);
     powerup_active_text_.setFillColor(sf::Color::Cyan);
@@ -237,13 +238,12 @@ void Game::handle_event(const sf::Event& event) {
             sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
             sf::Vector2f mouse_pos = window_.mapPixelToCoords(pixel_pos);
 
-            if (powerup_option1_bg_.getGlobalBounds().contains(mouse_pos)) {
+            if (powerup_card1_sprite_.getGlobalBounds().contains(mouse_pos)) {
                 game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(1));
                 show_powerup_selection_ = false;
                 powerup_type_ = 1;
                 std::cout << "[Game] Powerup 1 selected via click" << std::endl;
-            }
-            else if (powerup_option2_bg_.getGlobalBounds().contains(mouse_pos)) {
+            } else if (powerup_card2_sprite_.getGlobalBounds().contains(mouse_pos)) {
                 game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(2));
                 show_powerup_selection_ = false;
                 powerup_type_ = 2;
@@ -505,7 +505,6 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(3.5F, 3.5F);
         }
     } else if (entity.type == 0x07) {
-        // Boss projectile (r-typesheet30a.gif)
         if (texture_manager_.has("assets/r-typesheet30a.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30a.gif"));
 
@@ -921,12 +920,18 @@ void Game::render_powerup_selection() {
     sf::FloatRect title_bounds = powerup_title_.getLocalBounds();
     powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 200.0f);
     window_.draw(powerup_title_);
-    window_.draw(powerup_option1_bg_);
-    window_.draw(powerup_option1_text_);
-    window_.draw(powerup_option2_bg_);
-    window_.draw(powerup_option2_text_);
+    
+    // Draw card sprites
+    window_.draw(powerup_card1_sprite_);
+    window_.draw(powerup_card2_sprite_);
+    
+    // Draw number labels
+    window_.draw(powerup_number1_text_);
+    window_.draw(powerup_number2_text_);
+    
+    // Draw instruction
     sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
-    powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 650.0f);
+    powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 850.0f);
     window_.draw(powerup_instruction_);
 }
 
