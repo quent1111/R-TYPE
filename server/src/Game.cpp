@@ -145,7 +145,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
                 // Pour les types custom (0x07, etc.) utiliser OTHER_ID_OFFSET
                 network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
             }
-            
+
             _broadcast_serializer << network_id;
             _broadcast_serializer << static_cast<uint8_t>(tags[i]->type);
             _broadcast_serializer << pos.x;
@@ -581,6 +581,7 @@ void Game::check_level_completion(UDPServer& server) {
             auto& lvl_mgr = level_managers[i].value();
             if (lvl_mgr.level_completed && !_level_complete_waiting &&
                 !_waiting_for_powerup_choice) {
+                _players_who_chose_powerup.clear();  // Reset pour le nouveau niveau
                 broadcast_level_complete(server);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 broadcast_powerup_selection(server);
@@ -616,17 +617,40 @@ void Game::handle_powerup_choice(int client_id, uint8_t powerup_choice, UDPServe
                   << std::endl;
         return;
     }
+
     auto player = player_opt.value();
     if (powerup_choice == 1) {
         _registry.emplace_component<power_cannon>(player);
+        std::cout << "[Game] Client " << client_id << " chose Power Cannon" << std::endl;
     } else if (powerup_choice == 2) {
         _registry.emplace_component<shield>(player);
+        std::cout << "[Game] Client " << client_id << " chose Shield" << std::endl;
     }
-    _waiting_for_powerup_choice = false;
-    _level_complete_waiting = false;
-    broadcast_powerup_status(server);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    advance_level(server);
+
+    _players_who_chose_powerup.insert(client_id);
+
+    int alive_players = 0;
+    for (const auto& [cid, entity_id] : _client_entity_ids) {
+        auto p = _registry.entity_from_index(entity_id);
+        auto health_opt = _registry.get_component<health>(p);
+        if (health_opt.has_value() && health_opt->current > 0) {
+            alive_players++;
+        }
+    }
+
+    std::cout << "[Game] Powerup choices: " << _players_who_chose_powerup.size() 
+              << "/" << alive_players << " players" << std::endl;
+
+    if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
+        std::cout << "[Game] All players have chosen! Advancing level..." << std::endl;
+        _waiting_for_powerup_choice = false;
+        _level_complete_waiting = false;
+        _players_who_chose_powerup.clear();
+
+        broadcast_powerup_status(server);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        advance_level(server);
+    }
 }
 
 void Game::handle_powerup_activate(int client_id, UDPServer& server) {
