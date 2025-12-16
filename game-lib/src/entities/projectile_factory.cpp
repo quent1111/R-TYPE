@@ -99,7 +99,6 @@ entity createEnemy2Projectile(registry& reg, float x, float y, float vx, float v
     reg.register_component<entity_tag>();
     reg.register_component<enemy_tag>();
 
-    // 2 frames animation from ennemi-projectile.png (36x19 total, so 18x19 per frame)
     std::vector<sf::IntRect> enemy2_projectile_frames = {
         {0, 0, 18, 19},
         {18, 0, 18, 19}

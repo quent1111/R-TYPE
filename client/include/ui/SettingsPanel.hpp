@@ -38,23 +38,20 @@ private:
     sf::RectangleShape m_panel_bg;
     sf::Text m_title;
     sf::Font m_font;
-    
-    // Tab buttons
+
     std::vector<std::unique_ptr<::rtype::ui::Button>> m_tab_buttons;
     std::vector<sf::RectangleShape> m_tab_indicators;
     Tab m_current_tab{Tab::Audio};
-    
-    // Content buttons (change based on tab)
+
     std::vector<std::unique_ptr<::rtype::ui::Button>> m_buttons;
-    
-    // Display texts
+
     sf::Text m_volume_text;
     sf::Text m_resolution_text;
     sf::Text m_fullscreen_text;
     sf::Text m_colorblind_text;
     sf::Text m_controls_text;
     sf::RectangleShape m_volume_bar;
-    
+
     bool m_open{false};
     sf::Vector2u m_window_size;
     size_t m_temp_resolution_index{0};

@@ -116,7 +116,7 @@ TEST(ClientEntityAdvanced, HealthBoundaries) {
     entity.health = 100;
     EXPECT_EQ(entity.health, 100);
     
-    entity.health = 150; // Over max (should be clamped in game logic)
+    entity.health = 150;
     EXPECT_GT(entity.health, entity.max_health);
 }
 

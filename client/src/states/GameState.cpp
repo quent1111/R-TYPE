@@ -40,7 +40,6 @@ void GameState::handle_event(const sf::Event& event) {
         } else if (event.type == sf::Event::LostFocus) {
             m_game->set_focus(false);
         }
-        // Forward all events to the game for handling
         m_game->handle_event(event);
     }
 }

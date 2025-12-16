@@ -26,14 +26,14 @@ TEST(Weapon, UpdateTimer) {
 }
 
 TEST(Weapon, ShootingCooldown) {
-    weapon w(5.0f); // 5 shots per second = 0.2s cooldown
+    weapon w(5.0f);
     
     EXPECT_FALSE(w.can_shoot());
     
     w.update(0.1f);
     EXPECT_FALSE(w.can_shoot());
     
-    w.update(0.15f); // total 0.25s > 0.2s
+    w.update(0.15f);
     EXPECT_TRUE(w.can_shoot());
     
     w.reset_shot_timer();
@@ -59,7 +59,7 @@ TEST(Weapon, TripleShotUpgrade) {
     
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::TripleShot);
     EXPECT_FLOAT_EQ(w.fire_rate, 4.0f);
-    EXPECT_LT(w.fire_rate, original_fire_rate); // Slower for balance
+    EXPECT_LT(w.fire_rate, original_fire_rate);
 }
 
 TEST(Weapon, UpgradeOverwrite) {
@@ -69,7 +69,6 @@ TEST(Weapon, UpgradeOverwrite) {
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::PowerShot);
     EXPECT_EQ(w.damage, 25);
     
-    // Apply different upgrade
     w.apply_upgrade(WeaponUpgradeType::TripleShot);
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::TripleShot);
     EXPECT_FLOAT_EQ(w.fire_rate, 4.0f);

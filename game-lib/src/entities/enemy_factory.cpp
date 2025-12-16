@@ -65,10 +65,10 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     reg.register_component<weapon>();
 
     reg.add_component(enemy, position{x, y});
-    reg.add_component(enemy, velocity{-120.0f, 0.0f});  // Slightly slower
-    reg.add_component(enemy, health{15});  // More HP
+    reg.add_component(enemy, velocity{-120.0f, 0.0f});
+    reg.add_component(enemy, health{15});
 
-    reg.add_component(enemy, weapon{0.7f, 250.0f, 20});  // Slower fire rate
+    reg.add_component(enemy, weapon{0.7f, 250.0f, 20});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet24.png";
@@ -77,16 +77,15 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     sprite.texture_rect_w = 65;
     sprite.texture_rect_h = 66;
     sprite.scale = 1.5f;
-    sprite.flip_horizontal = true;  // Flip to face left
+    sprite.flip_horizontal = true;
     reg.add_component(enemy, sprite);
 
     animation_component anim;
-    // 5 frames from r-typesheet24.gif (326x66 total, so 65.2x66 per frame)
     anim.frames.push_back(sf::IntRect(0, 0, 65, 66));
     anim.frames.push_back(sf::IntRect(65, 0, 65, 66));
     anim.frames.push_back(sf::IntRect(130, 0, 65, 66));
     anim.frames.push_back(sf::IntRect(195, 0, 65, 66));
-    anim.frames.push_back(sf::IntRect(260, 0, 66, 66));  // Last frame slightly wider
+    anim.frames.push_back(sf::IntRect(260, 0, 66, 66));
     anim.current_frame = 0;
     anim.frame_duration = 0.12f;
     anim.time_accumulator = 0.0f;
@@ -94,9 +93,9 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{60.0f, 60.0f});
-    reg.add_component(enemy, damage_on_contact{30, false});  // More damage
+    reg.add_component(enemy, damage_on_contact{30, false});
     reg.add_component(enemy, enemy_tag{});
-    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy2});  // Use Enemy2 type
+    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy2});
 
     return enemy;
 }
@@ -111,8 +110,7 @@ void spawnEnemyWave(registry& reg, int count) {
     for (int i = 0; i < count; ++i) {
         float spawn_x = dis_x(gen);
         float spawn_y = dis_y(gen);
-        
-        // 70% chance for basic enemy (type 1), 30% for secondary enemy (type 2)
+
         float type_roll = dis_type(gen);
         if (type_roll < 0.70f) {
             createBasicEnemy(reg, spawn_x, spawn_y);

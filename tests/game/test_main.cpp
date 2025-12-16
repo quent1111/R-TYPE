@@ -2,7 +2,6 @@
 #include <iostream>
 #include <iomanip>
 
-// Listener personnalisé pour afficher le coverage à la fin
 class CoverageListener : public ::testing::EmptyTestEventListener {
 private:
     int total_tests = 0;
@@ -11,20 +10,17 @@ private:
 
 public:
     void OnTestProgramEnd(const ::testing::UnitTest& unit_test) override {
-        // Calculer les statistiques
         total_tests = unit_test.total_test_count();
         passed_tests = unit_test.successful_test_count();
         failed_tests = unit_test.failed_test_count();
         int disabled_tests = unit_test.disabled_test_count();
 
-        // Afficher le rapport de coverage
         std::cout << "\n";
         std::cout << "╔═══════════════════════════════════════════════════════╗\n";
         std::cout << "║              GAME LOGIC TEST COVERAGE                 ║\n";
         std::cout << "╚═══════════════════════════════════════════════════════╝\n";
         std::cout << "\n";
 
-        // Statistiques des tests
         std::cout << "📊 Test Statistics:\n";
         std::cout << "   • Total Tests:    " << total_tests << "\n";
         std::cout << "   • Passed:         " << "\033[0;32m" << passed_tests << " ✓\033[0m\n";
@@ -34,13 +30,11 @@ public:
         double success_rate = total_tests > 0 ? (static_cast<double>(passed_tests) / total_tests * 100.0) : 0.0;
         std::cout << "   • Success Rate:   " << std::fixed << std::setprecision(1) << success_rate << "%\n";
         
-        // Note spéciale si beaucoup de tests
         if (passed_tests >= 50) {
             std::cout << "\n   🎉 " << passed_tests << " tests passés ! Couverture excellente !\n";
         }
         std::cout << "\n";
 
-        // Composants couverts
         std::cout << "🎯 Components Covered:\n";
         std::cout << "   ✅ level_manager     - Level progression & enemy tracking\n";
         std::cout << "   ✅ health            - Player/enemy health states & healing\n";
@@ -55,7 +49,6 @@ public:
         std::cout << "   ✅ multi_hitbox      - Complex entity hitboxes\n";
         std::cout << "\n";
 
-        // Fonctionnalités testées
         std::cout << "🧪 Functionality Tested:\n";
         std::cout << "   • Enemy kill tracking and level completion\n";
         std::cout << "   • Health percentage calculation & damage/healing\n";
@@ -68,7 +61,6 @@ public:
         std::cout << "   • Multi-part hitbox systems\n";
         std::cout << "\n";
 
-        // Afficher un message en fonction du résultat
         if (failed_tests == 0) {
             std::cout << "\033[0;32m";
             std::cout << "╔═══════════════════════════════════════════════════════╗\n";
@@ -89,7 +81,6 @@ public:
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     
-    // Ajouter notre listener personnalisé
     ::testing::TestEventListeners& listeners = ::testing::UnitTest::GetInstance()->listeners();
     listeners.Append(new CoverageListener());
     

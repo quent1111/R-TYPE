@@ -33,11 +33,9 @@ TEST(ClientEntity, PositionUpdate) {
     entity.x = 100.0f;
     entity.y = 200.0f;
 
-    // Store previous position
     entity.prev_x = entity.x;
     entity.prev_y = entity.y;
 
-    // Update position
     entity.x += 10.0f;
     entity.y += 20.0f;
 
@@ -50,7 +48,6 @@ TEST(ClientEntity, PositionUpdate) {
 TEST(ClientEntity, AnimationFrames) {
     Entity entity;
 
-    // Add animation frames
     entity.frames.push_back(sf::IntRect(0, 0, 32, 32));
     entity.frames.push_back(sf::IntRect(32, 0, 32, 32));
     entity.frames.push_back(sf::IntRect(64, 0, 32, 32));
@@ -67,9 +64,8 @@ TEST(ClientEntity, VelocityInterpolation) {
     entity.vx = 100.0f;
     entity.vy = 50.0f;
 
-    float dt = 0.016f; // ~60fps
+    float dt = 0.016f;
 
-    // Simulate position update with velocity
     float new_x = entity.x + entity.vx * dt;
     float new_y = entity.y + entity.vy * dt;
 

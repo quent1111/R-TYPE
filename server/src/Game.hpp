@@ -47,11 +47,10 @@ private:
     std::unordered_set<int> _players_who_chose_powerup;
     GamePhase _game_phase = GamePhase::Lobby;
 
-    // Boss management for level 5
     std::optional<entity> _boss_entity;
     float _boss_animation_timer = 0.0f;
     float _boss_shoot_timer = 0.0f;
-    float _boss_shoot_cooldown = 1.0f;  // time bullet shot boss
+    float _boss_shoot_cooldown = 1.0f;
     bool _boss_animation_complete = false;
     bool _boss_entrance_complete = false;
     float _boss_target_x = 1500.0f;

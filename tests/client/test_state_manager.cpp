@@ -103,10 +103,7 @@ TEST_F(StateManagerTest, UpdatePropagation) {
 }
 
 TEST_F(StateManagerTest, RenderPropagation) {
-    // sf::RenderWindow window(sf::VideoMode(800, 600), "Test", sf::Style::None);
     manager_->push_state("state1");
-    // manager_->render(window);
-    // window.close();
 }
 
 TEST_F(StateManagerTest, NoEventWhenNoStates) {
@@ -122,10 +119,7 @@ TEST_F(StateManagerTest, NoUpdateWhenNoStates) {
 }
 
 TEST_F(StateManagerTest, NoRenderWhenNoStates) {
-    // sf::RenderWindow window(sf::VideoMode(800, 600), "Test", sf::Style::None);
-    // manager_->render(window);
     EXPECT_FALSE(manager_->has_states());
-    // window.close();
 }
 
 TEST_F(StateManagerTest, MultipleStatesPushed) {

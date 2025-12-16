@@ -45,7 +45,6 @@ void waveSystem(registry& reg, float dt) {
                     auto& lvl_mgr = level_managers[j].value();
                     int level = lvl_mgr.current_level;
 
-                    // Au niveau 5, c'est le niveau boss - pas de spawn d'ennemis normaux
                     if (level == 5) {
                         is_boss_level = true;
                         break;
@@ -60,7 +59,6 @@ void waveSystem(registry& reg, float dt) {
                 }
             }
 
-            // Ne pas spawner d'ennemis normaux pendant le niveau boss
             if (!is_boss_level) {
                 manager.timer += dt;
                 if (manager.timer >= manager.spawn_interval) {

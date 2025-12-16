@@ -30,7 +30,6 @@ TEST(BoundedMovement, CustomBounds) {
 TEST(BoundedMovement, ClampPosition) {
     bounded_movement bounds(0.0f, 800.0f, 0.0f, 600.0f);
     
-    // Test clamping x
     float x = -10.0f;
     if (x < bounds.min_x) x = bounds.min_x;
     if (x > bounds.max_x) x = bounds.max_x;
@@ -41,7 +40,6 @@ TEST(BoundedMovement, ClampPosition) {
     if (x > bounds.max_x) x = bounds.max_x;
     EXPECT_FLOAT_EQ(x, 800.0f);
 
-    // Test clamping y
     float y = -50.0f;
     if (y < bounds.min_y) y = bounds.min_y;
     if (y > bounds.max_y) y = bounds.max_y;
@@ -70,15 +68,12 @@ TEST(WaveManager, TimerUpdate) {
     wave_manager wm(5.0f, 3);
     wm.timer = 0.0f;
 
-    // Simulate time passing
-    wm.timer += 0.016f; // 1 frame at 60fps
+    wm.timer += 0.016f;
     EXPECT_GT(wm.timer, 0.0f);
 
-    // Check if spawn interval reached
     wm.timer = 5.5f;
     EXPECT_GE(wm.timer, wm.spawn_interval);
 
-    // Reset timer after spawn
     wm.timer = 0.0f;
     EXPECT_FLOAT_EQ(wm.timer, 0.0f);
 }

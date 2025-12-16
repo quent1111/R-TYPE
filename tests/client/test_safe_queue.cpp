@@ -51,7 +51,6 @@ TEST(ThreadSafeQueue, ThreadSafety) {
     const int num_threads = 4;
     const int items_per_thread = 100;
 
-    // Producer threads
     std::vector<std::thread> producers;
     for (int t = 0; t < num_threads; ++t) {
         producers.emplace_back([&queue, t, items_per_thread]() {
@@ -61,15 +60,12 @@ TEST(ThreadSafeQueue, ThreadSafety) {
         });
     }
 
-    // Wait for producers
     for (auto& thread : producers) {
         thread.join();
     }
 
-    // Verify all items were added
     EXPECT_EQ(queue.size(), num_threads * items_per_thread);
 
-    // Consumer threads
     std::vector<int> consumed_values;
     std::mutex consumed_mutex;
 
@@ -84,12 +80,10 @@ TEST(ThreadSafeQueue, ThreadSafety) {
         });
     }
 
-    // Wait for consumers
     for (auto& thread : consumers) {
         thread.join();
     }
 
-    // Verify all items were consumed
     EXPECT_EQ(consumed_values.size(), num_threads * items_per_thread);
     EXPECT_TRUE(queue.empty());
 }
