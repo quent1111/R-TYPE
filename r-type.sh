@@ -57,6 +57,7 @@ ${YELLOW}COMMANDS:${NC}
     ${GREEN}client${NC}              Build and run the client
     ${GREEN}server${NC}              Build and run the server
     ${GREEN}test${NC}                Build and run tests
+    ${GREEN}tests${NC}               Build and run game unit tests only
     ${GREEN}coverage${NC}            Generate code coverage report
     ${GREEN}valgrind${NC}            Run memory leak analysis
     ${GREEN}clean${NC}               Clean build directory
@@ -84,6 +85,9 @@ ${YELLOW}EXAMPLES:${NC}
 
     ${CYAN}# Run tests${NC}
     ./r-type.sh test
+
+    ${CYAN}# Run game unit tests only${NC}
+    ./r-type.sh tests
 
     ${CYAN}# Run client${NC}
     ./r-type.sh client
@@ -411,6 +415,76 @@ run_tests() {
     print_success "All tests passed!"
 }
 
+run_game_tests() {
+    print_step "Running all unit tests..."
+    local BIN_DIR=$(get_bin_dir)
+    
+    # Liste des tests à exécuter
+    local TEST_BINS=("test_game" "test_network" "test_client_units")
+    local ALL_PASSED=true
+    local TOTAL_TESTS=0
+    local TOTAL_PASSED=0
+    local TOTAL_FAILED=0
+    
+    for TEST_BIN in "${TEST_BINS[@]}"; do
+        if [ ! -f "$BIN_DIR/$TEST_BIN" ]; then
+            print_warning "$TEST_BIN not found, building..."
+            do_build "$TEST_BIN"
+            BIN_DIR=$(get_bin_dir)
+        fi
+        
+        if [ -f "$BIN_DIR/$TEST_BIN" ]; then
+            echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}Running: $TEST_BIN${NC}"
+            echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            cd "$BIN_DIR"
+            
+            # Capture output to count tests
+            OUTPUT=$(./$TEST_BIN "$@" 2>&1)
+            EXIT_CODE=$?
+            echo "$OUTPUT"
+            
+            # Extract test counts (this is approximate, adjust regex as needed)
+            PASSED=$(echo "$OUTPUT" | grep -oE "[0-9]+ tests? passed" | grep -oE "[0-9]+" | head -1)
+            if [ -z "$PASSED" ]; then
+                PASSED=$(echo "$OUTPUT" | grep -oE "PASSED.*[0-9]+ test" | grep -oE "[0-9]+" | head -1)
+            fi
+            
+            if [ ! -z "$PASSED" ]; then
+                TOTAL_PASSED=$((TOTAL_PASSED + PASSED))
+            fi
+            
+            if [ $EXIT_CODE -ne 0 ]; then
+                ALL_PASSED=false
+            fi
+        fi
+    done
+    
+    # Display grand total
+    echo ""
+    echo -e "${MAGENTA}╔═══════════════════════════════════════════════════════╗${NC}"
+    echo -e "${MAGENTA}║              TOTAL TEST SUITE SUMMARY                 ║${NC}"
+    echo -e "${MAGENTA}╚═══════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    if [ $TOTAL_PASSED -gt 0 ]; then
+        echo -e "${GREEN}   🎯 Total Tests Passed: ${TOTAL_PASSED}${NC}"
+    fi
+    if [ $TOTAL_PASSED -ge 100 ]; then
+        echo -e "${GREEN}   🏆 INCREDIBLE! Over 100 tests passed!${NC}"
+        echo -e "${GREEN}   🌟 Code quality: EXCELLENT${NC}"
+    elif [ $TOTAL_PASSED -ge 50 ]; then
+        echo -e "${GREEN}   ✨ Great coverage with $TOTAL_PASSED tests!${NC}"
+    fi
+    echo ""
+    
+    if [ "$ALL_PASSED" = true ]; then
+        print_success "All test suites passed!"
+    else
+        print_error "Some test suites failed"
+        exit 1
+    fi
+}
+
 generate_coverage() {
     print_step "Generating code coverage report..."
     if [ "$BUILD_TYPE" != "Debug" ]; then
@@ -564,6 +638,14 @@ main() {
             print_banner
             do_build
             run_tests
+            ;;
+        tests)
+            print_banner
+            # Build tous les tests
+            do_build "test_game"
+            do_build "test_network"
+            do_build "test_client_units"
+            run_game_tests "$@"
             ;;
         coverage)
             print_banner

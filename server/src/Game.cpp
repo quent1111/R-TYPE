@@ -4,9 +4,9 @@
 #include "../../src/Common/Opcodes.hpp"
 #include "inputKey.hpp"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <cmath>
 
 #include <chrono>
 #include <iostream>
@@ -145,7 +145,7 @@ void Game::broadcast_entity_positions(UDPServer& server) {
                 // Pour les types custom (0x07, etc.) utiliser OTHER_ID_OFFSET
                 network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
             }
-            
+
             _broadcast_serializer << network_id;
             _broadcast_serializer << static_cast<uint8_t>(tags[i]->type);
             _broadcast_serializer << pos.x;
@@ -406,7 +406,7 @@ void Game::start_game(UDPServer& server) {
 
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
-    
+
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
     RType::BinarySerializer level_start;
     level_start << RType::MagicNumber::VALUE;
@@ -470,10 +470,10 @@ void Game::update_game_state(UDPServer& server, float dt) {
     waveSystem(_registry, dt);
     movementSystem(_registry, dt);
     collisionSystem(_registry);
-    
+
     // Update boss behavior (shooting projectiles)
     update_boss_behavior(server, dt);
-    
+
     auto& cannons = _registry.get_components<power_cannon>();
     auto& shields = _registry.get_components<shield>();
     for (std::size_t i = 0; i < cannons.size(); ++i) {
@@ -581,6 +581,12 @@ void Game::check_level_completion(UDPServer& server) {
             auto& lvl_mgr = level_managers[i].value();
             if (lvl_mgr.level_completed && !_level_complete_waiting &&
                 !_waiting_for_powerup_choice) {
+                std::cout << "[Game] Level " << static_cast<int>(lvl_mgr.current_level)
+                          << " completed! Clearing enemies..." << std::endl;
+
+                _players_who_chose_powerup.clear();  // Reset pour le nouveau niveau
+                clear_enemies_and_projectiles();     // Nettoyer ennemis et projectiles
+
                 broadcast_level_complete(server);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 broadcast_powerup_selection(server);
@@ -616,17 +622,40 @@ void Game::handle_powerup_choice(int client_id, uint8_t powerup_choice, UDPServe
                   << std::endl;
         return;
     }
+
     auto player = player_opt.value();
     if (powerup_choice == 1) {
         _registry.emplace_component<power_cannon>(player);
+        std::cout << "[Game] Client " << client_id << " chose Power Cannon" << std::endl;
     } else if (powerup_choice == 2) {
         _registry.emplace_component<shield>(player);
+        std::cout << "[Game] Client " << client_id << " chose Shield" << std::endl;
     }
-    _waiting_for_powerup_choice = false;
-    _level_complete_waiting = false;
-    broadcast_powerup_status(server);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    advance_level(server);
+
+    _players_who_chose_powerup.insert(client_id);
+
+    int alive_players = 0;
+    for (const auto& [cid, entity_id] : _client_entity_ids) {
+        auto p = _registry.entity_from_index(entity_id);
+        auto health_opt = _registry.get_component<health>(p);
+        if (health_opt.has_value() && health_opt->current > 0) {
+            alive_players++;
+        }
+    }
+
+    std::cout << "[Game] Powerup choices: " << _players_who_chose_powerup.size() << "/"
+              << alive_players << " players" << std::endl;
+
+    if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
+        std::cout << "[Game] All players have chosen! Advancing level..." << std::endl;
+        _waiting_for_powerup_choice = false;
+        _level_complete_waiting = false;
+        _players_who_chose_powerup.clear();
+
+        broadcast_powerup_status(server);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        advance_level(server);
+    }
 }
 
 void Game::handle_powerup_activate(int client_id, UDPServer& server) {
@@ -760,7 +789,6 @@ void Game::advance_level(UDPServer& server) {
 
             respawn_dead_players(server);
 
-            // Spawn boss at level 5
             if (lvl_mgr.current_level == 5) {
                 std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
                 spawn_boss_level_5(server);
@@ -774,6 +802,50 @@ void Game::advance_level(UDPServer& server) {
             break;
         }
     }
+}
+
+void Game::clear_enemies_and_projectiles() {
+    auto& enemy_tags = _registry.get_components<enemy_tag>();
+    auto& projectile_tags = _registry.get_components<projectile_tag>();
+    auto& boss_tags = _registry.get_components<boss_tag>();
+
+    int enemies_cleared = 0;
+    int projectiles_cleared = 0;
+    int bosses_cleared = 0;
+
+    for (std::size_t i = 0; i < enemy_tags.size(); ++i) {
+        if (enemy_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            enemies_cleared++;
+        }
+    }
+
+    for (std::size_t i = 0; i < projectile_tags.size(); ++i) {
+        if (projectile_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            projectiles_cleared++;
+        }
+    }
+
+    for (std::size_t i = 0; i < boss_tags.size(); ++i) {
+        if (boss_tags[i].has_value()) {
+            auto ent = _registry.entity_from_index(i);
+            _registry.remove_component<entity_tag>(ent);
+            _registry.kill_entity(ent);
+            bosses_cleared++;
+        }
+    }
+
+    if (_boss_entity.has_value()) {
+        _boss_entity = std::nullopt;
+    }
+
+    std::cout << "[Game] Cleared level: " << enemies_cleared << " enemies, " << projectiles_cleared
+              << " projectiles, " << bosses_cleared << " bosses" << std::endl;
 }
 
 bool Game::check_all_players_dead() {
@@ -874,8 +946,7 @@ void Game::reset_game([[maybe_unused]] UDPServer& server) {
             auto boss_entity = _boss_entity.value();
             _registry.remove_component<entity_tag>(boss_entity);
             _registry.kill_entity(boss_entity);
-        } catch (...) {
-        }
+        } catch (...) {}
     }
     _boss_entity = std::nullopt;
     _boss_animation_timer = 0.0f;
@@ -886,7 +957,7 @@ void Game::reset_game([[maybe_unused]] UDPServer& server) {
     std::cout << "[Game] Game reset. Back to lobby." << std::endl;
 }
 
-void Game::spawn_boss_level_5(UDPServer& server) {
+void Game::spawn_boss_level_5([[maybe_unused]] UDPServer& server) {
     float boss_spawn_x = 2400.0f;
     float boss_y = 540.0f;
     _boss_target_x = 1500.0f;
@@ -902,11 +973,9 @@ void Game::spawn_boss_level_5(UDPServer& server) {
     _registry.add_component(boss, damage_on_contact{50, false});
 
     multi_hitbox boss_hitboxes;
-    boss_hitboxes.parts = {
-        multi_hitbox::hitbox_part{250.0f, 250.0f, -200.0f, -350.0f},
-        multi_hitbox::hitbox_part{350.0f, 500.0f, 25.0f, -100.0f},
-        multi_hitbox::hitbox_part{200.0f, 200.0f, -100.0f,  220.0f}
-    };
+    boss_hitboxes.parts = {multi_hitbox::hitbox_part{250.0f, 250.0f, -200.0f, -350.0f},
+                           multi_hitbox::hitbox_part{350.0f, 500.0f, 25.0f, -100.0f},
+                           multi_hitbox::hitbox_part{200.0f, 200.0f, -100.0f, 220.0f}};
     _registry.add_component(boss, boss_hitboxes);
 
     _registry.add_component(boss, boss_tag{});
@@ -934,8 +1003,7 @@ void Game::update_boss_behavior(UDPServer& server, float dt) {
             auto boss_entity = _boss_entity.value();
             _registry.remove_component<entity_tag>(boss_entity);
             _registry.kill_entity(boss_entity);
-        } catch (...) {
-        }
+        } catch (...) {}
         _boss_entity = std::nullopt;
         return;
     }
@@ -956,7 +1024,8 @@ void Game::update_boss_behavior(UDPServer& server, float dt) {
                 }
 
                 _boss_entrance_complete = true;
-                std::cout << "[BOSS] Boss entrance complete! Stopped at X=" << _boss_target_x << std::endl;
+                std::cout << "[BOSS] Boss entrance complete! Stopped at X=" << _boss_target_x
+                          << std::endl;
             }
         }
         return;
@@ -980,7 +1049,7 @@ void Game::update_boss_behavior(UDPServer& server, float dt) {
     }
 }
 
-void Game::boss_shoot_projectile(UDPServer& server) {
+void Game::boss_shoot_projectile([[maybe_unused]] UDPServer& server) {
     if (!_boss_entity.has_value()) {
         return;
     }
@@ -999,7 +1068,8 @@ void Game::boss_shoot_projectile(UDPServer& server) {
         auto player_pos_opt = _registry.get_component<position>(player);
         auto player_health_opt = _registry.get_component<health>(player);
 
-        if (player_pos_opt.has_value() && player_health_opt.has_value() && player_health_opt->current > 0) {
+        if (player_pos_opt.has_value() && player_health_opt.has_value() &&
+            player_health_opt->current > 0) {
             player_positions.push_back({player_pos_opt->x, player_pos_opt->y});
         }
     }
@@ -1037,7 +1107,8 @@ void Game::boss_shoot_projectile(UDPServer& server) {
 
         _registry.add_component(projectile, entity_tag{static_cast<RType::EntityType>(0x07)});
 
-        std::cout << "[BOSS] Fired projectile 0x07 towards player at (" << target_x << ", " << target_y << ")" << std::endl;
+        std::cout << "[BOSS] Fired projectile 0x07 towards player at (" << target_x << ", "
+                  << target_y << ")" << std::endl;
         std::cout << "[BOSS] Projectile velocity: (" << vx << ", " << vy << ")" << std::endl;
     }
 }

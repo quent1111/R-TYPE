@@ -33,10 +33,22 @@ target_link_libraries(test_ecs PRIVATE
 # Network Tests
 # ----------------------------------------------------------------------------
 add_executable(test_network
+    network/test_main_network.cpp
     network/test_protocol.cpp
     network/test_serialization.cpp
     network/test_udp_socket.cpp
+    # Advanced tests
+    network/test_serialization_advanced.cpp
+    network/test_protocol_advanced.cpp
+    network/test_opcodes.cpp
+    network/test_serializer_edge_cases.cpp
 )
+
+target_include_directories(test_network PRIVATE
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/game-lib/include
+)
+
 target_link_libraries(test_network PRIVATE
     r-type-engine
     gtest::gtest
@@ -44,16 +56,35 @@ target_link_libraries(test_network PRIVATE
     project_options
     project_warnings
 )
-# add_test(NAME NetworkTests COMMAND test_network)
+add_test(NAME NetworkTests COMMAND test_network)
 
 # ----------------------------------------------------------------------------
 # Game Logic Tests
 # ----------------------------------------------------------------------------
 add_executable(test_game
+    game/test_main.cpp
     game/test_collision.cpp
     game/test_movement.cpp
     game/test_spawning.cpp
+    game/test_level_manager.cpp
+    game/test_health.cpp
+    game/test_shield.cpp
+    game/test_weapon.cpp
+    game/test_power_cannon.cpp
+    # Advanced tests
+    game/test_collision_components.cpp
+    game/test_movement_components.cpp
+    game/test_weapon_advanced.cpp
+    game/test_powerups.cpp
+    game/test_health_advanced.cpp
+    game/test_tags.cpp
+    game/test_edge_cases.cpp
 )
+
+target_include_directories(test_game PRIVATE
+    ${CMAKE_SOURCE_DIR}/game-lib/include
+)
+
 target_link_libraries(test_game PRIVATE
     r-type-engine
     gtest::gtest
@@ -108,6 +139,31 @@ target_link_libraries(test_client_minimal PRIVATE
 )
 
 add_test(NAME ClientMinimalTest COMMAND test_client_minimal)
+
+# ----------------------------------------------------------------------------
+# Client Unit Tests (Entity, SafeQueue)
+# ----------------------------------------------------------------------------
+add_executable(test_client_units
+    client/test_main_client.cpp
+    client/test_entity.cpp
+    client/test_safe_queue.cpp
+    client/test_entity_advanced.cpp
+    client/test_queue_advanced.cpp
+)
+
+target_include_directories(test_client_units PRIVATE
+    ${CMAKE_SOURCE_DIR}/client/src
+    ${CMAKE_SOURCE_DIR}/client/include
+)
+
+target_link_libraries(test_client_units PRIVATE
+    gtest::gtest
+    sfml::sfml
+    project_options
+    project_warnings
+)
+
+add_test(NAME ClientUnitsTest COMMAND test_client_units)
 
 # Je remettrai quand j'aurai mis le menu
 # add_executable(test_client

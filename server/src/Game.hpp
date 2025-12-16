@@ -6,8 +6,8 @@
 #include "../../engine/ecs/sparse_array.hpp"
 #include "../../game-lib/include/components/game_components.hpp"
 #include "../../game-lib/include/components/logic_components.hpp"
-#include "../../game-lib/include/entities/enemy_factory.hpp"
 #include "../../game-lib/include/entities/boss_factory.hpp"
+#include "../../game-lib/include/entities/enemy_factory.hpp"
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
 #include "../../game-lib/include/systems/cleanup_system.hpp"
@@ -21,6 +21,7 @@
 #include <atomic>
 #include <optional>
 #include <unordered_map>
+#include <unordered_set>
 
 enum class GamePhase { Lobby, InGame };
 
@@ -43,8 +44,9 @@ private:
     bool _level_complete_waiting = false;
     bool _waiting_for_powerup_choice = false;
     bool _waiting_for_game_over_reset = false;
+    std::unordered_set<int> _players_who_chose_powerup;
     GamePhase _game_phase = GamePhase::Lobby;
-    
+
     // Boss management for level 5
     std::optional<entity> _boss_entity;
     float _boss_animation_timer = 0.0f;
@@ -71,6 +73,7 @@ private:
     void broadcast_powerup_selection(UDPServer& server);
     void broadcast_powerup_status(UDPServer& server);
     void advance_level(UDPServer& server);
+    void clear_enemies_and_projectiles();
     bool check_all_players_dead();
     void respawn_dead_players(UDPServer& server);
     void broadcast_game_over(UDPServer& server);

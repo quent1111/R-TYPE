@@ -32,7 +32,6 @@ void LobbyState::on_enter() {
     m_footer.reset();
 
     setup_ui();
-
 }
 
 void LobbyState::on_exit() {
@@ -271,4 +270,4 @@ void LobbyState::render(sf::RenderWindow& window) {
     }
 }
 
-}
+}  // namespace rtype
