@@ -42,6 +42,9 @@ void InputHandler::handle_player_input(
     auto& power_cannon_opt = reg.get_component<power_cannon>(player);
 
     if (pos_opt.has_value() && vel_opt.has_value()) {
+        vel_opt->vx = 0.0f;
+        vel_opt->vy = 0.0f;
+
         float speed = 300.0f;
         if (input_mask & KEY_Z)
             vel_opt->vy = -speed;
