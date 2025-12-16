@@ -11,6 +11,7 @@ add_executable(r-type_client
     src/rendering/GameRenderer.cpp
     src/rendering/HUDRenderer.cpp
     src/rendering/OverlayRenderer.cpp
+    src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
     src/states/LobbyState.cpp
