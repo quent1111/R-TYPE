@@ -64,7 +64,10 @@ plugins:
 # Navigation structure
 nav:
   - Home: index.md
-  - Game Design: game-design/game-design.md
+  - Game Design:
+      - Game Design: game-design/game-design.md
+      - Player Guide: game-design/player-guide.md
+      - Game Systems Guide: game-design/game-systems.md
   - Getting Started:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
@@ -74,16 +77,15 @@ nav:
       - ECS System: architecture/ecs.md
       - Network: architecture/network.md
       - Game Engine: architecture/engine.md
+  - Refactoring:
+      - Client Refactoring: REFACTOR_CLIENT.md
+      - Server Refactoring: REFACTOR_SERVER.md
   - Developer Guide:
       - Contributing: developer-guide/contributing.md
       - Code Style: developer-guide/code-style.md
       - Git Workflow: developer-guide/git-workflow.md
       - Testing: developer-guide/testing.md
       - Technical Choices: developer-guide/technical-choices.md
-  - API Reference:
-      - Client API: api/client.md
-      - Server API: api/server.md
-      - Engine API: api/engine.md
   - Scripts: scripts/index.md
 
 # Extra configuration

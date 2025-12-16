@@ -1,6 +1,6 @@
 #include "states/MenuState.hpp"
 
-#include "AudioManager.hpp"
+#include "managers/AudioManager.hpp"
 #include "ui/SettingsPanel.hpp"
 
 #include <iostream>
@@ -19,9 +19,9 @@ void MenuState::on_enter() {
     m_footer.reset();
     setup_ui();
 
-    auto& audio = AudioManager::getInstance();
-    audio.loadSounds();
-    audio.playMusic("assets/sounds/menu-loop.ogg", true);
+    auto& audio = managers::AudioManager::instance();
+    audio.load_sounds();
+    audio.play_music("assets/sounds/menu-loop.ogg", true);
 }
 
 void MenuState::on_exit() {
@@ -93,13 +93,13 @@ void MenuState::setup_ui() {
 
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_next_state = "lobby";
 }
 
 void MenuState::on_quit_clicked() {
     std::cout << "[MenuState] Quit button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_window.close();
 }
 
@@ -135,9 +135,12 @@ void MenuState::handle_event(const sf::Event& event) {
             m_window.close();
         }
         if (event.key.code == sf::Keyboard::S) {
-            if (!m_settings_panel) m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
-            if (m_settings_panel->is_open()) m_settings_panel->close();
-            else m_settings_panel->open();
+            if (!m_settings_panel)
+                m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+            if (m_settings_panel->is_open())
+                m_settings_panel->close();
+            else
+                m_settings_panel->open();
         }
         if (m_settings_panel && m_settings_panel->is_open()) {
             if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
@@ -172,7 +175,8 @@ void MenuState::update(float dt) {
             m_settings_panel->get_new_window_settings(new_size, fullscreen);
             m_settings_panel->clear_window_recreate_flag();
             if (fullscreen) {
-                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer", sf::Style::Fullscreen);
+                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer",
+                                sf::Style::Fullscreen);
             } else {
                 m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer");
             }

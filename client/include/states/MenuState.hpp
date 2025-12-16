@@ -3,7 +3,6 @@
 #include "states/IState.hpp"
 #include "ui/MenuComponents.hpp"
 #include "ui/SettingsPanel.hpp"
-#include <memory>
 
 #include <SFML/Graphics.hpp>
 
@@ -11,7 +10,6 @@
 #include <vector>
 
 namespace rtype {
-
 
 class MenuState : public IState {
 public:

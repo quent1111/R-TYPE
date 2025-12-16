@@ -1,6 +1,5 @@
-#include "Game.hpp"
-#include "NetworkPacket.hpp"
-#include "UDPServer.hpp"
+#include "game/GameSession.hpp"
+#include "network/UDPServer.hpp"
 
 #include <csignal>
 
@@ -18,12 +17,12 @@ void signal_handler(int signal) {
     }
 }
 
-void game_loop(UDPServer& server) {
-    Game gameInstance;
+void game_loop(server::UDPServer& server) {
+    server::GameSession gameInstance;
     gameInstance.runGameLoop(server);
 }
 
-void network_loop(UDPServer& server) {
+void network_loop(server::UDPServer& server) {
     std::cout << "[Core] Network loop started" << std::endl;
     server.run_network_loop();
     std::cout << "[Core] Network loop stopped" << std::endl;
@@ -48,28 +47,33 @@ int main(int argc, char** argv) {
                 port = 4242;
             }
         } else {
+            std::cerr << "[Error] Unknown argument: " << arg << std::endl;
         }
     }
 
-    std::cout << "R-Type Server Starting..." << std::endl;
-    std::cout << "Bind: " << bind_address << std::endl;
-    std::cout << "Port: " << port << std::endl;
+    std::cout << "==============================" << std::endl;
+    std::cout << "   R-TYPE Server Starting     " << std::endl;
+    std::cout << "==============================" << std::endl;
+    std::cout << "[Config] Bind address: " << bind_address << std::endl;
+    std::cout << "[Config] Port: " << port << std::endl;
 
     try {
         asio::io_context io_context;
-        UDPServer server(io_context, bind_address, port);
+        server::UDPServer server(io_context, bind_address, port);
 
         std::thread network_thread(network_loop, std::ref(server));
         std::thread game_thread(game_loop, std::ref(server));
-        std::cout << "Server running... Press Ctrl+C to stop" << std::endl;
+
         game_thread.join();
         server.stop();
         network_thread.join();
 
-        std::cout << "Server stopped successfully" << std::endl;
+        std::cout << "[Core] Server shutdown complete" << std::endl;
+
     } catch (const std::exception& e) {
-        std::cerr << "Server error: " << e.what() << std::endl;
+        std::cerr << "[Fatal] " << e.what() << std::endl;
         return 1;
     }
+
     return 0;
 }

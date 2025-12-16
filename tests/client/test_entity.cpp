@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../../client/src/Entity.hpp"
+#include "../../client/include/game/Entity.hpp"
 #include <SFML/Graphics.hpp>
 
 TEST(ClientEntity, DefaultConstruction) {

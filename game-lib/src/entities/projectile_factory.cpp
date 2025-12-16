@@ -4,7 +4,7 @@
 #include <cmath>
 
 entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage, 
-                        WeaponUpgradeType upgrade_type) {
+                        WeaponUpgradeType upgrade_type, bool power_cannon_active) {
     entity projectile = reg.spawn_entity();
 
     reg.register_component<position>();
@@ -21,11 +21,38 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
         {231 + 16, 102, 16, 17}
     };
 
+    std::string texture_path = "assets/r-typesheet1.png";
+    int texture_x = 231;
+    int texture_y = 102;
+    int texture_w = 16;
+    int texture_h = 17;
     float scale = 2.0f;
     float collision_w = 24.0f;
     float collision_h = 24.0f;
+    float final_vx = vx;
+    float final_vy = vy;
 
-    if (upgrade_type == WeaponUpgradeType::PowerShot) {
+    if (power_cannon_active) {
+        final_vx = vx * 2.0f;
+        final_vy = vy * 2.0f;
+    }
+
+    float projectile_speed = std::sqrt(final_vx * final_vx + final_vy * final_vy);
+
+    if (projectile_speed > 600.0f) {
+        texture_path = "assets/canonpowerup.png";
+        texture_x = 0;
+        texture_y = 0;
+        texture_w = 51;
+        texture_h = 21;
+        projectile_frames = {
+            {0, 0, 51, 21},
+            {52, 0, 51, 21}
+        };
+        scale = 2.0f;
+        collision_w = 102.0f;
+        collision_h = 42.0f;
+    } else if (upgrade_type == WeaponUpgradeType::PowerShot) {
         scale = 3.5f;
         collision_w = 42.0f;
         collision_h = 42.0f;
@@ -36,9 +63,9 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
     }
 
     reg.add_component(projectile, position{x, y});
-    reg.add_component(projectile, velocity{vx, vy});
+    reg.add_component(projectile, velocity{final_vx, final_vy});
     reg.add_component(projectile,
-                      sprite_component{"assets/r-typesheet1.png", 231, 102, 16, 17, scale});
+                      sprite_component{texture_path, texture_x, texture_y, texture_w, texture_h, scale});
     reg.add_component(projectile,
                       animation_component{projectile_frames, 0.08f, true});
     reg.add_component(projectile, collision_box{collision_w, collision_h});

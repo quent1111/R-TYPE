@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Game.hpp"
-#include "Messages.hpp"
-#include "NetworkClient.hpp"
-#include "SafeQueue.hpp"
+#include "common/SafeQueue.hpp"
+#include "game/Game.hpp"
+#include "network/Messages.hpp"
+#include "network/NetworkClient.hpp"
 #include "states/IState.hpp"
 
 #include <SFML/Graphics.hpp>

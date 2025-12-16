@@ -16,6 +16,8 @@ void collisionSystem(registry& reg) {
     auto& player_tags = reg.get_components<player_tag>();
     auto& level_managers = reg.get_components<level_manager>();
     auto& shields = reg.get_components<shield>();
+    auto& damage_flashes = reg.get_components<damage_flash_component>();
+    auto& homing_comps = reg.get_components<homing_component>();
 
     for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
         if (player_tags[p] && positions[p] && shields[p]) {
@@ -46,7 +48,7 @@ void collisionSystem(registry& reg) {
                         }
                     }
                 }
-                
+
                 for (std::size_t b = 0; b < positions.size() && b < boss_tags.size(); ++b) {
                     if (boss_tags[b] && positions[b] && healths[b]) {
                         auto& boss_pos = positions[b].value();
@@ -55,6 +57,13 @@ void collisionSystem(registry& reg) {
                         if (player_shield.is_enemy_in_range(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y)) {
                             boss_hp.current -= 10;
                             if (boss_hp.current < 0) boss_hp.current = 0;
+
+                            if (b < damage_flashes.size() && damage_flashes[b].has_value()) {
+                                damage_flashes[b]->trigger();
+                            }
+
+                            createExplosion(reg, boss_pos.x + (player_pos.x - boss_pos.x) * 0.3f, 
+                                          boss_pos.y + (player_pos.y - boss_pos.y) * 0.3f);
 
                             if (boss_hp.is_dead()) {
                                 createExplosion(reg, boss_pos.x, boss_pos.y);
@@ -184,6 +193,12 @@ void collisionSystem(registry& reg) {
                         boss_hp.current -= proj_dmg.damage_amount;
                         if (boss_hp.current < 0) boss_hp.current = 0;
 
+                        if (j < damage_flashes.size() && damage_flashes[j].has_value()) {
+                            damage_flashes[j]->trigger();
+                        }
+
+                        createExplosion(reg, proj_pos.x, proj_pos.y);
+
                         if (proj_dmg.destroy_on_hit) {
                             auto proj_entity = reg.entity_from_index(i);
                             reg.remove_component<entity_tag>(proj_entity);
@@ -203,6 +218,49 @@ void collisionSystem(registry& reg) {
                                     break;
                                 }
                             }
+                        }
+                        break;
+                    }
+                }
+            }
+
+            for (std::size_t j = 0; j < positions.size() && j < homing_comps.size(); ++j) {
+                if (i == j) continue;
+
+                if (j < projectile_tags.size() && projectile_tags[j].has_value()) continue;
+
+                if (homing_comps[j] && positions[j] && collision_boxes[j] && healths[j]) {
+                    auto& homing_pos = positions[j].value();
+                    auto& homing_box = collision_boxes[j].value();
+                    auto& homing_hp = healths[j].value();
+
+                    float p_left = proj_pos.x + proj_box.offset_x;
+                    float p_top = proj_pos.y + proj_box.offset_y;
+                    float p_right = p_left + proj_box.width;
+                    float p_bottom = p_top + proj_box.height;
+
+                    float h_left = homing_pos.x + homing_box.offset_x;
+                    float h_top = homing_pos.y + homing_box.offset_y;
+                    float h_right = h_left + homing_box.width;
+                    float h_bottom = h_top + homing_box.height;
+
+                    if (p_left < h_right && p_right > h_left &&
+                        p_top < h_bottom && p_bottom > h_top) {
+                        homing_hp.current -= proj_dmg.damage_amount;
+                        if (homing_hp.current < 0) homing_hp.current = 0;
+
+                        if (proj_dmg.destroy_on_hit) {
+                            auto proj_entity = reg.entity_from_index(i);
+                            reg.remove_component<entity_tag>(proj_entity);
+                            reg.kill_entity(proj_entity);
+                        }
+
+                        if (homing_hp.is_dead()) {
+                            createExplosion(reg, homing_pos.x, homing_pos.y);
+                            
+                            auto homing_entity = reg.entity_from_index(j);
+                            reg.remove_component<entity_tag>(homing_entity);
+                            reg.kill_entity(homing_entity);
                         }
                         break;
                     }
@@ -260,14 +318,70 @@ void collisionSystem(registry& reg) {
                                 reg.kill_entity(proj_entity_enemy);
                             }
 
-                            break;
-                        }
+                        break;
                     }
                 }
             }
         }
     }
 
+    for (std::size_t h = 0; h < positions.size() && h < homing_comps.size(); ++h) {
+        if (homing_comps[h] && positions[h] && collision_boxes[h] && damage_contacts[h]) {
+            auto& homing_pos = positions[h].value();
+            auto& homing_box = collision_boxes[h].value();
+            auto& homing_dmg = damage_contacts[h].value();
+
+            for (std::size_t j = 0; j < positions.size() && j < player_tags.size(); ++j) {
+                if (h == j) continue;
+
+                if (player_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
+                    auto& player_pos = positions[j].value();
+                    auto& player_box = collision_boxes[j].value();
+                    auto& player_hp = healths[j].value();
+
+                    float h_left = homing_pos.x + homing_box.offset_x;
+                    float h_top = homing_pos.y + homing_box.offset_y;
+                    float h_right = h_left + homing_box.width;
+                    float h_bottom = h_top + homing_box.height;
+
+                    float pl_left = player_pos.x + player_box.offset_x;
+                    float pl_top = player_pos.y + player_box.offset_y;
+                    float pl_right = pl_left + player_box.width;
+                    float pl_bottom = pl_top + player_box.height;
+
+                    if (h_left < pl_right && h_right > pl_left &&
+                        h_top < pl_bottom && h_bottom > pl_top) {
+
+                        bool has_active_shield = false;
+                        if (j < shields.size() && shields[j].has_value()) {
+                            has_active_shield = shields[j]->is_active();
+                        }
+
+                        if (has_active_shield) {
+                            std::cout << "[Collision] Homing enemy blocked by shield!" << std::endl;
+                        } else {
+                            player_hp.current -= homing_dmg.damage_amount;
+                            if (player_hp.current < 0) player_hp.current = 0;
+
+                            if (player_hp.is_dead()) {
+                                std::cout << "[Collision] Player killed by homing enemy!" << std::endl;
+                                createExplosion(reg, player_pos.x, player_pos.y);
+                            }
+                        }
+
+                        if (homing_dmg.destroy_on_hit) {
+                            auto homing_entity = reg.entity_from_index(h);
+                            reg.remove_component<entity_tag>(homing_entity);
+                            reg.kill_entity(homing_entity);
+                        }
+
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
     for (std::size_t i = 0; i < positions.size() && i < projectile_tags.size(); ++i) {
         if (projectile_tags[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
             bool is_enemy_projectile = (i < enemy_tags.size() && enemy_tags[i].has_value());

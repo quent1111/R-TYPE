@@ -44,10 +44,10 @@ void GameState::handle_event(const sf::Event& event) {
     }
 }
 
-void GameState::update(float /*dt*/) {
+void GameState::update(float dt) {
     if (m_game) {
         m_game->update();
-        m_game->handle_input();
+        m_game->handle_input(dt);
 
         if (!m_game->is_running()) {
             m_next_state = "menu";

@@ -6,13 +6,15 @@ Welcome to the R-TYPE documentation!
 
 ##  About R-TYPE
 
-R-TYPE is a modern reimplementation of the classic side-scrolling shooter, currently featuring a fully playable singleplayer demo. Built with modern C++ and a custom Entity Component System (ECS), this project demonstrates advanced game development techniques including:
+R-TYPE is a modern reimplementation of the classic side-scrolling shooter game, featuring **4-player cooperative multiplayer**. Built with modern C++ and a custom Entity Component System (ECS), this project demonstrates advanced software architecture and game development techniques:
 
-- **Custom ECS Architecture** - Efficient entity management with data-oriented design
-- **Sprite-Based Graphics** - SFML rendering with animated sprites and effects
+- **Custom ECS Architecture** - High-performance entity management with data-oriented design
+- **Client-Server Multiplayer** - UDP-based networking with server authority
+- **Refactored Architecture** - Clean separation of concerns (50-57% code reduction)
+- **Modular Design** - State machines, managers, handlers, broadcasters
 - **Cross-platform** - Runs on Windows, Linux, and macOS  
-- **Modern C++20** - Clean, efficient, and maintainable codebase
-- **Multiplayer Ready** - Network layer planned for future UDP-based gameplay
+- **Modern C++20** - Using concepts, ranges, and best practices
+- **Production-Ready** - Comprehensive testing, CI/CD, documentation
 
 ##  Quick Start
 
@@ -44,47 +46,69 @@ For detailed installation instructions, see [Installation Guide](getting-started
 
 ##  Features
 
-### Current (Singleplayer Demo)
-- ✅ **Entity Component System (ECS)** - Custom implementation with sparse arrays
-- ✅ **Player Controls** - WASD movement with shooting mechanics
-- ✅ **Enemy System** - Automatic wave spawning with AI movement
-- ✅ **Collision Detection** - Projectile-enemy interactions
-- ✅ **Visual Effects** - Explosion animations on enemy destruction
-- ✅ **Sprite Animations** - Multi-frame animations for entities
-- ✅ **Health System** - Player health with UI display
-- ✅ **Scrolling Background** - Infinite parallax background
+###  Implemented
 
-### Planned Features
-- 🔜 **Network Multiplayer** - UDP-based client-server for 4 players
-- 🔜 **Power-ups** - Weapon upgrades and shields
-- 🔜 **Boss Enemies** - Multi-phase boss battles
-- 🔜 **Audio System** - Sound effects and background music
-- 🔜 **Score System** - Leaderboards and high scores
-- ✅ **Custom Game Engine** - Built from scratch for maximum control
-- ✅ **Modern Graphics** - Smooth rendering and visual effects
-- ✅ **Cross-platform Support** - Windows, Linux, macOS
+#### Gameplay
+- **4-Player Multiplayer** - Cooperative gameplay with server authority
+- **Progressive Levels** - Increasing difficulty with wave-based enemies
+- **Boss Fights** - Multi-phase boss encounters (Level 5+)
+- **Power-up System** - Speed boost, shield, damage multiplier
+- **Weapon Upgrades** - Enhanced projectiles and special abilities
+- **Score & Combo System** - Competitive scoring with multipliers
+- **Health System** - Visual health bars and damage feedback
+
+#### Architecture
+- **Custom ECS Engine** - High-performance entity-component system
+- **Client Architecture** - State machines (Menu/Lobby/Game), Singleton managers, Specialized renderers
+- **Server Architecture** - Game session orchestration, Handler pattern, Broadcaster pattern
+- **Network Layer** - Dual-loop UDP architecture with thread-safe queues
+- **Audio System** - SFML-based sound effects and background music
+- **Visual Effects** - Explosions, particles, screen shake, animations
+
+#### Engineering
+- **Modern C++20** - Using concepts, ranges, and best practices
+- **Clean Architecture** - 50-57% code reduction through refactoring
+- **Comprehensive Testing** - Unit, integration, and network tests
+- **CI/CD Pipeline** - Automated builds, tests, and linting
+- **Complete Documentation** - MkDocs with architecture diagrams
+- **Cross-platform** - Windows, Linux, macOS support
 
 ##  Tech Stack
 
-- **Language:** C++17
-- **Build System:** CMake
-- **Graphics:** SFML / Custom Rendering
-- **Networking:** UDP Sockets
-- **Architecture:** ECS (Entity Component System)
+- **Language:** C++20 (concepts, ranges, coroutines)
+- **Build System:** CMake 3.20+ with Conan 2.x
+- **Graphics:** SFML 2.6.1 (window, rendering, audio)
+- **Networking:** Asio 1.30.2 (async UDP)
+- **Testing:** GTest 1.14.0
+- **Architecture:** Custom ECS with data-oriented design
 - **Documentation:** MkDocs with Material theme
 
 ##  Project Structure
 
 ```
 R-TYPE/
-├── client/         # Client application
-├── server/         # Server application
-├── engine/         # Game engine core
-├── bootstrap/      # ECS bootstrap implementation
-├── docs/           # Documentation source files
-├── scripts/        # Utility scripts
-├── tests/          # Unit and integration tests
-└── third_party/    # External dependencies
+├── client/         # Client application (503 lines, refactored)
+│   ├── managers/   # Resource singletons (Texture, Audio, Effects)
+│   ├── rendering/  # Specialized renderers (Game, HUD, Overlay)
+│   ├── states/     # State machine (Menu, Lobby, Game)
+│   └── network/    # NetworkClient with thread-safe queues
+├── server/         # Server application (475 lines, refactored)
+│   ├── game/       # Game logic (GameSession, Managers)
+│   ├── handlers/   # Request processors (Input, Powerup, Weapon)
+│   └── network/    # UDPServer, Broadcasters
+├── engine/         # Custom game engine
+│   ├── ecs/        # Entity Component System core
+│   ├── audio/      # Audio subsystem
+│   ├── render/     # Rendering utilities
+│   ├── net/        # Network utilities
+│   └── utils/      # Helper functions
+├── game-lib/       # Shared game logic
+│   ├── components/ # ECS components
+│   ├── entities/   # Entity factories
+│   └── systems/    # Game systems
+├── tests/          # Comprehensive test suite
+├── docs/           # Documentation source
+└── assets/         # Game resources
 ```
 
 ## Contributing

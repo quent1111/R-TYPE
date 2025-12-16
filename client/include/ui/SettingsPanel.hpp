@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MenuComponents.hpp"
-#include "../Settings.hpp"
+#include "common/Settings.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -23,7 +23,12 @@ public:
     void render(sf::RenderWindow& window);
 
     bool is_open() const { return m_open; }
-    void open() { m_open = true; m_temp_resolution_index = Settings::instance().resolution_index; m_temp_fullscreen = Settings::instance().fullscreen; m_temp_colorblind = Settings::instance().colorblind_mode; }
+    void open() {
+        m_open = true;
+        m_temp_resolution_index = Settings::instance().resolution_index;
+        m_temp_fullscreen = Settings::instance().fullscreen;
+        m_temp_colorblind = Settings::instance().colorblind_mode;
+    }
     void close() { m_open = false; }
     bool needs_window_recreate() const { return m_needs_window_recreate; }
     void clear_window_recreate_flag() { m_needs_window_recreate = false; }
@@ -60,4 +65,4 @@ private:
     bool m_needs_window_recreate{false};
 };
 
-} // namespace rtype::ui
+}  // namespace rtype::ui

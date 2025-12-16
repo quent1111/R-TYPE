@@ -2,17 +2,22 @@ cmake_minimum_required(VERSION 3.20)
 
 add_executable(r-type_client
     src/main_menu.cpp
-    src/game.cpp
-    src/networkClient.cpp
-    src/AudioManager.cpp
-    src/EffectsManager.cpp
+    src/game/Game.cpp
+    src/network/NetworkClient.cpp
+    src/managers/AudioManager.cpp
+    src/managers/EffectsManager.cpp
+    src/managers/FontManager.cpp
+    src/managers/TextureManager.cpp
+    src/rendering/GameRenderer.cpp
+    src/rendering/HUDRenderer.cpp
+    src/rendering/OverlayRenderer.cpp
+    src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
     src/states/LobbyState.cpp
     src/states/GameState.cpp
     src/ui/SettingsPanel.cpp
     src/ui/MenuComponents.cpp
-    src/core/FontManager.cpp
 )
 
 target_include_directories(r-type_client PRIVATE

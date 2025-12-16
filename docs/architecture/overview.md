@@ -1,328 +1,553 @@
 # Architecture Overview
 
-R-TYPE is built with a modern, modular architecture focusing on performance and maintainability.
+R-TYPE is built with a modern, modular architecture focusing on separation of concerns, performance, and maintainability. The project has been extensively refactored to eliminate "God Objects" and implement clean design patterns.
 
-## High-Level Architecture
+##  High-Level Architecture
 
 ```mermaid
 graph TB
     Client[Client Application]
     Server[Server Application]
     Engine[Game Engine]
-    ECS[ECS Framework]
-    Network[Network Layer]
+    GameLib[Game Library]
+    
+    subgraph "Client Components"
+        States[State Manager]
+        Managers[Resource Managers]
+        Renderers[Rendering System]
+        Input[Input Handler]
+        ClientNet[Network Client]
+    end
+    
+    subgraph "Server Components"
+        GameSession[Game Session]
+        Handlers[Request Handlers]
+        ServerManagers[Game Managers]
+        Broadcasters[Network Broadcasters]
+        ServerNet[UDP Server]
+    end
+    
+    subgraph "Engine Core"
+        ECS[ECS Framework]
+        Audio[Audio System]
+        Render[Render System]
+        Net[Network Layer]
+        Utils[Utilities]
+    end
+    
+    Client --> States
+    Client --> Managers
+    Client --> Renderers
+    Client --> Input
+    Client --> ClientNet
+    
+    Server --> GameSession
+    Server --> Handlers
+    Server --> ServerManagers
+    Server --> Broadcasters
+    Server --> ServerNet
     
     Client --> Engine
     Server --> Engine
+    Client --> GameLib
+    Server --> GameLib
+    
     Engine --> ECS
-    Client --> Network
-    Server --> Network
+    Engine --> Audio
+    Engine --> Render
+    Engine --> Net
+    Engine --> Utils
 ```
 
-## Core Components
-
-### 1. Game Engine
-
-The core engine provides fundamental game functionality:
-
-- **Rendering System** - Graphics and display management
-- **Input System** - Keyboard, mouse, and controller input
-- **Audio System** - Sound effects and music
-- **Resource Manager** - Asset loading and caching
-- **Scene Manager** - Game state and scene transitions
-
-### 2. Entity Component System (ECS)
-
-R-TYPE uses a custom ECS architecture for game logic:
+##  Project Structure
 
 ```
-Entity: Unique ID representing a game object
-Component: Pure data (Position, Velocity, Sprite, etc.)
-System: Logic that operates on entities with specific components
+R-TYPE/
+├── client/              # Client application (503 lines, down from 1011)
+│   ├── include/
+│   │   ├── common/      # Shared utilities (SafeQueue, Settings)
+│   │   ├── game/        # Core game classes (Game, Entity)
+│   │   ├── input/       # Input handling system
+│   │   ├── managers/    # Resource managers (Textures, Fonts, Audio, Effects)
+│   │   ├── network/     # Network communication
+│   │   ├── rendering/   # Rendering subsystems (Game, HUD, Overlay)
+│   │   ├── states/      # State machine (Menu, Lobby, Game)
+│   │   └── ui/          # UI components (Buttons, Panels, Menus)
+│   └── src/             # Implementation files
+│
+├── server/              # Server application (475 lines, down from 1111)
+│   ├── include/
+│   │   ├── common/      # Shared types (GameConstants, NetworkPacket)
+│   │   ├── game/        # Game logic (GameSession, Managers)
+│   │   ├── handlers/    # Request handlers (Input, Powerup, Weapon)
+│   │   └── network/     # Network layer (UDPServer, Broadcasters)
+│   └── src/             # Implementation files
+│
+├── engine/              # Custom game engine
+│   ├── ecs/             # Entity Component System
+│   ├── audio/           # Audio subsystem
+│   ├── render/          # Rendering subsystem
+│   ├── net/             # Network utilities
+│   ├── core/            # Core engine functionality
+│   └── utils/           # Utility functions
+│
+├── game-lib/            # Shared game logic
+│   ├── include/
+│   │   ├── components/  # ECS components
+│   │   ├── entities/    # Entity factories
+│   │   └── systems/     # ECS systems
+│   └── src/
+│
+├── assets/              # Game resources
+│   ├── sprites/         # Textures and sprites
+│   ├── fonts/           # Fonts
+│   ├── sounds/          # Sound effects
+│   ├── music/           # Background music
+│   └── configs/         # Configuration files
+│
+├── tests/               # Test suite
+├── docs/                # Documentation
+└── scripts/             # Build and utility scripts
 ```
+
+##  Core Components
+
+### 1. Client Architecture
+
+The client follows a **State Pattern** with **Singleton Managers** for resource management and **Renderer Pattern** for display logic.
+
+**Key Classes:**
+- `StateManager` - Manages game states (Menu, Lobby, Game)
+- `TextureManager`, `FontManager`, `AudioManager`, `EffectsManager` - Singleton resource managers
+- `GameRenderer`, `HUDRenderer`, `OverlayRenderer` - Specialized rendering
+- `InputHandler` - Centralized input processing with callbacks
+- `NetworkClient` - Asynchronous UDP client with thread-safe queues
+
+**Design Patterns:**
+-  Singleton Pattern (Managers)
+-  State Pattern (Game States)
+-  Observer Pattern (Input Callbacks)
+-  Strategy Pattern (Renderers)
+
+Learn more: [Client Refactoring Details](../REFACTOR_CLIENT.md)
+
+### 2. Server Architecture
+
+The server implements a **Handler Pattern** with **Manager Classes** for game logic and **Broadcaster Pattern** for network communication.
+
+**Key Classes:**
+- `GameSession` - Main game loop and orchestration
+- `PlayerManager`, `LevelManager`, `BossManager` - Game logic managers
+- `InputHandler`, `PowerupHandler`, `WeaponHandler` - Request processors
+- `EntityBroadcaster`, `LobbyBroadcaster`, `GameBroadcaster`, `PowerupBroadcaster` - Network broadcast
+- `UDPServer` - Asynchronous UDP server with dual-loop architecture
+
+**Design Patterns:**
+-  Manager Pattern (Game Logic)
+-  Handler Pattern (Request Processing)
+-  Broadcaster Pattern (Network Communication)
+-  Command Pattern (Player Actions)
+
+Learn more: [Server Refactoring Details](../REFACTOR_SERVER.md)
+
+### 3. Entity Component System (ECS)
+
+R-TYPE uses a custom, high-performance ECS implementation with data-oriented design.
+
+**Core Concepts:**
+```cpp
+// Entity: Unique identifier
+entity player = registry.spawn_entity();
+
+// Components: Pure data
+registry.add_component<position>(player, {100.0f, 200.0f});
+registry.add_component<velocity>(player, {50.0f, 0.0f});
+
+// Systems: Logic operating on components
+for (auto [entity, pos, vel] : registry.view<position, velocity>()) {
+    pos.x += vel.x * dt;
+    pos.y += vel.y * dt;
+}
+```
+
+**Key Features:**
+- `sparse_array<T>` - Efficient component storage
+- `zipper` / `indexed_zipper` - Multi-component iteration
+- `registry` - Entity and component management
+- Component type registration with `register_component<T>()`
 
 **Benefits:**
-- ✅ Data-oriented design
-- ✅ Cache-friendly
-- ✅ Highly composable
-- ✅ Easy to extend
+-  Cache-friendly data layout
+-  Zero-overhead abstractions
+-  Easy to extend and compose
+-  Deterministic behavior for networking
 
 Learn more: [ECS Deep Dive](ecs.md)
 
-### 3. Network Layer
+### 4. Network Layer
 
-UDP-based networking for real-time multiplayer:
+The network layer uses a **dual-loop architecture** separating game logic from I/O operations.
 
-- **Client-Server Architecture**
-- **State Synchronization**
-- **Lag Compensation**
-- **Packet Compression**
+**Architecture:**
+- **Game Loop** (deterministic, fixed timestep) - Processes game logic
+- **Network Loop** (asynchronous, ASIO-based) - Handles UDP I/O
 
-Learn more: [Network Architecture](network.md)
+**Key Features:**
+- Thread-safe input/output queues
+- Targeted unicast communication (no global broadcast)
+- Client endpoint tracking
+- Binary protocol with opcodes
 
-### UDP Server (network thread)
-
-The network server now uses a dual-loop architecture: the game loop executes game logic while a separate network loop handles UDP I/O (ASIO) and packet sending. This separates deterministic game processing from asynchronous I/O operations.
-
-- Asynchronous packet reception via ASIO
-- Client registration and tracking (map id -> endpoint)
-- Thread-safe input queue (input_queue_) for the game loop
-- Thread-safe output queue (output_queue_) for sending responses
-- Output processing: targeted unicast sending to the sender's endpoint via `send_to_endpoint()` — global broadcast is no longer the default
-- `stop()` method available for cleanly shutting down the network loop
-
-Simplified API (extract):
-
+**Server API:**
 ```cpp
 class UDPServer {
 public:
-    UDPServer(asio::io_context& io, unsigned short port);
-    ~UDPServer();
-
+    UDPServer(asio::io_context& io, const std::string& address, unsigned short port);
+    
+    // Game loop operations
     bool get_input_packet(NetworkPacket& packet);
     void queue_output_packet(const NetworkPacket& packet);
-    void process_output_queue(); // sends unicast to packet.sender
+    void process_output_queue();
+    
+    // Direct send operations
     void send_to_endpoint(const asio::ip::udp::endpoint& ep, const std::vector<uint8_t>& data);
     void send_to_client(int client_id, const std::vector<uint8_t>& data);
+    
+    // Lifecycle
     void stop();
 };
 ```
 
-Implications:
-
-- Game logic responses must be packaged in `NetworkPacket` including the recipient's `endpoint` (`packet.sender`) or client ID.
-- The network loop handles actual sending (calls to `socket_.async_send_to`); the game loop performs no blocking network operations.
-
-
-## Project Structure
-
-```
-R-TYPE/
-├── client/                 # Client application
-│   ├── src/
-│   │   └── main.cpp       # Client game loop with SFML rendering
-│   └── CMakeLists.txt
-│
-├── server/                 # Server application  
-│   ├── src/
-│   │   └── main.cpp       # Server (planned for multiplayer)
-│   └── CMakeLists.txt
-│
-├── engine/                 # Core ECS framework
-│   └── ecs/               # ECS implementation
-│       ├── entity.hpp     # Entity ID wrapper
-│       ├── registry.hpp   # Component coordinator
-│       ├── sparse_array.hpp  # Component storage
-│       ├── components.hpp # Base components (position, velocity, etc.)
-│       ├── zipper.hpp     # Multi-component iteration
-│       └── zipper_iterator.hpp
-│
-├── game/                   # Game logic library
-│   ├── include/
-│   │   ├── components/    # Game-specific components
-│   │   │   └── game_components.hpp  # health, sprite, animation, etc.
-│   │   ├── entities/      # Entity factories
-│   │   │   ├── player_factory.hpp
-│   │   │   ├── enemy_factory.hpp
-│   │   │   ├── projectile_factory.hpp
-│   │   │   └── explosion_factory.hpp
-│   │   └── systems/       # Game systems
-│   │       ├── input_system.hpp
-│   │       ├── movement_system.hpp
-│   │       ├── shooting_system.hpp
-│   │       ├── collision_system.hpp
-│   │       └── cleanup_system.hpp
-│   ├── src/               # Implementation files
-│   │   ├── components/
-│   │   ├── entities/
-│   │   └── systems/
-│   └── CMakeLists.txt
-│
-├── bootstrap/              # Legacy ECS demos (not used in main build)
-│   └── bs/                # Standalone ECS examples
-│
-├── tests/                  # Test suites
-│   ├── bootstrap/         # ECS unit tests
-│   ├── ecs/               # Engine tests
-│   ├── game/              # Game logic tests
-│   ├── network/           # Network tests (planned)
-│   └── integration/       # Integration tests
-│
-├── assets/                 # Game assets
-│   ├── r-typesheet1.png   # Player, projectiles, explosions
-│   ├── r-typesheet26.png  # Enemy sprites
-│   ├── bg.png             # Scrolling background
-│   └── fonts/
-│
-└── third_party/            # External dependencies (via Conan)
+**Client API:**
+```cpp
+class NetworkClient {
+public:
+    NetworkClient(asio::io_context& io_ctx);
+    
+    // Connection
+    void connect(const std::string& address, const std::string& port);
+    void disconnect();
+    
+    // Send/Receive
+    void send(const std::vector<uint8_t>& data);
+    bool try_pop_message(std::vector<uint8_t>& out_message);
+    
+    // State
+    bool is_connected() const;
+};
 ```
 
-## Data Flow
+Learn more: [Network Architecture](network.md)
 
-### Current Game Loop (Singleplayer Client)
+##  Data Flow
 
-```
-┌─────────────────────────────────────────┐
-│     Singleplayer Client Game Loop       │
-│                                         │
-│  1. Poll SFML Events (ESC to quit)      │
-│  2. Process Input (WASD movement)       │
-│  3. Update Shooting System              │
-│  4. Update Movement System              │
-│  5. Update Collision Detection          │
-│  6. Update Explosion Lifetimes          │
-│  7. Cleanup Dead Entities               │
-│  8. Update Sprite Animations            │
-│  9. Render Background (scrolling)       │
-│ 10. Render All Entities (sprites)       │
-│ 11. Render UI (health bar)              │
-│ 12. Display Frame (60 FPS)              │
-└─────────────────────────────────────────┘
-```
+### Client Game Loop
 
-### Planned Multiplayer Game Loop (Future)
-
-**Client:**
 ```
 ┌─────────────────────────────────────────┐
 │           Client Game Loop              │
 │                                         │
-│  1. Process Input                       │
-│  2. Send Input to Server (UDP)          │
-│  3. Receive Server Updates              │
-│  4. Interpolate/Predict State           │
-│  5. Update Local ECS Systems            │
-│  6. Render Frame                        │
-│  7. Handle Audio                        │
+│  State Manager                          │
+│  └─> Current State (Menu/Lobby/Game)   │
+│                                         │
+│  1. Poll SFML Events                    │
+│  2. State::handle_input()               │
+│     └─> InputHandler (callbacks)       │
+│  3. State::update(dt)                   │
+│     ├─> Process network packets        │
+│     ├─> Update entities                │
+│     ├─> AudioManager (sound effects)   │
+│     └─> EffectsManager (particles)     │
+│  4. State::render()                     │
+│     ├─> GameRenderer (entities, bg)    │
+│     ├─> HUDRenderer (UI, health)       │
+│     └─> OverlayRenderer (menus)        │
+│  5. Display Frame (60 FPS target)      │
+│  6. Check for state transitions        │
 └─────────────────────────────────────────┘
 ```
 
-**Server:**
+### Server Game Loop
+
 ```
 ┌─────────────────────────────────────────┐
 │           Server Game Loop              │
 │                                         │
-│  1. Receive Client Inputs (UDP)         │
-│  2. Validate Inputs                     │
-│  3. Update ECS Systems                  │
-│  4. Run Game Logic                      │
-│  5. Detect Collisions                   │
-│  6. Serialize State                     │
-│  7. Enqueue responses to clients        │
-│     (unicast/targeted)                  │
+│  Network Thread (ASIO)                  │
+│  └─> Receives UDP packets              │
+│      └─> Pushes to input_queue_        │
+│                                         │
+│  Game Thread (Fixed 60Hz)               │
+│  1. Process Network Packets             │
+│     └─> UDPServer::get_input_packet()  │
+│  2. Handle Player Input                 │
+│     └─> InputHandler                   │
+│  3. Update Game Logic                   │
+│     ├─> PlayerManager                  │
+│     ├─> LevelManager                   │
+│     ├─> BossManager                    │
+│     ├─> Movement/Collision Systems     │
+│     └─> PowerupHandler                 │
+│  4. Broadcast State                     │
+│     ├─> EntityBroadcaster              │
+│     ├─> LobbyBroadcaster               │
+│     ├─> GameBroadcaster                │
+│     └─> PowerupBroadcaster             │
+│  5. Process Output Queue                │
+│     └─> UDPServer::process_output()    │
+│                                         │
+│  Network Thread                         │
+│  └─> Sends queued packets (unicast)    │
 └─────────────────────────────────────────┘
 ```
 
-## Key Design Patterns
+### Network Communication Flow
 
-### Component Pattern
-
-Pure data structures without logic:
-
-```cpp
-struct Position {
-    float x;
-    float y;
-};
-
-struct Velocity {
-    float dx;
-    float dy;
-};
+```
+Client                          Server
+  │                               │
+  ├──► JOIN_LOBBY ───────────────>│
+  │                               ├─> Register client
+  │<────── LOBBY_STATUS ──────────┤    Add to session
+  │                               │
+  ├──► READY_TO_PLAY ────────────>│
+  │<────── GAME_START ─────────────┤
+  │                               │
+  │──► PLAYER_INPUT (60Hz) ───────>│
+  │                               ├─> InputHandler
+  │                               ├─> Update game state
+  │<────── ENTITY_POSITIONS ──────┤    (PlayerManager, etc.)
+  │<────── GAME_INFO ─────────────┤
+  │                               │
+  │<────── POWERUP_SPAWNED ────────┤
+  ├──► POWERUP_CHOICE ───────────>│
+  │                               ├─> PowerupHandler
+  │<────── POWERUP_STATUS ─────────┤
+  │                               │
+  │<────── LEVEL_INFO ─────────────┤
+  │<────── GAME_OVER ──────────────┤
+  │                               │
 ```
 
-### System Pattern
+##  Design Principles
 
-Logic that processes entities:
+### Separation of Concerns
+
+Each module has a single, well-defined responsibility:
+
+```
+Managers     → Resource lifecycle (load, cache, unload)
+Renderers    → Visual presentation only
+Handlers     → Request processing logic
+Broadcasters → Network serialization and sending
+States       → Game flow orchestration
+```
+
+### Dependency Injection
+
+Components receive dependencies explicitly:
 
 ```cpp
-class MovementSystem {
-public:
-    void update(Registry& registry, float deltaTime) {
-        auto& positions = registry.get_components<Position>();
-        auto& velocities = registry.get_components<Velocity>();
-        
-        for (size_t i = 0; i < positions.size(); ++i) {
-            if (positions[i] && velocities[i]) {
-                positions[i]->x += velocities[i]->dx * deltaTime;
-                positions[i]->y += velocities[i]->dy * deltaTime;
-            }
-        }
+// Bad: Hidden dependencies
+class Game {
+    void render() {
+        TextureManager::instance().get("player.png"); // Hidden coupling
     }
 };
+
+// Good: Explicit dependencies
+class GameRenderer {
+    explicit GameRenderer(TextureManager& tex_mgr) : tex_mgr_(tex_mgr) {}
+    void render(const Entity& e) {
+        auto& tex = tex_mgr_.get(e.texture_id);
+    }
+private:
+    TextureManager& tex_mgr_;
+};
 ```
 
-### Registry Pattern
+### Thread Safety
 
-Central entity and component management:
+All shared data structures use proper synchronization:
 
-```cpp
-Registry registry;
+- `ThreadSafeQueue<T>` for inter-thread communication
+- Network input/output queues protected by mutexes
+- Server game loop runs in main thread (deterministic)
+- Network I/O runs in separate ASIO thread (async)
 
-// Create entity
-Entity player = registry.spawn_entity();
+##  Performance Characteristics
 
-// Add components
-registry.add_component(player, Position{100.0f, 100.0f});
-registry.add_component(player, Velocity{50.0f, 0.0f});
-registry.add_component(player, Sprite{"player.png"});
+### ECS Benefits
+
 ```
+Traditional OOP Approach:
+  GameObject[] → Polymorphic calls, cache misses, pointer chasing
+  Update() virtual calls → Vtable lookup overhead
 
-## Performance Considerations
-
-### Memory Layout
-
-Components are stored in `SparseArray` for:
-- ✅ Cache-friendly iteration
-- ✅ O(1) component lookup
-- ✅ Automatic memory management
+ECS Approach:
+  sparse_array<Position> → Contiguous memory, cache-friendly
+  sparse_array<Velocity> → SIMD-friendly data layout
+  Zipper iteration → Optimal cache utilization
+```
 
 ### Network Optimization
 
-- **Delta Compression** - Send only changes
-- **State Snapshots** - Periodic full state sync
-- **Priority System** - Important entities updated more frequently
-- **Dead Reckoning** - Client-side prediction
+- Binary protocol (no JSON/XML overhead)
+- Delta compression for entity updates
+- Client-side prediction and interpolation
+- Server authoritative (prevents cheating)
 
-## Threading Model
+##  Related Documentation
 
+- [Client Refactoring Details](../REFACTOR_CLIENT.md) - In-depth client architecture
+- [Server Refactoring Details](../REFACTOR_SERVER.md) - In-depth server architecture
+- [ECS System](ecs.md) - Entity Component System deep dive
+- [Network Layer](network.md) - Network protocol and communication
+- [Game Engine](engine.md) - Engine subsystems documentation
+
+## 🔧 Extension Points
+
+### Adding a New Component
+
+```cpp
+// 1. Define component in game-lib/include/components/
+struct new_component {
+    float value;
+};
+
+// 2. Register in registry
+registry.register_component<new_component>();
+
+// 3. Use in systems
+for (auto [entity, nc, pos] : registry.view<new_component, position>()) {
+    // Process entities with new_component and position
+}
 ```
-Main Thread:       Game Loop, Rendering
-Network Thread:    ASIO I/O (poll) + output queue processing
-Audio Thread:      Sound Processing
-Loading Thread:    Asset Streaming
+
+### Adding a New System
+
+```cpp
+// 1. Create system function
+void new_system(registry& reg, float dt) {
+    for (auto [entity, comp] : reg.view<new_component>()) {
+        // System logic
+    }
+}
+
+// 2. Call in game loop
+new_system(registry_, dt);
 ```
 
-## Dependencies
+### Adding a New Network Message
+
+```cpp
+// 1. Add opcode in Opcodes.hpp
+enum class Opcode : uint8_t {
+    // ...
+    NEW_MESSAGE = 42,
+};
+
+// 2. Define packet structure
+struct NewMessagePacket {
+    Opcode opcode = Opcode::NEW_MESSAGE;
+    uint32_t data;
+};
+
+// 3. Handle in server/handlers/
+void handle_new_message(const NetworkPacket& packet);
+
+// 4. Broadcast in server/network/
+void broadcast_new_message(UDPServer& server, uint32_t data);
+```
+
+##  Technology Stack
+
+### Programming Language
+- **C++20** - Modern C++ with concepts, ranges, and coroutines support
 
 ### External Libraries (via Conan)
-
 - **SFML 2.6.1** - Graphics, window, input, audio
-- **Asio 1.30.2** - Async networking (for future multiplayer)
+- **Asio 1.30.2** - Asynchronous networking
 - **GTest 1.14.0** - Unit testing framework
 
 ### Build Tools
+- **CMake 3.20+** - Build system and configuration
+- **Conan 2.x** - C++ package manager
+- **clang-format** - Code formatting (LLVM style)
+- **clang-tidy** - Static code analysis
 
-- **CMake 3.20+** - Build system
-- **Conan 2.x** - Package manager
-- **clang-format** - Code formatting
-- **clang-tidy** - Static analysis
+### Development Tools
+- **Git** - Version control
+- **MkDocs** - Documentation generator
+- **Doxygen** - API documentation
+- **CTest** - Test runner
 
-All core functionality is implemented in-house for maximum control and learning.
+## 📊 Metrics
 
-## Next Steps
+### Code Reduction
+- **Client**: 1011 lines → 503 lines (-50%)
+- **Server**: 1111 lines → 475 lines (-57%)
 
-- 📖 [ECS System](ecs.md) - Deep dive into the Entity Component System
-- 🌐 [Network Architecture](network.md) - How multiplayer works
-- ⚙️ [Game Engine](engine.md) - Engine internals
+### File Organization
+- **Client**: 8 directories, 20+ files
+- **Server**: 4 directories, 15+ files
+- **Engine**: 5 subsystems (ECS, Audio, Render, Net, Utils)
+- **Tests**: 100+ unit tests across multiple suites
 
-## Design Principles
+### Performance Targets
+- **Client FPS**: 60 FPS (16.67ms per frame)
+- **Server Tick Rate**: 60 Hz (16.67ms per tick)
+- **Network Latency**: <50ms local, <150ms internet
+- **Max Players**: 4 simultaneous players
 
-!!! info "SOLID Principles"
-    The codebase follows SOLID principles for maintainability and extensibility.
+##  Design Principles
 
-!!! tip "Data-Oriented Design"
-    We prioritize cache efficiency and data locality for performance.
+### SOLID Principles
 
-!!! warning "Minimal Dependencies"
-    We keep external dependencies minimal to reduce complexity.
+```
+ Single Responsibility - Each class has one reason to change
+ Open/Closed - Open for extension, closed for modification
+ Liskov Substitution - States are interchangeable via IState interface
+ Interface Segregation - Focused interfaces (IState, handlers)
+ Dependency Inversion - Depend on abstractions, not concrete classes
+```
+
+### Data-Oriented Design
+
+```
+ Cache-friendly memory layout (sparse_array)
+ Batch processing (system iterations)
+ Minimize pointer indirection
+ Contiguous component storage
+ SIMD-friendly data structures
+```
+
+### Clean Code
+
+```
+ Meaningful names (InputHandler, not IH)
+ Small functions (<50 lines)
+ Clear separation of concerns
+ Consistent coding style (clang-format)
+ Comprehensive testing (unit + integration)
+```
+
+##  Learning Resources
+
+This project demonstrates:
+
+- **Advanced C++**: Templates, RAII, move semantics, concepts
+- **Design Patterns**: Singleton, State, Observer, Strategy, Manager, Handler
+- **Network Programming**: UDP sockets, binary protocols, async I/O
+- **Game Architecture**: ECS, game loops, state machines
+- **Software Engineering**: Testing, CI/CD, documentation, version control
+
+##  Next Steps
+
+Dive deeper into specific topics:
+
+- 📖 [ECS System](ecs.md) - Entity Component System implementation
+-  [Network Architecture](network.md) - Multiplayer networking details
+-  [Game Engine](engine.md) - Engine subsystems documentation
+-  [Game Design](../game-design/game-design.md) - Gameplay mechanics
+- 👨‍💻 [Developer Guide](../developer-guide/contributing.md) - Contributing to R-TYPE

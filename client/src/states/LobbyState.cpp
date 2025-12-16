@@ -1,6 +1,6 @@
 #include "states/LobbyState.hpp"
 
-#include "AudioManager.hpp"
+#include "managers/AudioManager.hpp"
 
 #include <iostream>
 
@@ -119,7 +119,7 @@ void LobbyState::setup_ui() {
 
 void LobbyState::on_ready_clicked() {
     std::cout << "[LobbyState] Ready button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_is_ready = !m_is_ready;
 
     if (m_is_ready) {
@@ -141,7 +141,7 @@ void LobbyState::on_ready_clicked() {
 
 void LobbyState::on_back_clicked() {
     std::cout << "[LobbyState] Back button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_next_state = "menu";
 }
 
