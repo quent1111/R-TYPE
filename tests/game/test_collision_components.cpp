@@ -32,13 +32,10 @@ TEST(CollisionBox, CustomValues) {
 }
 
 TEST(CollisionBox, AABBCollision) {
-    // Test AABB collision detection logic
     collision_box box1(50.0f, 50.0f, 0.0f, 0.0f);
     collision_box box2(50.0f, 50.0f, 0.0f, 0.0f);
 
-    // Entity 1 at (0, 0)
     float e1_x = 0.0f, e1_y = 0.0f;
-    // Entity 2 at (25, 25) - should overlap
     float e2_x = 25.0f, e2_y = 25.0f;
 
     float left1 = e1_x + box1.offset_x;
@@ -54,7 +51,6 @@ TEST(CollisionBox, AABBCollision) {
     bool collision = !(right1 < left2 || right2 < left1 || bottom1 < top2 || bottom2 < top1);
     EXPECT_TRUE(collision);
 
-    // Test no collision
     e2_x = 100.0f;
     e2_y = 100.0f;
     left2 = e2_x + box2.offset_x;

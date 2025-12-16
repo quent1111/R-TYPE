@@ -99,7 +99,7 @@ TEST(SerializerEdgeCases, StringWithSpecialChars) {
 
 TEST(SerializerEdgeCases, UnicodeString) {
     BinarySerializer s;
-    std::string unicode = "こんにちは世界"; // Japanese
+    std::string unicode = "こんにちは世界";
     s << unicode;
     
     std::string result;

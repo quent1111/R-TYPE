@@ -153,7 +153,6 @@ void collisionSystem(registry& reg) {
 
                     bool hit_detected = false;
 
-                    // Check multi-hitbox if present
                     if (j < multi_hitboxes.size() && multi_hitboxes[j].has_value()) {
                         auto& boss_multi = multi_hitboxes[j].value();
                         for (const auto& part : boss_multi.parts) {
@@ -169,7 +168,6 @@ void collisionSystem(registry& reg) {
                             }
                         }
                     } else if (j < collision_boxes.size() && collision_boxes[j].has_value()) {
-                        // Fallback to single collision box
                         auto& boss_box = collision_boxes[j].value();
                         float b_left = boss_pos.x + boss_box.offset_x;
                         float b_top = boss_pos.y + boss_box.offset_y;

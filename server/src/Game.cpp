@@ -127,7 +127,6 @@ void Game::broadcast_entity_positions(UDPServer& server) {
         if (i >= positions.size() || !positions[i].has_value())
             continue;
 
-        // Broadcast toutes les entités non-joueurs (Enemy, Enemy2, Boss, Projectile, Obstacle)
         if (tags[i]->type != RType::EntityType::Player) {
             const auto& pos = positions[i].value();
             auto entity_obj = _registry.entity_from_index(i);
@@ -142,7 +141,6 @@ void Game::broadcast_entity_positions(UDPServer& server) {
             } else if (tags[i]->type == RType::EntityType::Projectile) {
                 network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
             } else {
-                // Pour les types custom (0x07, etc.) utiliser OTHER_ID_OFFSET
                 network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
             }
 
@@ -471,7 +469,6 @@ void Game::update_game_state(UDPServer& server, float dt) {
     movementSystem(_registry, dt);
     collisionSystem(_registry);
 
-    // Update boss behavior (shooting projectiles)
     update_boss_behavior(server, dt);
 
     auto& cannons = _registry.get_components<power_cannon>();
@@ -584,8 +581,8 @@ void Game::check_level_completion(UDPServer& server) {
                 std::cout << "[Game] Level " << static_cast<int>(lvl_mgr.current_level)
                           << " completed! Clearing enemies..." << std::endl;
 
-                _players_who_chose_powerup.clear();  // Reset pour le nouveau niveau
-                clear_enemies_and_projectiles();     // Nettoyer ennemis et projectiles
+                _players_who_chose_powerup.clear();
+                clear_enemies_and_projectiles();
 
                 broadcast_level_complete(server);
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));

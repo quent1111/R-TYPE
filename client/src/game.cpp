@@ -61,33 +61,27 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     audio.loadSounds();
     audio.playMusic("assets/sounds/game-loop.ogg", true);
 
-    // Initialize game view for proper scaling
     update_game_view();
 }
 
 void Game::update_game_view() {
-    // Create a view that maps 1920x1080 game space to actual window size
     game_view_.setSize(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
     game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f);
-    
-    // Get actual window size
+
     sf::Vector2u window_size = window_.getSize();
-    
-    // Calculate viewport to maintain aspect ratio and center
+
     float window_ratio = static_cast<float>(window_size.x) / static_cast<float>(window_size.y);
     float game_ratio = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT);
-    
+
     sf::FloatRect viewport;
     if (window_ratio > game_ratio) {
-        // Window is wider than game aspect ratio - add black bars on sides
         float viewport_width = game_ratio / window_ratio;
         viewport = sf::FloatRect((1.0f - viewport_width) / 2.0f, 0.0f, viewport_width, 1.0f);
     } else {
-        // Window is taller than game aspect ratio - add black bars on top/bottom
         float viewport_height = window_ratio / game_ratio;
         viewport = sf::FloatRect(0.0f, (1.0f - viewport_height) / 2.0f, 1.0f, viewport_height);
     }
-    
+
     game_view_.setViewport(viewport);
 }
 
@@ -516,7 +510,6 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(4.0F, 4.0F);
         }
     } else if (entity.type == 0x08) {
-        // Boss entity - main boss sprite (r-typesheet30.gif)
         if (texture_manager_.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
             entity.frames = {{0, 0, 185, 204},    {0, 215, 185, 204}, {0, 428, 185, 204},
@@ -799,7 +792,6 @@ void Game::render() {
 
     EffectsManager::getInstance().render(window_);
 
-    // Reset to game view (without shake) for UI elements
     window_.setView(game_view_);
 
     window_.draw(timer_text_);
@@ -950,16 +942,13 @@ void Game::render_powerup_selection() {
     sf::FloatRect title_bounds = powerup_title_.getLocalBounds();
     powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 200.0f);
     window_.draw(powerup_title_);
-    
-    // Draw card sprites
+
     window_.draw(powerup_card1_sprite_);
     window_.draw(powerup_card2_sprite_);
-    
-    // Draw number labels
+
     window_.draw(powerup_number1_text_);
     window_.draw(powerup_number2_text_);
-    
-    // Draw instruction
+
     sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
     powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 850.0f);
     window_.draw(powerup_instruction_);

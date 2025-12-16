@@ -217,7 +217,7 @@ void test_ecs_system() {
     assert(positions[static_cast<std::size_t>(enemy2)]->x == 201.0f);
     assert(positions[static_cast<std::size_t>(enemy2)]->y == 201.0f);
 
-    assert(positions[static_cast<std::size_t>(static_obj)]->x == 50.0f); // Unchanged
+    assert(positions[static_cast<std::size_t>(static_obj)]->x == 50.0f);
     assert(positions[static_cast<std::size_t>(static_obj)]->y == 50.0f);
 
     std::cout << "✓ Movement system works correctly" << std::endl;

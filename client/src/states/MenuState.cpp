@@ -165,15 +165,12 @@ void MenuState::update(float dt) {
     }
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->update(dt);
-        
-        // Check if window needs to be recreated
+
         if (m_settings_panel->needs_window_recreate()) {
             sf::Vector2u new_size;
             bool fullscreen;
             m_settings_panel->get_new_window_settings(new_size, fullscreen);
             m_settings_panel->clear_window_recreate_flag();
-            
-            // Recreate window with new settings
             if (fullscreen) {
                 m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer", sf::Style::Fullscreen);
             } else {
@@ -181,8 +178,7 @@ void MenuState::update(float dt) {
             }
             m_window.setVerticalSyncEnabled(false);
             m_window.setFramerateLimit(60);
-            
-            // Recreate UI elements with new window size
+
             m_buttons.clear();
             m_corners.clear();
             m_side_panels.clear();

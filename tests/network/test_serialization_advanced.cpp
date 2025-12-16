@@ -103,7 +103,6 @@ TEST(BinarySerializerAdvanced, Reserve) {
     BinarySerializer serializer;
     serializer.reserve(1024);
     
-    // Add data (reserve doesn't change size, just capacity)
     for (int i = 0; i < 100; ++i) {
         serializer << static_cast<uint32_t>(i);
     }

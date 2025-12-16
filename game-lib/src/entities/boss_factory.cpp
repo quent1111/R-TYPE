@@ -22,11 +22,11 @@ entity createBoss(registry& reg, float x, float y, int boss_type) {
     reg.register_component<boss_tag>();
     reg.register_component<entity_tag>();
 
-    int boss_health = 1000;      // Boss has much more health
-    int contact_damage = 50;     // Boss contact damage is high
-    float boss_width = 300.0f;   // Boss is HUGE for visibility
+    int boss_health = 1000;
+    int contact_damage = 50;
+    float boss_width = 300.0f;
     float boss_height = 300.0f;
-    
+
     if (boss_type == 1) {
         boss_health = 1500;
         contact_damage = 60;

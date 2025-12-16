@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 #include "components/logic_components.hpp"
 
-// Level Manager Edge Cases
 TEST(LevelManagerEdge, MultipleKillsBeforeCheck) {
     level_manager lm;
     lm.enemies_needed_for_next_level = 5;
@@ -52,7 +51,6 @@ TEST(LevelManagerEdge, ProgressOverflow) {
     EXPECT_GE(progress, 100);
 }
 
-// Health Edge Cases
 TEST(HealthEdge, MassiveOverdamage) {
     health h(100, 100);
     h.current -= 10000;
@@ -79,15 +77,14 @@ TEST(HealthEdge, OneHP) {
     EXPECT_FLOAT_EQ(h.health_percentage(), 0.01f);
 }
 
-// Weapon Edge Cases
 TEST(WeaponEdge, VeryFastFireRate) {
-    weapon w(1000.0f); // 1000 shots/second
+    weapon w(1000.0f);
     w.update(0.001f);
     EXPECT_TRUE(w.can_shoot());
 }
 
 TEST(WeaponEdge, VerySlowFireRate) {
-    weapon w(0.1f); // 0.1 shots/second
+    weapon w(0.1f);
     w.update(5.0f);
     EXPECT_FALSE(w.can_shoot());
     
@@ -98,7 +95,6 @@ TEST(WeaponEdge, VerySlowFireRate) {
 TEST(WeaponEdge, ZeroFireRate) {
     weapon w(0.0f);
     w.update(1000.0f);
-    // Can't shoot with 0 fire rate (would be division by zero in real logic)
 }
 
 TEST(WeaponEdge, ZeroDamage) {
@@ -113,13 +109,11 @@ TEST(WeaponEdge, HighDamage) {
     EXPECT_EQ(w.damage, 999999);
 }
 
-// Shield Edge Cases
 TEST(ShieldEdge, VerySmallRadius) {
     shield s;
     s.activate();
     s.radius = 0.1f;
     
-    // Enemy very close
     EXPECT_FALSE(s.is_enemy_in_range(1.0f, 0.0f, 0.0f, 0.0f));
 }
 
@@ -128,7 +122,6 @@ TEST(ShieldEdge, VeryLargeRadius) {
     s.activate();
     s.radius = 10000.0f;
     
-    // Enemy far away
     EXPECT_TRUE(s.is_enemy_in_range(1000.0f, 1000.0f, 0.0f, 0.0f));
 }
 
@@ -152,7 +145,6 @@ TEST(ShieldEdge, ExactBoundary) {
     EXPECT_TRUE(s.is_enemy_in_range(enemy_x, enemy_y, player_x, player_y));
 }
 
-// Power Cannon Edge Cases
 TEST(PowerCannonEdge, InstantExpiry) {
     power_cannon pc;
     pc.duration = 0.1f;
@@ -180,12 +172,11 @@ TEST(PowerCannonEdge, MultipleActivations) {
     
     pc.update(1.0f);
     
-    pc.activate(); // Reactivate
+    pc.activate();
     EXPECT_FLOAT_EQ(pc.time_remaining, pc.duration);
     EXPECT_GT(pc.time_remaining, first_time - 1.0f);
 }
 
-// Collision Box Edge Cases
 TEST(CollisionBoxEdge, ZeroSize) {
     collision_box box(0.0f, 0.0f, 0.0f, 0.0f);
     EXPECT_FLOAT_EQ(box.width, 0.0f);
@@ -210,7 +201,6 @@ TEST(CollisionBoxEdge, NegativeOffset) {
     EXPECT_FLOAT_EQ(box.offset_y, -25.0f);
 }
 
-// Wave Manager Edge Cases
 TEST(WaveManagerEdge, ZeroSpawnInterval) {
     wave_manager wm(0.0f, 3);
     EXPECT_FLOAT_EQ(wm.spawn_interval, 0.0f);

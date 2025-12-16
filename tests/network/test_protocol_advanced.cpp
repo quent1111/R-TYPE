@@ -5,7 +5,6 @@
 using namespace RType;
 
 TEST(ProtocolAdvanced, AllOpCodes) {
-    // Verify all opcodes are unique
     std::set<uint8_t> opcodes;
     opcodes.insert(static_cast<uint8_t>(OpCode::Login));
     opcodes.insert(static_cast<uint8_t>(OpCode::LoginAck));
@@ -25,7 +24,7 @@ TEST(ProtocolAdvanced, AllOpCodes) {
     opcodes.insert(static_cast<uint8_t>(OpCode::PowerUpStatus));
     opcodes.insert(static_cast<uint8_t>(OpCode::GameOver));
     
-    EXPECT_EQ(opcodes.size(), 17); // All opcodes are unique
+    EXPECT_EQ(opcodes.size(), 17);
 }
 
 TEST(ProtocolAdvanced, EntitySpawnPacket) {
@@ -80,7 +79,7 @@ TEST(ProtocolAdvanced, LevelStartPacket) {
     serializer << static_cast<uint8_t>(OpCode::MagicByte1)
                << static_cast<uint8_t>(OpCode::MagicByte2)
                << static_cast<uint8_t>(OpCode::LevelStart)
-               << static_cast<uint32_t>(5); // level number
+               << static_cast<uint32_t>(5);
     
     uint8_t magic1, magic2, opcode;
     uint32_t level;
@@ -97,12 +96,12 @@ TEST(ProtocolAdvanced, LevelCompletePacket) {
     serializer << static_cast<uint8_t>(OpCode::MagicByte1)
                << static_cast<uint8_t>(OpCode::MagicByte2)
                << static_cast<uint8_t>(OpCode::LevelComplete)
-               << static_cast<uint32_t>(3); // level completed
+               << static_cast<uint32_t>(3);
     
     uint8_t opcode;
     uint8_t magic1, magic2;
     serializer.reset_read_position();
-    serializer >> magic1 >> magic2; // skip magic
+    serializer >> magic1 >> magic2;
     serializer >> opcode;
     
     EXPECT_EQ(opcode, static_cast<uint8_t>(OpCode::LevelComplete));
@@ -114,8 +113,8 @@ TEST(ProtocolAdvanced, PowerUpActivatePacket) {
     serializer << static_cast<uint8_t>(OpCode::MagicByte1)
                << static_cast<uint8_t>(OpCode::MagicByte2)
                << static_cast<uint8_t>(OpCode::PowerUpActivate)
-               << static_cast<uint32_t>(123) // player id
-               << static_cast<uint8_t>(1);    // powerup type (PowerCannon)
+               << static_cast<uint32_t>(123)
+               << static_cast<uint8_t>(1);
     
     uint8_t magic1, magic2, opcode, powerup_type;
     uint32_t player_id;
@@ -133,7 +132,7 @@ TEST(ProtocolAdvanced, GameOverPacket) {
     serializer << static_cast<uint8_t>(OpCode::MagicByte1)
                << static_cast<uint8_t>(OpCode::MagicByte2)
                << static_cast<uint8_t>(OpCode::GameOver)
-               << static_cast<uint8_t>(1); // win/lose flag
+               << static_cast<uint8_t>(1);
     
     uint8_t magic1, magic2, opcode, result;
     serializer >> magic1 >> magic2 >> opcode >> result;
@@ -145,7 +144,6 @@ TEST(ProtocolAdvanced, GameOverPacket) {
 TEST(ProtocolAdvanced, MultipleEntityPositions) {
     BinarySerializer serializer;
     
-    // Simulate multiple entity updates in one packet
     for (uint32_t i = 0; i < 3; ++i) {
         serializer << static_cast<uint32_t>(i)
                    << static_cast<uint8_t>(EntityType::Enemy)

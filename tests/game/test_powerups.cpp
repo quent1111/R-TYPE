@@ -32,7 +32,7 @@ TEST(PowerCannon, TimeDecay) {
     power_cannon pc;
     pc.activate();
     
-    pc.update(5.0f); // Half duration
+    pc.update(5.0f);
     EXPECT_TRUE(pc.is_active());
     EXPECT_FLOAT_EQ(pc.time_remaining, 5.0f);
     EXPECT_FLOAT_EQ(pc.get_remaining_percentage(), 0.5f);
@@ -42,7 +42,7 @@ TEST(PowerCannon, Expiration) {
     power_cannon pc;
     pc.activate();
     
-    pc.update(11.0f); // Beyond duration
+    pc.update(11.0f);
     EXPECT_FALSE(pc.is_active());
     EXPECT_FLOAT_EQ(pc.time_remaining, 0.0f);
     EXPECT_FLOAT_EQ(pc.get_remaining_percentage(), 0.0f);
@@ -55,7 +55,6 @@ TEST(PowerCannon, ReactivationAfterExpiry) {
     
     EXPECT_FALSE(pc.is_active());
     
-    // Reactivate
     pc.activate();
     EXPECT_TRUE(pc.is_active());
     EXPECT_FLOAT_EQ(pc.time_remaining, pc.duration);
@@ -75,24 +74,20 @@ TEST(Shield, RadiusDetection) {
     
     float player_x = 100.0f, player_y = 100.0f;
     
-    // Enemy within radius
     EXPECT_TRUE(s.is_enemy_in_range(100.0f, 150.0f, player_x, player_y));
     
-    // Enemy at exact radius boundary
     float enemy_x = player_x + s.radius;
     float enemy_y = player_y;
     EXPECT_TRUE(s.is_enemy_in_range(enemy_x, enemy_y, player_x, player_y));
     
-    // Enemy outside radius
     EXPECT_FALSE(s.is_enemy_in_range(200.0f, 200.0f, player_x, player_y));
 }
 
 TEST(Shield, InactiveShieldNoDetection) {
     shield s;
-    // Don't activate
     
     float player_x = 0.0f, player_y = 0.0f;
-    float enemy_x = 10.0f, enemy_y = 10.0f; // Very close
+    float enemy_x = 10.0f, enemy_y = 10.0f;
     
     EXPECT_FALSE(s.is_enemy_in_range(enemy_x, enemy_y, player_x, player_y));
 }
@@ -104,10 +99,8 @@ TEST(Shield, DiagonalDistance) {
     
     float player_x = 0.0f, player_y = 0.0f;
     
-    // Enemy at (60, 60) - diagonal distance ~84.85 < 100
     EXPECT_TRUE(s.is_enemy_in_range(60.0f, 60.0f, player_x, player_y));
     
-    // Enemy at (80, 80) - diagonal distance ~113.14 > 100
     EXPECT_FALSE(s.is_enemy_in_range(80.0f, 80.0f, player_x, player_y));
 }
 

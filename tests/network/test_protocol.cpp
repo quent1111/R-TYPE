@@ -19,7 +19,6 @@ TEST(Protocol, MagicNumberValidation) {
 }
 
 TEST(Protocol, OpCodeValues) {
-    // Verify critical opcodes have expected values
     EXPECT_EQ(static_cast<uint8_t>(OpCode::Login), 0x01);
     EXPECT_EQ(static_cast<uint8_t>(OpCode::LoginAck), 0x02);
     EXPECT_EQ(static_cast<uint8_t>(OpCode::Input), 0x10);
@@ -37,7 +36,6 @@ TEST(Protocol, EntityTypeValues) {
 TEST(Protocol, LoginPacketStructure) {
     BinarySerializer serializer;
 
-    // Build Login packet
     uint8_t magic1 = static_cast<uint8_t>(OpCode::MagicByte1);
     uint8_t magic2 = static_cast<uint8_t>(OpCode::MagicByte2);
     uint8_t opcode = static_cast<uint8_t>(OpCode::Login);
@@ -45,17 +43,14 @@ TEST(Protocol, LoginPacketStructure) {
 
     serializer << magic1 << magic2 << opcode << player_name;
 
-    // Verify magic number
     uint8_t r_magic1, r_magic2;
     serializer >> r_magic1 >> r_magic2;
     EXPECT_TRUE(MagicNumber::is_valid(r_magic1, r_magic2));
 
-    // Verify opcode
     uint8_t r_opcode;
     serializer >> r_opcode;
     EXPECT_EQ(r_opcode, static_cast<uint8_t>(OpCode::Login));
 
-    // Verify player name
     std::string r_name;
     serializer >> r_name;
     EXPECT_EQ(r_name, player_name);
@@ -67,7 +62,7 @@ TEST(Protocol, InputPacketStructure) {
     uint8_t magic1 = static_cast<uint8_t>(OpCode::MagicByte1);
     uint8_t magic2 = static_cast<uint8_t>(OpCode::MagicByte2);
     uint8_t opcode = static_cast<uint8_t>(OpCode::Input);
-    uint8_t input_flags = 0b00001111; // Up, Down, Left, Right
+    uint8_t input_flags = 0b00001111;
     uint32_t sequence = 12345;
 
     serializer << magic1 << magic2 << opcode << input_flags << sequence;
@@ -89,7 +84,7 @@ TEST(Protocol, PowerUpChoicePacket) {
     uint8_t magic1 = static_cast<uint8_t>(OpCode::MagicByte1);
     uint8_t magic2 = static_cast<uint8_t>(OpCode::MagicByte2);
     uint8_t opcode = static_cast<uint8_t>(OpCode::PowerUpChoice);
-    uint8_t powerup_type = 2; // Shield
+    uint8_t powerup_type = 2;
 
     serializer << magic1 << magic2 << opcode << powerup_type;
 

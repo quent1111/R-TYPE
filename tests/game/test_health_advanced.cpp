@@ -53,7 +53,6 @@ TEST(Health, OverHealing) {
     health h(90, 100);
     h.current += 50;
     
-    // Clamp to max (this would be done in game logic)
     if (h.current > h.maximum) h.current = h.maximum;
     
     EXPECT_EQ(h.current, 100);
@@ -90,9 +89,9 @@ TEST(Health, ZeroMaximumHealth) {
 }
 
 TEST(Health, DifferentMaximums) {
-    health h1(50, 50);   // Small enemy
-    health h2(200, 200); // Boss
-    health h3(100, 100); // Player
+    health h1(50, 50);
+    health h2(200, 200);
+    health h3(100, 100);
     
     EXPECT_FLOAT_EQ(h1.health_percentage(), 1.0f);
     EXPECT_FLOAT_EQ(h2.health_percentage(), 1.0f);

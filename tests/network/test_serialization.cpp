@@ -12,7 +12,6 @@ using namespace RType;
 TEST(BinarySerializer, WriteAndReadPrimitives) {
     BinarySerializer serializer;
 
-    // Write
     uint8_t u8 = 42;
     uint16_t u16 = 1234;
     uint32_t u32 = 567890;
@@ -20,7 +19,6 @@ TEST(BinarySerializer, WriteAndReadPrimitives) {
 
     serializer << u8 << u16 << u32 << f;
 
-    // Read back
     uint8_t r_u8;
     uint16_t r_u16;
     uint32_t r_u32;
@@ -62,7 +60,6 @@ TEST(BinarySerializer, ResetReadPosition) {
     serializer >> value1;
     EXPECT_EQ(value1, 42);
 
-    // Reset and read again
     serializer.reset_read_position();
     uint8_t value2;
     serializer >> value2;
@@ -74,7 +71,7 @@ TEST(BinarySerializer, RemainingBytes) {
     serializer << static_cast<uint32_t>(100);
     serializer << static_cast<uint32_t>(200);
 
-    EXPECT_EQ(serializer.remaining(), 8); // 2 * sizeof(uint32_t)
+    EXPECT_EQ(serializer.remaining(), 8);
 
     uint32_t val;
     serializer >> val;
@@ -87,7 +84,6 @@ TEST(BinarySerializer, RemainingBytes) {
 TEST(BinarySerializer, SerializeEntityPosition) {
     BinarySerializer serializer;
 
-    // Simulate entity position packet
     uint8_t magic1 = static_cast<uint8_t>(OpCode::MagicByte1);
     uint8_t magic2 = static_cast<uint8_t>(OpCode::MagicByte2);
     uint8_t opcode = static_cast<uint8_t>(OpCode::EntityPosition);
@@ -102,7 +98,6 @@ TEST(BinarySerializer, SerializeEntityPosition) {
                << entity_id << entity_type 
                << x << y << vx << vy;
 
-    // Read back
     uint8_t r_magic1, r_magic2, r_opcode, r_type;
     uint32_t r_id;
     float r_x, r_y, r_vx, r_vy;

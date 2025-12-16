@@ -2,7 +2,6 @@
 
 #include "../../../src/Common/Opcodes.hpp"
 
-// Composants de Gameplay Logique (Server-Safe, pas de SFML)
 
 struct health {
     int current;
@@ -42,7 +41,6 @@ struct collision_box {
         : width(w), height(h), offset_x(ox), offset_y(oy) {}
 };
 
-// Multiple hitboxes for complex entities (e.g., boss with head/body/tail)
 struct multi_hitbox {
     struct hitbox_part {
         float width;
@@ -66,11 +64,10 @@ struct controllable {
     constexpr explicit controllable(float move_speed = 200.0f) noexcept : speed(move_speed) {}
 };
 
-// Types d'améliorations d'armes
 enum class WeaponUpgradeType : uint8_t {
     None = 0,
-    PowerShot = 1,    // Tirs plus puissants (balles plus grosses, plus de dégâts)
-    TripleShot = 2    // 3 projectiles (2 en diagonale + 1 droit)
+    PowerShot = 1,
+    TripleShot = 2
 };
 
 struct weapon {
@@ -92,13 +89,13 @@ struct weapon {
     }
 
     constexpr void reset_shot_timer() noexcept { time_since_shot = 0.0f; }
-    
+
     constexpr void apply_upgrade(WeaponUpgradeType new_upgrade) noexcept {
         upgrade_type = new_upgrade;
         if (new_upgrade == WeaponUpgradeType::PowerShot) {
-            damage = 25;  // Plus de dégâts
+            damage = 25;
         } else if (new_upgrade == WeaponUpgradeType::TripleShot) {
-            fire_rate = 4.0f;  // Légèrement moins rapide pour équilibrer
+            fire_rate = 4.0f;
         }
     }
 };
@@ -121,14 +118,13 @@ struct wave_manager {
         : spawn_interval(interval), enemies_per_wave(count) {}
 };
 
-// Gestionnaire de niveaux
 struct level_manager {
     int current_level = 1;
     int enemies_killed_this_level = 0;
-    int enemies_needed_for_next_level = 1;  // Start with just 1 enemy for level 1
+    int enemies_needed_for_next_level = 1;
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
-    float level_start_delay = 3.0f;  // Délai de 3 secondes au début de chaque niveau
+    float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
     
     constexpr level_manager() noexcept = default;
@@ -146,9 +142,7 @@ struct level_manager {
         enemies_killed_this_level = 0;
         level_completed = false;
         awaiting_upgrade_choice = false;
-        // Augmente la difficulté: level 1 = 1 enemy, level 2 = 2 enemies, level 3+ = current_level enemies
         enemies_needed_for_next_level = current_level;
-        // Réinitialiser le timer de délai
         level_start_timer = 0.0f;
     }
     
@@ -168,7 +162,6 @@ struct level_manager {
     }
 };
 
-// Power-ups
 enum class PowerUpType : uint8_t {
     None = 0,
     PowerCannon = 1,
@@ -179,11 +172,11 @@ struct power_cannon {
     bool active = false;
     float duration = 10.0f;
     float time_remaining = 0.0f;
-    int damage = 50;  // 5x damage normal
-    float fire_rate = 3.0f;  // Plus lent mais plus puissant
-    
+    int damage = 50;
+    float fire_rate = 3.0f;
+
     constexpr power_cannon() noexcept = default;
-    
+
     constexpr void activate() noexcept {
         active = true;
         time_remaining = duration;
@@ -209,7 +202,7 @@ struct shield {
     bool active = false;
     float duration = 10.0f;
     float time_remaining = 0.0f;
-    float radius = 80.0f;  // Rayon du bouclier autour du joueur
+    float radius = 80.0f;
     
     constexpr shield() noexcept = default;
     
@@ -243,7 +236,6 @@ struct shield {
     }
 };
 
-// Tags
 struct player_tag {};
 struct enemy_tag {};
 struct boss_tag {};
