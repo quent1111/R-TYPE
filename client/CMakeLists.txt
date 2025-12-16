@@ -10,6 +10,7 @@ add_executable(r-type_client
     src/states/MenuState.cpp
     src/states/LobbyState.cpp
     src/states/GameState.cpp
+    src/ui/SettingsPanel.cpp
     src/ui/MenuComponents.cpp
     src/core/FontManager.cpp
 )
