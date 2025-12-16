@@ -16,6 +16,10 @@ struct Entity {
     int health{100};
     int max_health{100};
 
+    float damage_flash_timer{0.0f};
+    float damage_flash_duration{0.15f};
+    int prev_health{100};
+
     float prev_x{0.f}, prev_y{0.f};
     std::chrono::steady_clock::time_point prev_time{std::chrono::steady_clock::now()};
     std::chrono::steady_clock::time_point curr_time{prev_time};

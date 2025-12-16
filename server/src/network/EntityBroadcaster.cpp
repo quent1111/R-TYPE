@@ -78,6 +78,15 @@ void EntityBroadcaster::broadcast_entity_positions(
             broadcast_serializer_ << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             broadcast_serializer_ << vy;
+
+            if (tags[i]->type == RType::EntityType::Boss) {
+                auto health_opt = reg.get_component<health>(entity_obj);
+                int current_health = health_opt.has_value() ? health_opt->current : 100;
+                int max_health = health_opt.has_value() ? health_opt->maximum : 100;
+                broadcast_serializer_ << static_cast<int32_t>(current_health);
+                broadcast_serializer_ << static_cast<int32_t>(max_health);
+            }
+
             entity_count++;
         }
     }

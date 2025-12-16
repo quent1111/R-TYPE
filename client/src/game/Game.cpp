@@ -155,7 +155,16 @@ void Game::update() {
     }
 
     process_network_messages();
-    ;
+
+    // Update boss damage flash timers
+    for (auto& [id, entity] : entities_) {
+        if (entity.type == 0x08 && entity.damage_flash_timer > 0.0f) {
+            entity.damage_flash_timer -= dt;
+            if (entity.damage_flash_timer < 0.0f) {
+                entity.damage_flash_timer = 0.0f;
+            }
+        }
+    }
 
     for (auto& [player_id, powerup_info] : player_powerups_) {
         uint8_t type = powerup_info.first;
@@ -355,6 +364,12 @@ void Game::process_network_messages() {
                                                                                           0.15f);
                             }
                             prev_player_health_ = incoming.health;
+                        }
+
+                        if (incoming.type == 0x08 && it->second.type == 0x08) {
+                            if (incoming.health < it->second.health) {
+                                incoming.damage_flash_timer = incoming.damage_flash_duration;
+                            }
                         }
 
                         if (it->second.type != incoming.type) {

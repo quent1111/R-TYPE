@@ -28,6 +28,7 @@ void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_
 
     reg.add_component(boss, boss_tag{});
     reg.add_component(boss, entity_tag{RType::EntityType::Boss});
+    reg.add_component(boss, damage_flash_component{0.15f});
 
     boss_entity = boss;
     boss_animation_timer = 0.0f;

@@ -156,6 +156,12 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             }
         }
 
+        if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
+            e.sprite.setColor(sf::Color(255, 100, 100, 255));
+        } else {
+            e.sprite.setColor(sf::Color(255, 255, 255, 255));
+        }
+
         window.draw(e.sprite);
     }
 }

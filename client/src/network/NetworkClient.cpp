@@ -174,6 +174,11 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 deserializer >> current_health >> max_health;
                 entity.health = current_health;
                 entity.max_health = max_health;
+            } else if (type_val == 0x08) {
+                int32_t current_health, max_health;
+                deserializer >> current_health >> max_health;
+                entity.health = current_health;
+                entity.max_health = max_health;
             }
 
             new_entities[entity_id] = entity;

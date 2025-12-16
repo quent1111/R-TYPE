@@ -65,3 +65,32 @@ struct animation_component {
         return frames[current_frame];
     }
 };
+
+struct damage_flash_component {
+    float timer;
+    float duration;
+    bool active;
+
+    damage_flash_component(float flash_duration = 0.15f)
+        : timer(0.0f), duration(flash_duration), active(false) {}
+
+    void trigger() {
+        active = true;
+        timer = duration;
+    }
+
+    void update(float dt) {
+        if (active) {
+            timer -= dt;
+            if (timer <= 0.0f) {
+                active = false;
+                timer = 0.0f;
+            }
+        }
+    }
+
+    [[nodiscard]] float get_alpha() const {
+        if (!active) return 0.0f;
+        return (timer / duration) * 255.0f;
+    }
+};

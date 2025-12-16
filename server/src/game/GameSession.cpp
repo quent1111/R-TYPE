@@ -32,6 +32,7 @@ GameSession::GameSession() {
     _registry.register_component<animation_component>();
     _registry.register_component<power_cannon>();
     _registry.register_component<shield>();
+    _registry.register_component<damage_flash_component>();
     auto level_mgr_entity = _registry.spawn_entity();
     _registry.emplace_component<level_manager>(level_mgr_entity);
 }
@@ -290,6 +291,13 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     for (std::size_t i = 0; i < shields.size(); ++i) {
         if (shields[i].has_value()) {
             shields[i]->update(dt);
+        }
+    }
+
+    auto& damage_flashes = _registry.get_components<damage_flash_component>();
+    for (std::size_t i = 0; i < damage_flashes.size(); ++i) {
+        if (damage_flashes[i].has_value()) {
+            damage_flashes[i]->update(dt);
         }
     }
 

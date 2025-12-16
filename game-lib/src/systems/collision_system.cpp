@@ -16,6 +16,7 @@ void collisionSystem(registry& reg) {
     auto& player_tags = reg.get_components<player_tag>();
     auto& level_managers = reg.get_components<level_manager>();
     auto& shields = reg.get_components<shield>();
+    auto& damage_flashes = reg.get_components<damage_flash_component>();
 
     for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
         if (player_tags[p] && positions[p] && shields[p]) {
@@ -55,6 +56,10 @@ void collisionSystem(registry& reg) {
                         if (player_shield.is_enemy_in_range(boss_pos.x, boss_pos.y, player_pos.x, player_pos.y)) {
                             boss_hp.current -= 10;
                             if (boss_hp.current < 0) boss_hp.current = 0;
+
+                            if (b < damage_flashes.size() && damage_flashes[b].has_value()) {
+                                damage_flashes[b]->trigger();
+                            }
 
                             if (boss_hp.is_dead()) {
                                 createExplosion(reg, boss_pos.x, boss_pos.y);
@@ -183,6 +188,10 @@ void collisionSystem(registry& reg) {
                     if (hit_detected) {
                         boss_hp.current -= proj_dmg.damage_amount;
                         if (boss_hp.current < 0) boss_hp.current = 0;
+
+                        if (j < damage_flashes.size() && damage_flashes[j].has_value()) {
+                            damage_flashes[j]->trigger();
+                        }
 
                         if (proj_dmg.destroy_on_hit) {
                             auto proj_entity = reg.entity_from_index(i);
