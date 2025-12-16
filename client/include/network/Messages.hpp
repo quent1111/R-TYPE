@@ -64,6 +64,7 @@ enum class MessageType : uint8_t {
     LevelStart,
     PowerUpSelection,
     PowerUpStatus,
+    BossSpawn,
     GameOver
 };
 

@@ -65,6 +65,10 @@ private:
     uint16_t prev_enemies_killed_ = 0;
     int prev_player_health_ = -1;
 
+    bool boss_spawn_triggered_ = false;
+    float boss_roar_timer_ = 0.0f;
+    float boss_roar_delay_ = 2.5f;
+
     void process_network_messages();
     void setup_ui();
     void setup_input_handler();

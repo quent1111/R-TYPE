@@ -279,7 +279,10 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids,
                                        _boss_animation_timer, _boss_shoot_timer,
                                        _boss_shoot_cooldown, _boss_animation_complete,
-                                       _boss_entrance_complete, _boss_target_x, dt);
+                                       _boss_entrance_complete, _boss_target_x,
+                                       _boss_shoot_counter, dt);
+
+    _boss_manager.update_homing_enemies(_registry, _client_entity_ids, dt);
 
     auto& cannons = _registry.get_components<power_cannon>();
     auto& shields = _registry.get_components<shield>();
@@ -394,6 +397,8 @@ void GameSession::advance_level(UDPServer& server) {
         _boss_manager.spawn_boss_level_5(_registry, _boss_entity, _boss_animation_timer,
                                          _boss_shoot_timer, _boss_animation_complete,
                                          _boss_entrance_complete, _boss_target_x);
+
+        _game_broadcaster.broadcast_boss_spawn(server);
     }
 
     _game_broadcaster.broadcast_level_start(server, current_level);
@@ -445,6 +450,7 @@ void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
     _boss_shoot_timer = 0.0f;
     _boss_animation_complete = false;
     _boss_entrance_complete = false;
+    _boss_shoot_counter = 0;
 
     std::cout << "[Game] Game reset. Back to lobby." << std::endl;
 }

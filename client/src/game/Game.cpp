@@ -40,6 +40,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet30.gif");
         texture_mgr.load("assets/r-typesheet30a.gif");
         texture_mgr.load("assets/explosion.gif");
+        texture_mgr.load("assets/weirdbaby.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
@@ -156,6 +157,15 @@ void Game::update() {
     }
 
     process_network_messages();
+
+    if (boss_spawn_triggered_) {
+        boss_roar_timer_ += dt;
+        if (boss_roar_timer_ >= boss_roar_delay_) {
+            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::BossRoar);
+            std::cout << "[Game] BOSS ROAR! (triggered at " << boss_roar_timer_ << "s)" << std::endl;
+            boss_spawn_triggered_ = false;
+        }
+    }
 
     for (auto& [id, entity] : entities_) {
         if (entity.type == 0x08 && entity.damage_flash_timer > 0.0f) {
@@ -336,6 +346,17 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(3.0F, 3.0F);
         }
+    } else if (entity.type == 0x09) {
+        if (texture_mgr.has("assets/weirdbaby.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/weirdbaby.gif"));
+
+            entity.frames = {{0, 0, 34, 35}, {34, 0, 35, 35}};
+
+            entity.frame_duration = 0.15F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -393,6 +414,12 @@ void Game::process_network_messages() {
                     } else {
                         if (id == my_network_id_ && incoming.type == 0x01) {
                             prev_player_health_ = incoming.health;
+                        }
+                        if (incoming.type == 0x08 && !boss_spawn_triggered_) {
+                            std::cout << "[Game] BOSS DETECTED! Launching music and preparing roar..." << std::endl;
+                            managers::AudioManager::instance().play_music("assets/sounds/bossfight.mp3", true);
+                            boss_spawn_triggered_ = true;
+                            boss_roar_timer_ = 0.0f;
                         }
                         incoming.prev_x = incoming.x;
                         incoming.prev_y = incoming.y;
@@ -473,6 +500,13 @@ void Game::process_network_messages() {
                     }
                     powerup_time_remaining_ = msg.powerup_time_remaining;
                 }
+                break;
+            case NetworkToGame::MessageType::BossSpawn:
+                managers::AudioManager::instance().play_music("assets/sounds/bossfight.mp3", true);
+                boss_spawn_triggered_ = true;
+                boss_roar_timer_ = 0.0f;
+                std::cout << "[Game] Boss spawn received! Starting music, roar in " 
+                          << boss_roar_delay_ << "s" << std::endl;
                 break;
             case NetworkToGame::MessageType::GameOver:
                 show_game_over_ = true;

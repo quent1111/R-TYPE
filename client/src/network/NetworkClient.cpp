@@ -59,6 +59,8 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_powerup_selection(buffer, bytes_received);
             } else if (opcode == 0x36) {
                 decode_powerup_status(buffer, bytes_received);
+            } else if (opcode == 0x50) {
+                decode_boss_spawn(buffer, bytes_received);
             } else if (opcode == 0x40) {
                 decode_game_over(buffer, bytes_received);
             } else {
@@ -416,6 +418,13 @@ void NetworkClient::send_powerup_activate() {
 void NetworkClient::decode_game_over([[maybe_unused]] const std::vector<uint8_t>& buffer,
                                      [[maybe_unused]] std::size_t received) {
     NetworkToGame::Message msg(NetworkToGame::MessageType::GameOver);
+    network_to_game_queue_.push(msg);
+}
+
+void NetworkClient::decode_boss_spawn([[maybe_unused]] const std::vector<uint8_t>& buffer,
+                                      [[maybe_unused]] std::size_t received) {
+    std::cout << "[NetworkClient] Boss Spawn received! Triggering music & roar..." << std::endl;
+    NetworkToGame::Message msg(NetworkToGame::MessageType::BossSpawn);
     network_to_game_queue_.push(msg);
 }
 

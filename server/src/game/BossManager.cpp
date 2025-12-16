@@ -44,7 +44,7 @@ void BossManager::update_boss_behavior(
     registry& reg, std::optional<entity>& boss_entity,
     const std::unordered_map<int, std::size_t>& client_entity_ids, float& boss_animation_timer,
     float& boss_shoot_timer, float boss_shoot_cooldown, bool& boss_animation_complete,
-    bool& boss_entrance_complete, float boss_target_x, float dt) {
+    bool& boss_entrance_complete, float boss_target_x, int& boss_shoot_counter, float dt) {
     if (!boss_entity.has_value()) {
         return;
     }
@@ -86,7 +86,7 @@ void BossManager::update_boss_behavior(
 
     boss_animation_timer += dt;
 
-    if (boss_animation_timer >= 9.2f && !boss_animation_complete) {
+    if (boss_animation_timer >= 2.5f && !boss_animation_complete) {
         boss_animation_complete = true;
         boss_shoot_timer = 0.0f;
         std::cout << "[BOSS] Animation complete! Boss will now start shooting!" << std::endl;
@@ -97,6 +97,13 @@ void BossManager::update_boss_behavior(
 
         if (boss_shoot_timer >= boss_shoot_cooldown) {
             boss_shoot_projectile(reg, boss_entity, client_entity_ids);
+            boss_shoot_counter++;
+
+            if (boss_shoot_counter >= 3) {
+                boss_spawn_homing_enemy(reg, boss_entity);
+                boss_shoot_counter = 0;
+            }
+
             boss_shoot_timer = 0.0f;
         }
     }
@@ -148,7 +155,7 @@ void BossManager::boss_shoot_projectile(
 
         auto projectile = reg.spawn_entity();
 
-        reg.add_component(projectile, position{boss_x - 100.0f, boss_y});
+        reg.add_component(projectile, position{boss_x - 10.0f, boss_y + 20.0f});
 
         reg.add_component(projectile, velocity{vx, vy});
 
@@ -165,6 +172,98 @@ void BossManager::boss_shoot_projectile(
         std::cout << "[BOSS] Fired projectile 0x07 towards player at (" << target_x << ", "
                   << target_y << ")" << std::endl;
         std::cout << "[BOSS] Projectile velocity: (" << vx << ", " << vy << ")" << std::endl;
+    }
+}
+
+void BossManager::boss_spawn_homing_enemy(registry& reg, std::optional<entity>& boss_entity) {
+    if (!boss_entity.has_value()) {
+        return;
+    }
+
+    auto boss_pos_opt = reg.get_component<position>(boss_entity.value());
+    if (!boss_pos_opt.has_value()) {
+        return;
+    }
+
+    float boss_x = boss_pos_opt->x;
+    float boss_y = boss_pos_opt->y;
+
+    auto homing = reg.spawn_entity();
+
+    reg.add_component(homing, position{boss_x - 50.0f, boss_y + 300.0f});
+
+    reg.add_component(homing, velocity{-150.0f, 0.0f});
+
+    reg.add_component(homing, health{10, 10});
+
+    reg.add_component(homing, collision_box{35.0f, 35.0f});
+    reg.add_component(homing, damage_on_contact{30, false});
+
+    reg.add_component(homing, homing_component{250.0f, 3.0f});
+
+    reg.add_component(homing, entity_tag{RType::EntityType::HomingEnemy});
+
+    std::cout << "[BOSS] Spawned homing enemy 0x09 at (" << boss_x - 100.0f << ", " << boss_y + 150.0f << ")" << std::endl;
+}
+
+void BossManager::update_homing_enemies(
+    registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, float dt) {
+
+    auto& positions = reg.get_components<position>();
+    auto& velocities = reg.get_components<velocity>();
+    auto& homing_comps = reg.get_components<homing_component>();
+    auto& entity_tags = reg.get_components<entity_tag>();
+    for (std::size_t i = 0; i < entity_tags.size(); ++i) {
+        if (!entity_tags[i].has_value() ||
+            entity_tags[i]->type != RType::EntityType::HomingEnemy ||
+            !positions[i].has_value() || !velocities[i].has_value() ||
+            !homing_comps[i].has_value()) {
+            continue;
+        }
+
+        float homing_x = positions[i]->x;
+        float homing_y = positions[i]->y;
+
+        float closest_distance = std::numeric_limits<float>::max();
+        float target_x = 0.0f;
+        float target_y = 0.0f;
+        bool found_target = false;
+
+        for (const auto& [client_id, entity_id] : client_entity_ids) {
+            auto player = reg.entity_from_index(entity_id);
+            auto player_pos_opt = reg.get_component<position>(player);
+            auto player_health_opt = reg.get_component<health>(player);
+
+            if (player_pos_opt.has_value() && player_health_opt.has_value() &&
+                player_health_opt->current > 0) {
+
+                float dx = player_pos_opt->x - homing_x;
+                float dy = player_pos_opt->y - homing_y;
+                float distance = std::sqrt(dx * dx + dy * dy);
+
+                if (distance < closest_distance) {
+                    closest_distance = distance;
+                    target_x = player_pos_opt->x;
+                    target_y = player_pos_opt->y;
+                    found_target = true;
+                }
+            }
+        }
+
+        if (found_target && closest_distance > 10.0f) {
+            float dx = target_x - homing_x;
+            float dy = target_y - homing_y;
+            float distance = std::sqrt(dx * dx + dy * dy);
+
+            float desired_vx = (dx / distance) * homing_comps[i]->speed;
+            float desired_vy = (dy / distance) * homing_comps[i]->speed;
+
+            float turn_factor = homing_comps[i]->turn_rate * dt;
+            if (turn_factor > 1.0f) turn_factor = 1.0f;
+
+            velocities[i]->vx += (desired_vx - velocities[i]->vx) * turn_factor;
+            velocities[i]->vy += (desired_vy - velocities[i]->vy) * turn_factor;
+        }
     }
 }
 

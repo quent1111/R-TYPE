@@ -77,6 +77,7 @@ private:
     bool _boss_animation_complete = false;
     bool _boss_entrance_complete = false;
     float _boss_target_x = 1500.0f;
+    int _boss_shoot_counter = 0;
 
     void process_network_events(UDPServer& server);
     void update_game_state(UDPServer& server, float dt);

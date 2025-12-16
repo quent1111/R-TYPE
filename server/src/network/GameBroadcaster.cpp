@@ -48,6 +48,14 @@ void GameBroadcaster::broadcast_level_start(UDPServer& server, uint8_t level) {
               << std::endl;
 }
 
+void GameBroadcaster::broadcast_boss_spawn(UDPServer& server) {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::BossSpawn;
+    server.send_to_all(serializer.data());
+    std::cout << "[Game] Broadcasting Boss Spawn (opcode 0x50) - Music & Roar trigger" << std::endl;
+}
+
 void GameBroadcaster::broadcast_start_game(UDPServer& server) {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;

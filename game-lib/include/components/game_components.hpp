@@ -94,3 +94,12 @@ struct damage_flash_component {
         return (timer / duration) * 255.0f;
     }
 };
+
+struct homing_component {
+    float speed;
+    float turn_rate;
+    
+    homing_component(float homing_speed = 250.0f, float homing_turn_rate = 3.0f)
+        : speed(homing_speed), turn_rate(homing_turn_rate) {}
+};
+

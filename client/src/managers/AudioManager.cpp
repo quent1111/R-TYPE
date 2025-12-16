@@ -24,7 +24,8 @@ bool AudioManager::load_sounds() {
         {SoundType::PlayerHit, "assets/sounds/player-hit.mp3"},
         {SoundType::LevelUp, "assets/sounds/level-up.mp3"},
         {SoundType::Plop, "assets/sounds/plop.wav"},
-        {SoundType::Coin, "assets/sounds/coin.wav"}};
+        {SoundType::Coin, "assets/sounds/coin.wav"},
+        {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"}};
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {
@@ -60,6 +61,9 @@ void AudioManager::play_sound(SoundType type) {
             break;
         case SoundType::Coin:
             volume_multiplier = 0.5f;
+            break;
+        case SoundType::BossRoar:
+            volume_multiplier = 2.0f;
             break;
         default:
             volume_multiplier = 1.0f;
