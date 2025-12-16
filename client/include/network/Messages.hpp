@@ -24,6 +24,7 @@ struct Message {
     bool ready_status;
     uint8_t weapon_upgrade_choice;
     uint8_t powerup_choice_value;
+    uint8_t powerup_activate_type;
 
     Message(MessageType t, uint8_t input = 0)
         : type(t),
@@ -36,7 +37,8 @@ struct Message {
           input_mask(0),
           ready_status(ready),
           weapon_upgrade_choice(0),
-          powerup_choice_value(0) {}
+          powerup_choice_value(0),
+          powerup_activate_type(0) {}
 
     static Message weapon_upgrade(uint8_t choice) {
         Message msg(MessageType::SendWeaponUpgrade);
@@ -49,7 +51,11 @@ struct Message {
         msg.powerup_choice_value = choice;
         return msg;
     }
-    static Message powerup_activate() { return Message(MessageType::SendPowerUpActivate); }
+    static Message powerup_activate(uint8_t type) {
+        Message msg(MessageType::SendPowerUpActivate);
+        msg.powerup_activate_type = type;
+        return msg;
+    }
 };
 }  // namespace GameToNetwork
 

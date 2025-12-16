@@ -9,8 +9,7 @@ InputHandler::InputHandler()
       show_powerup_selection_(false),
       powerup_type_(0),
       powerup_time_remaining_(0.0f),
-      was_shooting_(false),
-      x_pressed_last_frame_(false) {}
+      was_shooting_(false) {}
 
 void InputHandler::handle_event(const sf::Event& event, sf::RenderWindow& window) {
     if (!has_focus_) {
@@ -41,7 +40,7 @@ void InputHandler::handle_event(const sf::Event& event, sf::RenderWindow& window
     }
 }
 
-void InputHandler::handle_input() {
+void InputHandler::handle_input(float dt) {
     if (!has_focus_) {
         return;
     }
@@ -63,16 +62,6 @@ void InputHandler::handle_input() {
         return;
     }
 
-    bool x_pressed_now = sf::Keyboard::isKeyPressed(sf::Keyboard::X);
-    if (x_pressed_now && !x_pressed_last_frame_) {
-        if (powerup_type_ != 0 && powerup_time_remaining_ <= 0.0f) {
-            if (powerup_activate_callback_) {
-                powerup_activate_callback_();
-            }
-        }
-    }
-    x_pressed_last_frame_ = x_pressed_now;
-
     uint8_t input_mask = 0;
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
@@ -88,16 +77,46 @@ void InputHandler::handle_input() {
         input_mask |= KEY_D;
     }
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+        if (!was_activating_cannon_ && powerup_activate_callback_) {
+            powerup_activate_callback_(1);
+            was_activating_cannon_ = true;
+        }
+    } else {
+        was_activating_cannon_ = false;
+    }
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+        if (!was_activating_shield_ && powerup_activate_callback_) {
+            powerup_activate_callback_(2);
+            was_activating_shield_ = true;
+        }
+    } else {
+        was_activating_shield_ = false;
+    }
+
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
         input_mask |= KEY_SPACE;
+        
         if (!was_shooting_) {
             if (shoot_sound_callback_) {
                 shoot_sound_callback_();
             }
-            was_shooting_ = true;
+            shoot_sound_timer_ = 0.0f;
+        } else {
+            shoot_sound_timer_ += dt;
+            if (shoot_sound_timer_ >= shoot_sound_interval_) {
+                if (shoot_sound_callback_) {
+                    shoot_sound_callback_();
+                }
+                shoot_sound_timer_ = 0.0f;
+            }
         }
+        
+        was_shooting_ = true;
     } else {
         was_shooting_ = false;
+        shoot_sound_timer_ = 0.0f;
     }
 
     if (input_mask != 0) {

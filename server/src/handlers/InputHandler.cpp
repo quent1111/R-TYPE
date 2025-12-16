@@ -57,20 +57,21 @@ void InputHandler::handle_player_input(
                 if (wpn.can_shoot()) {
                     int damage = wpn.damage;
                     WeaponUpgradeType visual_type = wpn.upgrade_type;
-                    if (power_cannon_opt.has_value() && power_cannon_opt->is_active()) {
+                    bool power_cannon_active = power_cannon_opt.has_value() && power_cannon_opt->is_active();
+                    if (power_cannon_active) {
                         damage = power_cannon_opt->damage;
                         visual_type = WeaponUpgradeType::PowerShot;
                     }
                     if (wpn.upgrade_type == WeaponUpgradeType::TripleShot) {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
-                                           0.0f, damage, visual_type);
+                                           0.0f, damage, visual_type, power_cannon_active);
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
-                                           -100.0f, damage, visual_type);
+                                           -100.0f, damage, visual_type, power_cannon_active);
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
-                                           100.0f, damage, visual_type);
+                                           100.0f, damage, visual_type, power_cannon_active);
                     } else {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
-                                           0.0f, damage, visual_type);
+                                           0.0f, damage, visual_type, power_cannon_active);
                     }
                     wpn.reset_shot_timer();
                 }

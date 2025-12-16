@@ -35,13 +35,10 @@ void PowerupHandler::handle_powerup_choice(
     }
 
     auto player = player_opt.value();
-    if (powerup_choice == 1) {
-        reg.emplace_component<power_cannon>(player);
-        std::cout << "[Game] Client " << client_id << " chose Power Cannon" << std::endl;
-    } else if (powerup_choice == 2) {
-        reg.emplace_component<shield>(player);
-        std::cout << "[Game] Client " << client_id << " chose Shield" << std::endl;
-    }
+    
+    reg.emplace_component<power_cannon>(player);
+    reg.emplace_component<shield>(player);
+    std::cout << "[Game] Client " << client_id << " received both Power Cannon and Shield" << std::endl;
 
     players_who_chose_powerup.insert(client_id);
 
@@ -52,25 +49,26 @@ void PowerupHandler::handle_powerup_choice(
 }
 
 void PowerupHandler::handle_powerup_activate(
-    registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id) {
+    registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id,
+    uint8_t powerup_type) {
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         return;
     }
     auto player = player_opt.value();
-    auto& cannon_opt = reg.get_component<power_cannon>(player);
-    if (cannon_opt.has_value()) {
-        if (!cannon_opt->is_active()) {
+    
+    if (powerup_type == 1) {
+        auto& cannon_opt = reg.get_component<power_cannon>(player);
+        if (cannon_opt.has_value() && !cannon_opt->is_active()) {
             cannon_opt->activate();
+            std::cout << "[Game] Client " << client_id << " activated Power Cannon" << std::endl;
         }
-        return;
-    }
-    auto& shield_opt = reg.get_component<shield>(player);
-    if (shield_opt.has_value()) {
-        if (!shield_opt->is_active()) {
+    } else if (powerup_type == 2) {
+        auto& shield_opt = reg.get_component<shield>(player);
+        if (shield_opt.has_value() && !shield_opt->is_active()) {
             shield_opt->activate();
+            std::cout << "[Game] Client " << client_id << " activated Shield" << std::endl;
         }
-        return;
     }
 }
 

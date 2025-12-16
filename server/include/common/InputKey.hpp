@@ -11,3 +11,5 @@ constexpr uint8_t KEY_D = 0x08;
 constexpr uint8_t KEY_SPACE = 0x10;
 
 }  // namespace server
+constexpr uint8_t KEY_A = 0x20;
+constexpr uint8_t KEY_R = 0x40;

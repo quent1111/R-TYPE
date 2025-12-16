@@ -24,7 +24,7 @@ public:
 
     void handle_powerup_activate(registry& reg,
                                  const std::unordered_map<int, std::size_t>& client_entity_ids,
-                                 int client_id);
+                                 int client_id, uint8_t powerup_type);
 
     int count_alive_players(registry& reg,
                             const std::unordered_map<int, std::size_t>& client_entity_ids);

@@ -52,10 +52,12 @@ void LevelManager::clear_enemies_and_projectiles(registry& reg,
     auto& enemy_tags = reg.get_components<enemy_tag>();
     auto& projectile_tags = reg.get_components<projectile_tag>();
     auto& boss_tags = reg.get_components<boss_tag>();
+    auto& homing_comps = reg.get_components<homing_component>();
 
     int enemies_cleared = 0;
     int projectiles_cleared = 0;
     int bosses_cleared = 0;
+    int homing_cleared = 0;
 
     for (std::size_t i = 0; i < enemy_tags.size(); ++i) {
         if (enemy_tags[i].has_value()) {
@@ -84,12 +86,22 @@ void LevelManager::clear_enemies_and_projectiles(registry& reg,
         }
     }
 
+    for (std::size_t i = 0; i < homing_comps.size(); ++i) {
+        if (homing_comps[i].has_value()) {
+            auto ent = reg.entity_from_index(i);
+            reg.remove_component<entity_tag>(ent);
+            reg.kill_entity(ent);
+            homing_cleared++;
+        }
+    }
+
     if (boss_entity.has_value()) {
         boss_entity = std::nullopt;
     }
 
     std::cout << "[Game] Cleared level: " << enemies_cleared << " enemies, " << projectiles_cleared
-              << " projectiles, " << bosses_cleared << " bosses" << std::endl;
+              << " projectiles, " << bosses_cleared << " bosses, " << homing_cleared
+              << " homing enemies" << std::endl;
 }
 
 }  // namespace server

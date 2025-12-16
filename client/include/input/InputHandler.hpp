@@ -14,7 +14,7 @@ class InputHandler {
 public:
     using InputCallback = std::function<void(uint8_t input_mask)>;
     using PowerupChoiceCallback = std::function<void(uint8_t choice)>;
-    using PowerupActivateCallback = std::function<void()>;
+    using PowerupActivateCallback = std::function<void(uint8_t powerup_type)>;
     using SoundCallback = std::function<void()>;
 
     InputHandler();
@@ -44,7 +44,7 @@ public:
     }
 
     void handle_event(const sf::Event& event, sf::RenderWindow& window);
-    void handle_input();
+    void handle_input(float dt = 0.0f);
 
     bool is_powerup_selection_active() const { return show_powerup_selection_; }
     uint8_t get_selected_powerup_type() const { return powerup_type_; }
@@ -64,7 +64,11 @@ private:
     float powerup_time_remaining_ = 0.0f;
 
     bool was_shooting_ = false;
-    bool x_pressed_last_frame_ = false;
+    bool was_activating_cannon_ = false;
+    bool was_activating_shield_ = false;
+    
+    float shoot_sound_timer_ = 0.0f;
+    const float shoot_sound_interval_ = 0.2f;
 
     sf::FloatRect powerup_card1_bounds_;
     sf::FloatRect powerup_card2_bounds_;

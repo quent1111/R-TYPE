@@ -15,33 +15,38 @@ void PowerupBroadcaster::broadcast_powerup_status(
     const std::unordered_map<int, std::size_t>& client_entity_ids) {
     for (const auto& [client_id, entity_id] : client_entity_ids) {
         auto player = reg.entity_from_index(entity_id);
-        uint8_t powerup_type = 0;
-        float time_remaining = 0.0f;
+        
         auto& cannon_opt = reg.get_component<power_cannon>(player);
         if (cannon_opt.has_value()) {
-            powerup_type = 1;
+            uint8_t powerup_type = 1;
+            float time_remaining = 0.0f;
             if (cannon_opt->is_active()) {
                 time_remaining = cannon_opt->time_remaining;
-            } else {
-                time_remaining = 0.0f;
             }
+            RType::BinarySerializer serializer;
+            serializer << RType::MagicNumber::VALUE;
+            serializer << RType::OpCode::PowerUpStatus;
+            serializer << static_cast<uint32_t>(client_id);
+            serializer << powerup_type;
+            serializer << time_remaining;
+            server.send_to_all(serializer.data());
         }
+        
         auto& shield_opt = reg.get_component<shield>(player);
         if (shield_opt.has_value()) {
-            powerup_type = 2;
+            uint8_t powerup_type = 2;
+            float time_remaining = 0.0f;
             if (shield_opt->is_active()) {
                 time_remaining = shield_opt->time_remaining;
-            } else {
-                time_remaining = 0.0f;
             }
+            RType::BinarySerializer serializer;
+            serializer << RType::MagicNumber::VALUE;
+            serializer << RType::OpCode::PowerUpStatus;
+            serializer << static_cast<uint32_t>(client_id);
+            serializer << powerup_type;
+            serializer << time_remaining;
+            server.send_to_all(serializer.data());
         }
-        RType::BinarySerializer serializer;
-        serializer << RType::MagicNumber::VALUE;
-        serializer << RType::OpCode::PowerUpStatus;
-        serializer << static_cast<uint32_t>(client_id);
-        serializer << powerup_type;
-        serializer << time_remaining;
-        server.send_to_all(serializer.data());
     }
 }
 

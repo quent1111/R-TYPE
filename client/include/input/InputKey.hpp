@@ -5,3 +5,5 @@
 #define KEY_Q     0x04
 #define KEY_D     0x08
 #define KEY_SPACE 0x10
+#define KEY_A     0x20
+#define KEY_E     0x40

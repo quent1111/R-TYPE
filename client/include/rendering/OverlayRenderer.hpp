@@ -25,16 +25,17 @@ public:
 
     void render_powerup_selection(sf::RenderWindow& window, bool show);
 
-    void render_powerup_active(sf::RenderWindow& window, uint8_t powerup_type, float time_remaining,
-                               const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
+    void render_powerup_active(sf::RenderWindow& window,
+                               const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
                                const std::map<uint32_t, Entity>& entities,
-                               const std::map<uint32_t, int>& player_shield_frame);
+                               const std::map<uint32_t, int>& player_shield_frame,
+                               uint32_t my_network_id);
 
     void render_game_over(sf::RenderWindow& window, bool show);
 
     void
     update_shield_animation(float dt,
-                            const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
+                            const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
                             std::map<uint32_t, int>& player_shield_frame,
                             std::map<uint32_t, float>& player_shield_anim_timer);
 
@@ -56,6 +57,9 @@ private:
 
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;
+    
+    sf::Text cannon_hint_text_;
+    sf::RectangleShape cannon_hint_bg_;
 
     sf::Sprite shield_visual_;
     std::vector<sf::IntRect> shield_frames_;

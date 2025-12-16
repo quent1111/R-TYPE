@@ -219,8 +219,10 @@ void GameSession::process_network_events(UDPServer& server) {
                     break;
                 }
                 case RType::OpCode::PowerUpActivate: {
+                    uint8_t powerup_type = 0;
+                    deserializer >> powerup_type;
                     _powerup_handler.handle_powerup_activate(_registry, _client_entity_ids,
-                                                             client_id);
+                                                             client_id, powerup_type);
                     _powerup_broadcaster.broadcast_powerup_status(server, _registry,
                                                                   _client_entity_ids);
                     break;

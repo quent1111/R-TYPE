@@ -58,7 +58,7 @@ public:
     void send_input(uint8_t input_mask);
     void send_ready(bool ready);
     void send_powerup_choice(uint8_t choice);
-    void send_powerup_activate();
+    void send_powerup_activate(uint8_t powerup_type);
     void stop();
     void run();
 

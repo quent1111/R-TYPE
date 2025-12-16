@@ -36,6 +36,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet26.png");
         texture_mgr.load("assets/r-typesheet24.png");
         texture_mgr.load("assets/ennemi-projectile.png");
+        texture_mgr.load("assets/canonpowerup.png");
         texture_mgr.load("assets/shield.png");
         texture_mgr.load("assets/r-typesheet30.gif");
         texture_mgr.load("assets/r-typesheet30a.gif");
@@ -100,8 +101,9 @@ void Game::setup_input_handler() {
         powerup_type_ = choice;
     });
 
-    input_handler_.set_powerup_activate_callback(
-        [this]() { game_to_network_queue_.push(GameToNetwork::Message::powerup_activate()); });
+    input_handler_.set_powerup_activate_callback([this](uint8_t type) {
+        game_to_network_queue_.push(GameToNetwork::Message::powerup_activate(type));
+    });
 
     input_handler_.set_shoot_sound_callback([]() {
         managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Laser);
@@ -124,7 +126,7 @@ void Game::handle_event(const sf::Event& event) {
     powerup_type_ = input_handler_.get_selected_powerup_type();
 }
 
-void Game::handle_input() {
+void Game::handle_input(float dt) {
     if (!has_focus_) {
         return;
     }
@@ -133,7 +135,7 @@ void Game::handle_input() {
     input_handler_.set_powerup_selection_active(show_powerup_selection_);
     input_handler_.set_powerup_state(powerup_type_, powerup_time_remaining_);
 
-    input_handler_.handle_input();
+    input_handler_.handle_input(dt);
 
     show_powerup_selection_ = input_handler_.is_powerup_selection_active();
     powerup_type_ = input_handler_.get_selected_powerup_type();
@@ -176,9 +178,9 @@ void Game::update() {
         }
     }
 
-    for (auto& [player_id, powerup_info] : player_powerups_) {
-        uint8_t type = powerup_info.first;
-        float time = powerup_info.second;
+    for (auto& [key, time] : player_powerups_) {
+        uint32_t player_id = key.first;
+        uint8_t type = key.second;
         if (type == 2) {
             if (player_shield_anim_timer_.find(player_id) == player_shield_anim_timer_.end()) {
                 player_shield_anim_timer_[player_id] = 0.0f;
@@ -281,8 +283,17 @@ void Game::init_entity_sprite(Entity& entity) {
         }
     } else if (entity.type == 0x03) {
         bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
+        float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
+        bool is_fast_projectile = (projectile_speed > 600.0f && entity.vx > 0);
 
-        if (is_enemy2_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
+        if (is_fast_projectile && texture_mgr.has("assets/canonpowerup.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/canonpowerup.png"));
+            entity.frames = {{0, 0, 51, 21}, {52, 0, 51, 21}};
+            entity.frame_duration = 0.08F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        } else if (is_enemy2_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/ennemi-projectile.png"));
             entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
             entity.frame_duration = 0.1F;
@@ -492,8 +503,7 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
-                player_powerups_[msg.powerup_player_id] = {msg.powerup_type,
-                                                           msg.powerup_time_remaining};
+                player_powerups_[{msg.powerup_player_id, msg.powerup_type}] = msg.powerup_time_remaining;
                 if (msg.powerup_player_id == my_network_id_) {
                     if (msg.powerup_type != 0) {
                         powerup_type_ = msg.powerup_type;
@@ -540,8 +550,8 @@ void Game::render() {
     hud_renderer_.render_level_hud(window_, show_level_intro_);
     hud_renderer_.render_combo_bar(window_);
 
-    overlay_renderer_.render_powerup_active(window_, powerup_type_, powerup_time_remaining_,
-                                            player_powerups_, entities_, player_shield_frame_);
+    overlay_renderer_.render_powerup_active(window_, player_powerups_, entities_,
+                                            player_shield_frame_, my_network_id_);
     overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_,
                                          enemies_needed_);
     overlay_renderer_.render_powerup_selection(window_, show_powerup_selection_);

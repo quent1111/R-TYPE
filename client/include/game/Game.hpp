@@ -49,7 +49,7 @@ private:
     uint8_t powerup_type_ = 0;
     float powerup_time_remaining_ = 0.0f;
     bool has_x_key_been_released_ = true;
-    std::map<uint32_t, std::pair<uint8_t, float>> player_powerups_;
+    std::map<std::pair<uint32_t, uint8_t>, float> player_powerups_;
     std::map<uint32_t, int> player_shield_frame_;
     std::map<uint32_t, float> player_shield_anim_timer_;
 
@@ -81,7 +81,7 @@ public:
     ~Game();
 
     void run();
-    void handle_input();
+    void handle_input(float dt = 0.0f);
     void handle_event(const sf::Event& event);
     void update();
     void render();

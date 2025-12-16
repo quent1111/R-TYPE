@@ -108,7 +108,7 @@ void NetworkClient::send_loop() {
                 break;
 
             case GameToNetwork::MessageType::SendPowerUpActivate:
-                send_powerup_activate();
+                send_powerup_activate(msg.powerup_activate_type);
                 break;
 
             case GameToNetwork::MessageType::Disconnect:
@@ -400,10 +400,11 @@ void NetworkClient::send_powerup_choice(uint8_t choice) {
                           });
 }
 
-void NetworkClient::send_powerup_activate() {
+void NetworkClient::send_powerup_activate(uint8_t powerup_type) {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpActivate;
+    serializer << powerup_type;
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {

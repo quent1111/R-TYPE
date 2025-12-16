@@ -78,6 +78,20 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
     powerup_hint_bg_.setOutlineThickness(2.0f);
 
+    cannon_hint_text_.setFont(font);
+    cannon_hint_text_.setCharacterSize(28);
+    cannon_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
+    cannon_hint_text_.setStyle(sf::Text::Bold);
+    cannon_hint_text_.setOutlineColor(sf::Color::Black);
+    cannon_hint_text_.setOutlineThickness(3.0f);
+    cannon_hint_text_.setPosition(20, 880);
+
+    cannon_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
+    cannon_hint_bg_.setPosition(10, 870);
+    cannon_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
+    cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
+    cannon_hint_bg_.setOutlineThickness(2.0f);
+
     shield_frames_ = {
         {0, 0, 27, 27}, {27, 0, 34, 34}, {61, 0, 42, 42}, {103, 0, 51, 51}, {154, 0, 55, 55}};
     shield_visual_.setTextureRect(shield_frames_[0]);
@@ -139,37 +153,52 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
 }
 
 void OverlayRenderer::render_powerup_active(
-    sf::RenderWindow& window, uint8_t powerup_type, float time_remaining,
-    const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
+    sf::RenderWindow& window,
+    const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
     const std::map<uint32_t, Entity>& entities,
-    const std::map<uint32_t, int>& player_shield_frame) {
-    if (powerup_type == 0) {
-        return;
+    const std::map<uint32_t, int>& player_shield_frame,
+    uint32_t my_network_id) {
+    
+    float cannon_time = 0.0f;
+    float shield_time = 0.0f;
+    
+    auto cannon_it = player_powerups.find({my_network_id, 1});
+    if (cannon_it != player_powerups.end()) {
+        cannon_time = cannon_it->second;
     }
-
-    std::string powerup_name = (powerup_type == 1) ? "Power Cannon" : "Protection";
-
-    if (time_remaining > 0.0f) {
-        int seconds = static_cast<int>(time_remaining);
-        std::string hint_text = powerup_name + " ACTIF: " + std::to_string(seconds) + "s";
-        powerup_hint_text_.setString(hint_text);
-        powerup_hint_text_.setFillColor(sf::Color::Green);
-        powerup_hint_bg_.setOutlineColor(sf::Color::Green);
-    } else {
-        std::string hint_text = powerup_name + " disponible - Appuyez sur X";
-        powerup_hint_text_.setString(hint_text);
-        powerup_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
-        powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
+    
+    auto shield_it = player_powerups.find({my_network_id, 2});
+    if (shield_it != player_powerups.end()) {
+        shield_time = shield_it->second;
     }
-
-    window.draw(powerup_hint_bg_);
-    window.draw(powerup_hint_text_);
+    
+    if (cannon_time > 0.0f) {
+        int seconds = static_cast<int>(cannon_time);
+        std::string hint_text = "Power Cannon actif: " + std::to_string(seconds) + "s";
+        cannon_hint_text_.setString(hint_text);
+        cannon_hint_text_.setFillColor(sf::Color::Yellow);
+        cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
+        
+        window.draw(cannon_hint_bg_);
+        window.draw(cannon_hint_text_);
+    }
+    
+    if (shield_time > 0.0f) {
+        int seconds = static_cast<int>(shield_time);
+        std::string hint_text = "Protection active: " + std::to_string(seconds) + "s";
+        powerup_hint_text_.setString(hint_text);
+        powerup_hint_text_.setFillColor(sf::Color::Cyan);
+        powerup_hint_bg_.setOutlineColor(sf::Color::Cyan);
+        
+        window.draw(powerup_hint_bg_);
+        window.draw(powerup_hint_text_);
+    }
 
     auto& texture_mgr = managers::TextureManager::instance();
 
-    for (const auto& [player_id, powerup_info] : player_powerups) {
-        uint8_t type = powerup_info.first;
-        float time = powerup_info.second;
+    for (const auto& [key, time] : player_powerups) {
+        uint32_t player_id = key.first;
+        uint8_t type = key.second;
 
         if (type == 2 && time > 0.0f) {
             auto it = entities.find(player_id);
@@ -204,11 +233,13 @@ void OverlayRenderer::render_game_over(sf::RenderWindow& window, bool show) {
 }
 
 void OverlayRenderer::update_shield_animation(
-    float dt, const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
+    float dt, const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
     std::map<uint32_t, int>& player_shield_frame,
     std::map<uint32_t, float>& player_shield_anim_timer) {
-    for (const auto& [player_id, powerup_info] : player_powerups) {
-        if (powerup_info.first == 2 && powerup_info.second > 0.0f) {
+    for (const auto& [key, time] : player_powerups) {
+        uint32_t player_id = key.first;
+        uint8_t type = key.second;
+        if (type == 2 && time > 0.0f) {
             player_shield_anim_timer[player_id] += dt;
 
             constexpr float frame_duration = 0.1f;
