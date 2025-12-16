@@ -4,8 +4,8 @@
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>
-
 #include <cstdint>
+
 #include <functional>
 
 namespace input {
@@ -21,9 +21,15 @@ public:
     ~InputHandler() = default;
 
     void set_input_callback(InputCallback callback) { input_callback_ = std::move(callback); }
-    void set_powerup_choice_callback(PowerupChoiceCallback callback) { powerup_choice_callback_ = std::move(callback); }
-    void set_powerup_activate_callback(PowerupActivateCallback callback) { powerup_activate_callback_ = std::move(callback); }
-    void set_shoot_sound_callback(SoundCallback callback) { shoot_sound_callback_ = std::move(callback); }
+    void set_powerup_choice_callback(PowerupChoiceCallback callback) {
+        powerup_choice_callback_ = std::move(callback);
+    }
+    void set_powerup_activate_callback(PowerupActivateCallback callback) {
+        powerup_activate_callback_ = std::move(callback);
+    }
+    void set_shoot_sound_callback(SoundCallback callback) {
+        shoot_sound_callback_ = std::move(callback);
+    }
 
     void set_focus(bool focus) { has_focus_ = focus; }
     void set_powerup_selection_active(bool active) { show_powerup_selection_ = active; }

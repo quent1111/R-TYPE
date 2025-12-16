@@ -1,8 +1,10 @@
-#include "UDPServer.hpp"
+#include "network/UDPServer.hpp"
 
 #include <cstring>
 
 #include <iostream>
+
+namespace server {
 
 UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address,
                      unsigned short port)
@@ -87,13 +89,12 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
 
 void UDPServer::queue_output_packet(NetworkPacket packet) {
     asio::post(io_context_, [this, packet = std::move(packet)]() {
-        socket_.async_send_to(asio::buffer(packet.data), packet.sender,
-                              [](std::error_code ec, std::size_t /*bytes_sent*/) {
-                                  if (ec) {
-                                      std::cerr << "[Error] Send failed: " << ec.message()
-                                                << std::endl;
-                                  }
-                              });
+        socket_.async_send_to(
+            asio::buffer(packet.data), packet.sender, [](std::error_code ec, std::size_t) {
+                if (ec) {
+                    std::cerr << "[Error] Send failed: " << ec.message() << std::endl;
+                }
+            });
     });
 }
 
@@ -189,3 +190,5 @@ void UDPServer::stop() {
     io_context_.stop();
     socket_.close();
 }
+
+}  // namespace server

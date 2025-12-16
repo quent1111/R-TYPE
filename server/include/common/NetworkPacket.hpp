@@ -4,6 +4,8 @@
 
 #include <vector>
 
+namespace server {
+
 struct NetworkPacket {
     std::vector<uint8_t> data;
     asio::ip::udp::endpoint sender;
@@ -16,3 +18,5 @@ struct NetworkPacket {
     NetworkPacket(std::vector<uint8_t>&& d, const asio::ip::udp::endpoint& s)
         : data(std::move(d)), sender(s) {}
 };
+
+}  // namespace server

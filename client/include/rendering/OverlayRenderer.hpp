@@ -25,17 +25,18 @@ public:
 
     void render_powerup_selection(sf::RenderWindow& window, bool show);
 
-    void render_powerup_active(sf::RenderWindow& window, uint8_t powerup_type,
-                               float time_remaining,
+    void render_powerup_active(sf::RenderWindow& window, uint8_t powerup_type, float time_remaining,
                                const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
                                const std::map<uint32_t, Entity>& entities,
                                const std::map<uint32_t, int>& player_shield_frame);
 
     void render_game_over(sf::RenderWindow& window, bool show);
 
-    void update_shield_animation(float dt, const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
-                                  std::map<uint32_t, int>& player_shield_frame,
-                                  std::map<uint32_t, float>& player_shield_anim_timer);
+    void
+    update_shield_animation(float dt,
+                            const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
+                            std::map<uint32_t, int>& player_shield_frame,
+                            std::map<uint32_t, float>& player_shield_anim_timer);
 
     OverlayRenderer(const OverlayRenderer&) = delete;
     OverlayRenderer& operator=(const OverlayRenderer&) = delete;

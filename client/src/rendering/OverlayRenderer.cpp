@@ -96,7 +96,7 @@ void OverlayRenderer::init(const sf::Font& font) {
 }
 
 void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, uint8_t level,
-                                          uint16_t enemies_needed) {
+                                         uint16_t enemies_needed) {
     if (!show) {
         return;
     }
@@ -143,7 +143,6 @@ void OverlayRenderer::render_powerup_active(
     const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
     const std::map<uint32_t, Entity>& entities,
     const std::map<uint32_t, int>& player_shield_frame) {
-
     if (powerup_type == 0) {
         return;
     }
@@ -208,7 +207,6 @@ void OverlayRenderer::update_shield_animation(
     float dt, const std::map<uint32_t, std::pair<uint8_t, float>>& player_powerups,
     std::map<uint32_t, int>& player_shield_frame,
     std::map<uint32_t, float>& player_shield_anim_timer) {
-
     for (const auto& [player_id, powerup_info] : player_powerups) {
         if (powerup_info.first == 2 && powerup_info.second > 0.0f) {
             player_shield_anim_timer[player_id] += dt;

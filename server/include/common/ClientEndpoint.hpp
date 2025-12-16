@@ -4,6 +4,8 @@
 
 #include <chrono>
 
+namespace server {
+
 struct ClientEndpoint {
     asio::ip::udp::endpoint endpoint;
     int client_id;
@@ -13,3 +15,5 @@ struct ClientEndpoint {
     ClientEndpoint(const asio::ip::udp::endpoint& ep, int id)
         : endpoint(ep), client_id(id), last_seen(std::chrono::steady_clock::now()) {}
 };
+
+}  // namespace server

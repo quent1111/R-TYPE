@@ -1,7 +1,7 @@
 #include "game/Game.hpp"
 
-#include "input/InputKey.hpp"
 #include "common/Settings.hpp"
+#include "input/InputKey.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -72,11 +72,13 @@ void Game::setup_ui() {
         const int card_width = 459;
         const int card_height = 759;
         powerup_card1_sprite_.setTexture(*bonus_texture);
-        powerup_card1_sprite_.setTextureRect(sf::IntRect(card_width * 2, 0, card_width, card_height));
+        powerup_card1_sprite_.setTextureRect(
+            sf::IntRect(card_width * 2, 0, card_width, card_height));
         powerup_card1_sprite_.setScale(0.6f, 0.6f);
         powerup_card1_sprite_.setPosition(560.0f, 300.0f);
         powerup_card2_sprite_.setTexture(*bonus_texture);
-        powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
+        powerup_card2_sprite_.setTextureRect(
+            sf::IntRect(card_width * 1, 0, card_width, card_height));
         powerup_card2_sprite_.setScale(0.6f, 0.6f);
         powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
     }
@@ -96,9 +98,8 @@ void Game::setup_input_handler() {
         powerup_type_ = choice;
     });
 
-    input_handler_.set_powerup_activate_callback([this]() {
-        game_to_network_queue_.push(GameToNetwork::Message::powerup_activate());
-    });
+    input_handler_.set_powerup_activate_callback(
+        [this]() { game_to_network_queue_.push(GameToNetwork::Message::powerup_activate()); });
 
     input_handler_.set_shoot_sound_callback([]() {
         managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Laser);
@@ -112,9 +113,8 @@ void Game::handle_event(const sf::Event& event) {
 
     input_handler_.set_focus(has_focus_);
     input_handler_.set_powerup_selection_active(show_powerup_selection_);
-    input_handler_.set_powerup_card_bounds(
-        powerup_card1_sprite_.getGlobalBounds(),
-        powerup_card2_sprite_.getGlobalBounds());
+    input_handler_.set_powerup_card_bounds(powerup_card1_sprite_.getGlobalBounds(),
+                                           powerup_card2_sprite_.getGlobalBounds());
 
     input_handler_.handle_event(event, window_);
 
@@ -154,7 +154,8 @@ void Game::update() {
         displayed_score_ = std::min(displayed_score_ + increment, current_score_);
     }
 
-    process_network_messages();;
+    process_network_messages();
+    ;
 
     for (auto& [player_id, powerup_info] : player_powerups_) {
         uint8_t type = powerup_info.first;
@@ -350,7 +351,8 @@ void Game::process_network_messages() {
                                 managers::AudioManager::instance().play_sound(
                                     managers::AudioManager::SoundType::PlayerHit);
                                 managers::EffectsManager::instance().trigger_damage_flash();
-                                managers::EffectsManager::instance().trigger_screen_shake(10.0f, 0.15f);
+                                managers::EffectsManager::instance().trigger_screen_shake(10.0f,
+                                                                                          0.15f);
                             }
                             prev_player_health_ = incoming.health;
                         }
@@ -388,23 +390,28 @@ void Game::process_network_messages() {
                 for (const auto& [id, entity] : entities_) {
                     if ((entity.type == 0x02 || entity.type == 0x06) &&
                         next.find(id) == next.end()) {
-                        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::HitSound);
+                        managers::AudioManager::instance().play_sound(
+                            managers::AudioManager::SoundType::HitSound);
 
                         managers::EffectsManager::instance().add_combo_kill();
-                        int combo_mult = managers::EffectsManager::instance().get_combo_multiplier();
+                        int combo_mult =
+                            managers::EffectsManager::instance().get_combo_multiplier();
 
                         sf::Vector2f enemy_pos(entity.x, entity.y);
                         managers::EffectsManager::instance().spawn_explosion(enemy_pos, 25);
 
                         float shake_intensity = 16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
-                        managers::EffectsManager::instance().trigger_screen_shake(shake_intensity, 0.25f);
+                        managers::EffectsManager::instance().trigger_screen_shake(shake_intensity,
+                                                                                  0.25f);
 
                         sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
-                        managers::EffectsManager::instance().spawn_score_particles(enemy_pos, score_pos, 12);
+                        managers::EffectsManager::instance().spawn_score_particles(enemy_pos,
+                                                                                   score_pos, 12);
 
                         current_score_ += static_cast<uint32_t>(100 * combo_mult);
                         managers::EffectsManager::instance().trigger_score_bounce();
-                        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Coin);
+                        managers::AudioManager::instance().play_sound(
+                            managers::AudioManager::SoundType::Coin);
                     }
                 }
 
@@ -420,7 +427,8 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::LevelProgress: {
                 uint16_t new_kills = static_cast<uint16_t>(msg.kills);
                 if (new_kills > prev_enemies_killed_) {
-                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Explosion);
+                    managers::AudioManager::instance().play_sound(
+                        managers::AudioManager::SoundType::Explosion);
                 }
                 prev_enemies_killed_ = new_kills;
                 current_level_ = static_cast<uint8_t>(msg.level);
@@ -483,8 +491,9 @@ void Game::render() {
     hud_renderer_.render_combo_bar(window_);
 
     overlay_renderer_.render_powerup_active(window_, powerup_type_, powerup_time_remaining_,
-                                             player_powerups_, entities_, player_shield_frame_);
-    overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_, enemies_needed_);
+                                            player_powerups_, entities_, player_shield_frame_);
+    overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_,
+                                         enemies_needed_);
     overlay_renderer_.render_powerup_selection(window_, show_powerup_selection_);
     overlay_renderer_.render_game_over(window_, show_game_over_);
 

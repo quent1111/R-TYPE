@@ -1,10 +1,10 @@
 #pragma once
 
-#include "network/Messages.hpp"
-#include "network/NetworkClient.hpp"
 #include "common/SafeQueue.hpp"
 #include "input/InputHandler.hpp"
 #include "managers/Managers.hpp"
+#include "network/Messages.hpp"
+#include "network/NetworkClient.hpp"
 #include "rendering/Rendering.hpp"
 
 #include <SFML/Graphics.hpp>

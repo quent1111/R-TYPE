@@ -135,9 +135,12 @@ void MenuState::handle_event(const sf::Event& event) {
             m_window.close();
         }
         if (event.key.code == sf::Keyboard::S) {
-            if (!m_settings_panel) m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
-            if (m_settings_panel->is_open()) m_settings_panel->close();
-            else m_settings_panel->open();
+            if (!m_settings_panel)
+                m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+            if (m_settings_panel->is_open())
+                m_settings_panel->close();
+            else
+                m_settings_panel->open();
         }
         if (m_settings_panel && m_settings_panel->is_open()) {
             if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
@@ -172,7 +175,8 @@ void MenuState::update(float dt) {
             m_settings_panel->get_new_window_settings(new_size, fullscreen);
             m_settings_panel->clear_window_recreate_flag();
             if (fullscreen) {
-                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer", sf::Style::Fullscreen);
+                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer",
+                                sf::Style::Fullscreen);
             } else {
                 m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer");
             }

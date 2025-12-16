@@ -4,6 +4,7 @@
 #include "managers/TextureManager.hpp"
 
 #include <cmath>
+
 #include <chrono>
 
 namespace rendering {
@@ -17,15 +18,18 @@ void GameRenderer::init(sf::RenderWindow& window) {
     bg_texture.setRepeated(true);
 
     bg_sprite1_.setTexture(bg_texture);
-    bg_sprite1_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
+    bg_sprite1_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
     bg_sprite1_.setPosition(0, 0);
 
     bg_sprite2_.setTexture(bg_texture);
-    bg_sprite2_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
+    bg_sprite2_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
     bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
 
     game_view_.setSize(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
-    game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f);
+    game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f,
+                         static_cast<float>(WINDOW_HEIGHT) / 2.0f);
     window.setView(game_view_);
 }
 
@@ -108,7 +112,7 @@ void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
 }
 
 void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
-                                    uint32_t /*my_network_id*/, float dt) {
+                                   uint32_t /*my_network_id*/, float dt) {
     const auto interp_delay = std::chrono::milliseconds(100);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
@@ -128,9 +132,13 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         if (curr_t > prev_t) {
             const float total_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(curr_t - prev_t).count();
+                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(curr_t -
+                                                                                     prev_t)
+                    .count();
             const float elapsed_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(render_time - prev_t).count();
+                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(render_time -
+                                                                                     prev_t)
+                    .count();
 
             float alpha = (total_ms > 0.0f) ? (elapsed_ms / total_ms) : 1.0f;
             alpha = std::max(0.0f, std::min(1.0f, alpha));

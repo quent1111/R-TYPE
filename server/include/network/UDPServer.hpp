@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ClientEndpoint.hpp"
-#include "NetworkPacket.hpp"
-#include "SafeQueue.hpp"
+#include "common/ClientEndpoint.hpp"
+#include "common/NetworkPacket.hpp"
+#include "common/SafeQueue.hpp"
 
 #include <asio.hpp>
 
@@ -14,6 +14,8 @@
 #include <queue>
 #include <string>
 #include <vector>
+
+namespace server {
 
 class UDPServer {
 private:
@@ -53,3 +55,5 @@ public:
     void run_network_loop();
     void stop();
 };
+
+}  // namespace server

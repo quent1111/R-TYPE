@@ -2,9 +2,9 @@
 
 #include "../../src/Common/BinarySerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "common/SafeQueue.hpp"
 #include "game/Entity.hpp"
 #include "network/Messages.hpp"
-#include "common/SafeQueue.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <asio.hpp>

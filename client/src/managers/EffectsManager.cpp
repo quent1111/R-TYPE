@@ -9,9 +9,7 @@ EffectsManager& EffectsManager::instance() {
     return instance;
 }
 
-EffectsManager::EffectsManager() 
-    : score_position_(100.0f, 50.0f)
-    , rng_(std::random_device{}()) {
+EffectsManager::EffectsManager() : score_position_(100.0f, 50.0f), rng_(std::random_device{}()) {
     particle_shape_.setRadius(4.0f);
     particle_shape_.setOrigin(4.0f, 4.0f);
 }
@@ -126,9 +124,9 @@ void EffectsManager::render(sf::RenderWindow& window) {
             particle_shape_.setRadius(trail_size);
             particle_shape_.setOrigin(trail_size, trail_size);
             particle_shape_.setPosition(trail_pos);
-            particle_shape_.setFillColor(sf::Color(
-                particle.color.r, particle.color.g, particle.color.b,
-                static_cast<sf::Uint8>(alpha * 150.0f)));
+            particle_shape_.setFillColor(sf::Color(particle.color.r, particle.color.g,
+                                                   particle.color.b,
+                                                   static_cast<sf::Uint8>(alpha * 150.0f)));
             window.draw(particle_shape_);
             ++trail_index;
         }
@@ -185,14 +183,14 @@ void EffectsManager::spawn_explosion(sf::Vector2f position, int count) {
 
         float color_type = random_float(0.0f, 1.0f);
         if (color_type < 0.4f) {
-            particle.color = sf::Color(
-                255, static_cast<sf::Uint8>(random_float(100.0f, 180.0f)), 0, 255);
+            particle.color =
+                sf::Color(255, static_cast<sf::Uint8>(random_float(100.0f, 180.0f)), 0, 255);
         } else if (color_type < 0.7f) {
-            particle.color = sf::Color(
-                255, 255, static_cast<sf::Uint8>(random_float(0.0f, 100.0f)), 255);
+            particle.color =
+                sf::Color(255, 255, static_cast<sf::Uint8>(random_float(0.0f, 100.0f)), 255);
         } else {
-            particle.color = sf::Color(
-                255, static_cast<sf::Uint8>(random_float(50.0f, 100.0f)), 0, 255);
+            particle.color =
+                sf::Color(255, static_cast<sf::Uint8>(random_float(50.0f, 100.0f)), 0, 255);
         }
 
         explosion_particles_.push_back(particle);
@@ -204,7 +202,8 @@ void EffectsManager::trigger_damage_flash() {
 }
 
 float EffectsManager::get_damage_flash_alpha() const {
-    if (damage_flash_timer_ <= 0.0f) return 0.0f;
+    if (damage_flash_timer_ <= 0.0f)
+        return 0.0f;
     float progress = damage_flash_timer_ / damage_flash_duration_;
     return progress * 100.0f;
 }
@@ -235,7 +234,8 @@ float EffectsManager::get_combo_progress() const {
 }
 
 float EffectsManager::get_combo_timer() const {
-    if (combo_kills_ == 0 && combo_multiplier_ == 1) return 0.0f;
+    if (combo_kills_ == 0 && combo_multiplier_ == 1)
+        return 0.0f;
     return 1.0f - (combo_timer_ / combo_decay_time_);
 }
 

@@ -24,8 +24,7 @@ bool AudioManager::load_sounds() {
         {SoundType::PlayerHit, "assets/sounds/player-hit.mp3"},
         {SoundType::LevelUp, "assets/sounds/level-up.mp3"},
         {SoundType::Plop, "assets/sounds/plop.wav"},
-        {SoundType::Coin, "assets/sounds/coin.wav"}
-    };
+        {SoundType::Coin, "assets/sounds/coin.wav"}};
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {

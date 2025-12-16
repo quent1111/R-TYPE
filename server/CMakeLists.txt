@@ -2,8 +2,18 @@ cmake_minimum_required(VERSION 3.20)
 
 add_executable(r-type_server
     src/main.cpp
-    src/UDPServer.cpp
-    src/Game.cpp
+    src/network/UDPServer.cpp
+    src/network/EntityBroadcaster.cpp
+    src/network/LobbyBroadcaster.cpp
+    src/network/GameBroadcaster.cpp
+    src/network/PowerupBroadcaster.cpp
+    src/handlers/InputHandler.cpp
+    src/handlers/PowerupHandler.cpp
+    src/handlers/WeaponHandler.cpp
+    src/game/PlayerManager.cpp
+    src/game/LevelManager.cpp
+    src/game/BossManager.cpp
+    src/game/GameSession.cpp
 )
 
 target_include_directories(r-type_server PRIVATE

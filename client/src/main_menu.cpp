@@ -1,6 +1,6 @@
+#include "common/SafeQueue.hpp"
 #include "network/Messages.hpp"
 #include "network/NetworkClient.hpp"
-#include "common/SafeQueue.hpp"
 #include "states/GameState.hpp"
 #include "states/LobbyState.hpp"
 #include "states/MenuState.hpp"
