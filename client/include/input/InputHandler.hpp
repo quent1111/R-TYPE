@@ -1,6 +1,6 @@
 #pragma once
 
-#include "inputKey.hpp"
+#include "input/InputKey.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <SFML/Window.hpp>

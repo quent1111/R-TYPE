@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../../client/src/SafeQueue.hpp"
+#include "../../client/include/common/SafeQueue.hpp"
 #include <thread>
 #include <vector>
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Messages.hpp"
-#include "NetworkClient.hpp"
-#include "SafeQueue.hpp"
+#include "network/Messages.hpp"
+#include "network/NetworkClient.hpp"
+#include "common/SafeQueue.hpp"
 #include "states/IState.hpp"
 #include "ui/MenuComponents.hpp"
 

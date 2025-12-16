@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Entity.hpp"
+#include "game/Entity.hpp"
 #include "managers/EffectsManager.hpp"
 #include "managers/TextureManager.hpp"
 

@@ -1,7 +1,7 @@
-#include "Game.hpp"
+#include "game/Game.hpp"
 
-#include "inputKey.hpp"
-#include "Settings.hpp"
+#include "input/InputKey.hpp"
+#include "common/Settings.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>

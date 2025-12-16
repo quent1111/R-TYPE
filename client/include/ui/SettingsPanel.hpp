@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MenuComponents.hpp"
-#include "../Settings.hpp"
+#include "common/Settings.hpp"
 
 #include <SFML/Graphics.hpp>
 

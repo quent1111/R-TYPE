@@ -1,6 +1,6 @@
 #include "rendering/GameRenderer.hpp"
 
-#include "Settings.hpp"
+#include "common/Settings.hpp"
 #include "managers/TextureManager.hpp"
 
 #include <cmath>

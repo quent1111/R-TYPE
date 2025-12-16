@@ -1,4 +1,4 @@
-#include "NetworkClient.hpp"
+#include "network/NetworkClient.hpp"
 
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
                              ThreadSafeQueue<GameToNetwork::Message>& game_to_net,

@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 add_executable(r-type_client
     src/main_menu.cpp
-    src/game.cpp
-    src/networkClient.cpp
+    src/game/Game.cpp
+    src/network/NetworkClient.cpp
     src/managers/AudioManager.cpp
     src/managers/EffectsManager.cpp
     src/managers/FontManager.cpp

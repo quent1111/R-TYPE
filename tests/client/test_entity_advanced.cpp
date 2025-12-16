@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "../../client/src/Entity.hpp"
+#include "../../client/include/game/Entity.hpp"
 
 TEST(ClientEntityAdvanced, VelocityMagnitude) {
     Entity entity;
