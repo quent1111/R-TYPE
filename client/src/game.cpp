@@ -49,6 +49,8 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     hud_renderer_.init(font_);
     overlay_renderer_.init(font_);
 
+    setup_input_handler();
+
     auto& audio = managers::AudioManager::instance();
     audio.load_sounds();
     audio.play_music("assets/sounds/game-loop.ogg", true);
@@ -82,85 +84,57 @@ void Game::setup_ui() {
     managers::EffectsManager::instance().set_score_position(sf::Vector2f(WINDOW_WIDTH - 200, 40));
 }
 
+void Game::setup_input_handler() {
+    input_handler_.set_input_callback([this](uint8_t input_mask) {
+        game_to_network_queue_.push(
+            GameToNetwork::Message(GameToNetwork::MessageType::SendInput, input_mask));
+    });
+
+    input_handler_.set_powerup_choice_callback([this](uint8_t choice) {
+        game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(choice));
+        show_powerup_selection_ = false;
+        powerup_type_ = choice;
+    });
+
+    input_handler_.set_powerup_activate_callback([this]() {
+        game_to_network_queue_.push(GameToNetwork::Message::powerup_activate());
+    });
+
+    input_handler_.set_shoot_sound_callback([]() {
+        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Laser);
+    });
+}
+
 void Game::handle_event(const sf::Event& event) {
     if (!has_focus_) {
         return;
     }
 
-    if (show_powerup_selection_ && event.type == sf::Event::MouseButtonPressed) {
-        if (event.mouseButton.button == sf::Mouse::Left) {
-            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
-            sf::Vector2f mouse_pos = window_.mapPixelToCoords(pixel_pos);
+    input_handler_.set_focus(has_focus_);
+    input_handler_.set_powerup_selection_active(show_powerup_selection_);
+    input_handler_.set_powerup_card_bounds(
+        powerup_card1_sprite_.getGlobalBounds(),
+        powerup_card2_sprite_.getGlobalBounds());
 
-            if (powerup_card1_sprite_.getGlobalBounds().contains(mouse_pos)) {
-                game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(1));
-                show_powerup_selection_ = false;
-                powerup_type_ = 1;
-                std::cout << "[Game] Powerup 1 selected via click" << std::endl;
-            } else if (powerup_card2_sprite_.getGlobalBounds().contains(mouse_pos)) {
-                game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(2));
-                show_powerup_selection_ = false;
-                powerup_type_ = 2;
-                std::cout << "[Game] Powerup 2 selected via click" << std::endl;
-            }
-        }
-    }
+    input_handler_.handle_event(event, window_);
+
+    show_powerup_selection_ = input_handler_.is_powerup_selection_active();
+    powerup_type_ = input_handler_.get_selected_powerup_type();
 }
 
 void Game::handle_input() {
     if (!has_focus_) {
         return;
     }
-    if (show_powerup_selection_) {
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num1)) {
-            game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(1));
-            show_powerup_selection_ = false;
-            powerup_type_ = 1;
-        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num2)) {
-            game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(2));
-            show_powerup_selection_ = false;
-            powerup_type_ = 2;
-        }
-        return;
-    }
-    static bool x_pressed_last_frame = false;
-    bool x_pressed_now = sf::Keyboard::isKeyPressed(sf::Keyboard::X);
-    if (x_pressed_now && !x_pressed_last_frame) {
-        if (powerup_type_ != 0 && powerup_time_remaining_ <= 0.0f) {
-            game_to_network_queue_.push(GameToNetwork::Message::powerup_activate());
-        }
-    }
-    x_pressed_last_frame = x_pressed_now;
 
-    uint8_t input_mask = 0;
+    input_handler_.set_focus(has_focus_);
+    input_handler_.set_powerup_selection_active(show_powerup_selection_);
+    input_handler_.set_powerup_state(powerup_type_, powerup_time_remaining_);
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
-        input_mask |= KEY_Z;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
-        input_mask |= KEY_Q;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
-        input_mask |= KEY_S;
-    }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
-        input_mask |= KEY_D;
-    }
+    input_handler_.handle_input();
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
-        input_mask |= KEY_SPACE;
-        if (!was_shooting_) {
-            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Laser);
-            was_shooting_ = true;
-        }
-    } else {
-        was_shooting_ = false;
-    }
-
-    if (input_mask != 0) {
-        game_to_network_queue_.push(
-            GameToNetwork::Message(GameToNetwork::MessageType::SendInput, input_mask));
-    }
+    show_powerup_selection_ = input_handler_.is_powerup_selection_active();
+    powerup_type_ = input_handler_.get_selected_powerup_type();
 }
 
 void Game::update() {

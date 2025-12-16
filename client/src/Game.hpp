@@ -3,6 +3,7 @@
 #include "Messages.hpp"
 #include "NetworkClient.hpp"
 #include "SafeQueue.hpp"
+#include "input/InputHandler.hpp"
 #include "managers/Managers.hpp"
 #include "rendering/Rendering.hpp"
 
@@ -27,6 +28,7 @@ private:
     rendering::GameRenderer game_renderer_;
     rendering::HUDRenderer hud_renderer_;
     rendering::OverlayRenderer overlay_renderer_;
+    input::InputHandler input_handler_;
 
     bool is_running_;
     bool has_focus_ = true;
@@ -60,12 +62,12 @@ private:
     float game_time_ = 0.0f;
     bool timer_running_ = false;
 
-    bool was_shooting_ = false;
     uint16_t prev_enemies_killed_ = 0;
     int prev_player_health_ = -1;
 
     void process_network_messages();
     void setup_ui();
+    void setup_input_handler();
 
     void init_entity_sprite(Entity& entity);
 
