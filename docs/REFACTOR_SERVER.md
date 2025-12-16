@@ -1,31 +1,31 @@
-# 🖥️ Refactoring Server R-TYPE
+# Server Refactoring R-TYPE
 
-## Résumé
-Le serveur a été refactoré pour séparer les responsabilités et réduire le "God Object" `Game.cpp` de **1111 lignes → 475 lignes**.
+## Summary
+The server has been refactored to separate responsibilities and reduce the "God Object" `Game.cpp` from **1111 lines → 475 lines**.
 
 ---
 
-## 📁 Nouvelle Structure
+## New Structure
 
 ```
 server/
 ├── include/
-│   ├── common/           ← Types et constantes partagés
+│   ├── common/           ← Shared types and constants
 │   │   ├── ClientEndpoint.hpp
 │   │   ├── GameConstants.hpp
 │   │   ├── InputKey.hpp
 │   │   ├── NetworkPacket.hpp
 │   │   └── SafeQueue.hpp
-│   ├── game/             ← Logique métier
+│   ├── game/             ← Business logic
 │   │   ├── BossManager.hpp
 │   │   ├── GameSession.hpp
 │   │   ├── LevelManager.hpp
 │   │   └── PlayerManager.hpp
-│   ├── handlers/         ← Traitement des inputs clients
+│   ├── handlers/         ← Client input processing
 │   │   ├── InputHandler.hpp
 │   │   ├── PowerupHandler.hpp
 │   │   └── WeaponHandler.hpp
-│   └── network/          ← Couche réseau
+│   └── network/          ← Network layer
 │       ├── EntityBroadcaster.hpp
 │       ├── GameBroadcaster.hpp
 │       ├── LobbyBroadcaster.hpp
@@ -40,19 +40,19 @@ server/
 
 ---
 
-## 🔧 Changements Principaux
+##  Changements Principaux
 
 ### 1. Namespace `server::`
-Toutes les classes sont dans le namespace `server::`:
+All classes are in the namespace `server::`:
 ```cpp
 server::GameSession gameInstance;
 server::UDPServer server(io_context, bind_address, port);
 ```
 
-### 2. Broadcasters (Envoi réseau séparé)
+### 2. Broadcasters (Separate network sending)
 ```cpp
 // Avant: broadcast_entity_positions() dans Game.cpp
-// Après: classes dédiées
+// Après: dedicated classes
 _entity_broadcaster.broadcast_entity_positions(server, _registry, _client_entity_ids);
 _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status);
 _game_broadcaster.broadcast_game_over(server);
@@ -60,60 +60,60 @@ _powerup_broadcaster.broadcast_powerup_status(server, _registry, _client_entity_
 ```
 
 **Broadcasters créés:**
-- `EntityBroadcaster` - Positions des entités
-- `LobbyBroadcaster` - Statut du lobby
+- `EntityBroadcaster` - Entity positions
+- `LobbyBroadcaster` - Lobby status
 - `GameBroadcaster` - Level info, game over
-- `PowerupBroadcaster` - Statut des powerups
+- `PowerupBroadcaster` - Powerup status
 
-### 3. Handlers (Traitement des packets)
+### 3. Handlers (Packet processing)
 ```cpp
-// Traitement input
+// Input processing
 _input_handler.handle_player_input(_registry, _client_entity_ids, client_id, payload);
 
-// Traitement powerups
+// Powerup processing
 _powerup_handler.handle_powerup_choice(_registry, _client_entity_ids, 
                                         _players_who_chose_powerup, client_id, choice);
 
-// Traitement armes
+// Weapon processing
 bool all_ready = _weapon_handler.handle_weapon_upgrade_choice(_registry, _client_entity_ids, 
                                                                client_id, upgrade_choice);
 ```
 
 ### 4. Managers de Jeu
 ```cpp
-// PlayerManager - Gestion des joueurs
+// PlayerManager - Player management
 _player_manager.create_player(_registry, _client_entity_ids, client_id, x, y);
 _player_manager.remove_player(_registry, _client_entity_ids, client_id);
 _player_manager.check_all_players_dead(_registry, _client_entity_ids);
 
-// LevelManager - Gestion des niveaux
+// LevelManager - Level management
 _level_manager.advance_level(_registry);
 _level_manager.clear_enemies_and_projectiles(_registry, _boss_entity);
 
-// BossManager - IA du boss
+// BossManager - Boss AI
 _boss_manager.spawn_boss_level_5(_registry, _boss_entity, ...);
 _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids, ...);
 ```
 
 ---
 
-## 📊 Design Patterns Utilisés
+##  Design Patterns Utilisés
 
 | Pattern | Où | Pourquoi |
 |---------|-----|----------|
-| **Facade** | GameSession | Orchestration des composants |
-| **Strategy** | Broadcasters, Handlers | Différentes stratégies de traitement |
-| **Single Responsibility** | Tous les composants | Une classe = une responsabilité |
-| **Dependency Injection** | Managers | Passage du registry par référence |
+| **Facade** | GameSession | Component orchestration |
+| **Strategy** | Broadcasters, Handlers | Different processing strategies |
+| **Single Responsibility** | Tous les composants | One class = one responsibility |
+| **Dependency Injection** | Managers | Registry passed by reference |
 
 ---
 
-## 🔄 Flux de Données
+##  Data Flow
 
 ```
                     ┌─────────────────┐
                     │   UDPServer     │
-                    │   (réseau)      │
+                    │   (network)      │
                     └────────┬────────┘
                              │ packets
                              ▼
@@ -128,7 +128,7 @@ _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids, 
 │  └──────────────┘  └──────────────┘  └──────────────┘   │
 │                                                          │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │              Broadcasters (envoi)                 │   │
+│  │              Broadcasters (sending)                 │   │
 │  │  Entity | Lobby | Game | Powerup                  │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
@@ -136,14 +136,14 @@ _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids, 
 
 ---
 
-## ⚠️ Points d'Attention
+##  Points d'Attention
 
-1. **Namespace obligatoire:**
+1. **Namespace mandatory:**
    ```cpp
-   using namespace server;  // ou préfixer avec server::
+   using namespace server;  // or prefix with server::
    ```
 
-2. **GameSession remplace Game:**
+2. **GameSession replaces Game:**
    ```cpp
    // Avant
    Game gameInstance;
@@ -152,12 +152,12 @@ _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids, 
    server::GameSession gameInstance;
    ```
 
-3. **Registre passé par référence:**
-   Les managers/handlers reçoivent `registry&` en paramètre, ils ne le possèdent pas.
+3. **Registry passed by reference:**
+   Managers/handlers receive `registry&` as parameter, they don't own it.
 
 ---
 
-## ✅ Testé et Fonctionnel
-- Build: ✅
+##  Testé et Fonctionnel
+- Build: 
 - Tests: 4/4 passent
-- Multijoueur: Fonctionne comme avant
+- Multijoueur: Works as before

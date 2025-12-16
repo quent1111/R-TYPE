@@ -1,43 +1,43 @@
-# 🎮 Refactoring Client R-TYPE
+# Client Refactoring R-TYPE
 
-## Résumé
-Le client a été refactoré pour séparer les responsabilités et réduire le "God Object" `Game.cpp` de **1011 lignes → 503 lignes**.
+## Summary
+The client has been refactored to separate responsibilities and reduce the "God Object" `Game.cpp` from **1011 lines → 503 lines**.
 
 ---
 
-## 📁 Nouvelle Structure
+## New Structure
 
 ```
 client/
 ├── include/
-│   ├── common/           ← Utilitaires partagés
+│   ├── common/           ← Shared utilities
 │   │   ├── SafeQueue.hpp
 │   │   └── Settings.hpp
-│   ├── game/             ← Classes principales du jeu
+│   ├── game/             ← Main game classes
 │   │   ├── Entity.hpp
 │   │   └── Game.hpp
-│   ├── input/            ← Gestion des entrées
+│   ├── input/            ← Input management
 │   │   ├── InputHandler.hpp
 │   │   └── InputKey.hpp
-│   ├── managers/         ← Singletons de ressources
+│   ├── managers/         ← Resource singletons
 │   │   ├── AudioManager.hpp
 │   │   ├── EffectsManager.hpp
 │   │   ├── FontManager.hpp
 │   │   └── TextureManager.hpp
-│   ├── network/          ← Communication réseau
+│   ├── network/          ← Network communication
 │   │   ├── Messages.hpp
 │   │   └── NetworkClient.hpp
-│   ├── rendering/        ← Affichage séparé
+│   ├── rendering/        ← Separate rendering
 │   │   ├── GameRenderer.hpp
 │   │   ├── HUDRenderer.hpp
 │   │   └── OverlayRenderer.hpp
-│   ├── states/           ← Machine à états
+│   ├── states/           ← State machine
 │   │   ├── IState.hpp
 │   │   ├── StateManager.hpp
 │   │   ├── MenuState.hpp
 │   │   ├── LobbyState.hpp
 │   │   └── GameState.hpp
-│   └── ui/               ← Composants UI
+│   └── ui/               ← UI components
 │       ├── MenuComponents.hpp
 │       └── SettingsPanel.hpp
 └── src/
@@ -53,27 +53,27 @@ client/
 
 ---
 
-## 🔧 Changements Principaux
+##  Main Changes
 
 ### 1. Managers (Singleton Pattern)
 ```cpp
-// Avant: chargement dans Game.cpp
+// Before: loading in Game.cpp
 texture.loadFromFile("player.png");
 
-// Après: via manager centralisé
+// After: via centralized manager
 auto& tex = managers::TextureManager::instance().load("player.png");
 ```
 
 **Managers créés:**
-- `TextureManager` - Gestion des textures
-- `FontManager` - Gestion des polices
-- `AudioManager` - Sons et musique
-- `EffectsManager` - Particules, screen shake, combos
+- `TextureManager` - Texture management
+- `FontManager` - Font management
+- `AudioManager` - Sounds and music
+- `EffectsManager` - Particles, screen shake, combos
 
-### 2. Renderers (Séparation d'affichage)
+### 2. Renderers (Display separation)
 ```cpp
-// Avant: tout dans Game::render()
-// Après: délégué à des renderers spécialisés
+// Before: everything in Game::render()
+// After: delegated to specialized renderers
 game_renderer_.render_background(window_);
 game_renderer_.render_entities(window_, entities_, my_network_id_, dt);
 hud_renderer_.render(window_, ...);
@@ -87,7 +87,7 @@ overlay_renderer_.render_game_over(window_, font_);
 
 ### 3. InputHandler (Callback Pattern)
 ```cpp
-// Callbacks configurés dans Game
+// Callbacks configured in Game
 input_handler_.set_input_callback([this](uint8_t mask) {
     send_input_to_server(mask);
 });
@@ -98,37 +98,37 @@ input_handler_.set_shoot_sound_callback([this]() {
 
 ---
 
-## 📊 Design Patterns Utilisés
+##  Design Patterns Used
 
 | Pattern | Où | Pourquoi |
 |---------|-----|----------|
-| **Singleton** | Managers | Accès global aux ressources |
-| **Observer/Callback** | InputHandler | Découpler input de la logique |
+| **Singleton** | Managers | Global access to resources |
+| **Observer/Callback** | InputHandler | Decouple input from logic |
 | **State** | StateManager | Menu → Lobby → Game |
-| **Facade** | Game, Managers | Simplifier les APIs |
-| **Flyweight** | TextureManager | Partage des textures |
+| **Facade** | Game, Managers | Simplify APIs |
+| **Flyweight** | TextureManager | Share textures |
 
 ---
 
-## ⚠️ Points d'Attention
+##  Points of Attention
 
-1. **Accès aux managers:**
+1. **Manager access:**
    ```cpp
    managers::TextureManager::instance().load("sprite.png");
    managers::AudioManager::instance().play_sound(SoundType::Hit);
    ```
 
-2. **Headers de commodité disponibles:**
+2. **Convenience headers available:**
    ```cpp
-   #include "managers/Managers.hpp"    // Tous les managers
-   #include "rendering/Rendering.hpp"  // Tous les renderers
+   #include "managers/Managers.hpp"    // All managers
+   #include "rendering/Rendering.hpp"  // All renderers
    ```
 
-3. **Game.cpp reste le point d'entrée** - Il orchestre les composants
+3. **Game.cpp remains the entry point** - It orchestrates components
 
 ---
 
-## ✅ Testé et Fonctionnel
-- Build: ✅
-- Tests: 4/4 passent
-- Gameplay: Identique à avant le refactor
+##  Tested and Functional
+- Build: 
+- Tests: 4/4 pass
+- Gameplay: Identical to before refactoring
