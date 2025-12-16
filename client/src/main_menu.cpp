@@ -39,8 +39,7 @@ int main(int argc, char* argv[]) {
                 } else {
                     try {
                         port = static_cast<unsigned short>(std::stoul(arg));
-                    } catch (...) {
-                    }
+                    } catch (...) {}
                 }
             }
         }

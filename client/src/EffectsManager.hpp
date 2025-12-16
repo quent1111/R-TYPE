@@ -6,7 +6,6 @@
 #include <random>
 #include <vector>
 
-
 class EffectsManager {
 public:
     static EffectsManager& getInstance();

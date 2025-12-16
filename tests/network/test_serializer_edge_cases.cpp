@@ -6,7 +6,7 @@ using namespace RType;
 TEST(SerializerEdgeCases, ZeroValues) {
     BinarySerializer s;
     s << static_cast<uint8_t>(0) << static_cast<uint16_t>(0) 
-      << static_cast<uint32_t>(0) << static_cast<float>(0.0f);
+      << static_cast<uint32_t>(0) << 0.0f;
     
     uint8_t u8;
     uint16_t u16;
@@ -170,9 +170,9 @@ TEST(SerializerEdgeCases, SequentialReads) {
 TEST(SerializerEdgeCases, InterleavedTypes) {
     BinarySerializer s;
     s << static_cast<uint8_t>(1) 
-      << static_cast<float>(2.0f) 
+      << 2.0f 
       << static_cast<uint16_t>(3) 
-      << static_cast<double>(4.0) 
+      << 4.0 
       << static_cast<uint32_t>(5);
     
     uint8_t u8;

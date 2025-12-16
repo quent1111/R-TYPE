@@ -37,7 +37,8 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_manager_.load("assets/shield.png");
         texture_manager_.load("assets/r-typesheet30.gif");
         texture_manager_.load("assets/r-typesheet30a.gif");
-        std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif" << std::endl;
+        std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
+                  << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
@@ -242,8 +243,7 @@ void Game::handle_event(const sf::Event& event) {
                 show_powerup_selection_ = false;
                 powerup_type_ = 1;
                 std::cout << "[Game] Powerup 1 selected via click" << std::endl;
-            }
-            else if (powerup_option2_bg_.getGlobalBounds().contains(mouse_pos)) {
+            } else if (powerup_option2_bg_.getGlobalBounds().contains(mouse_pos)) {
                 game_to_network_queue_.push(GameToNetwork::Message::powerup_choice(2));
                 show_powerup_selection_ = false;
                 powerup_type_ = 2;
@@ -431,8 +431,11 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x06) {
         if (texture_manager_.has("assets/r-typesheet24.png")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet24.png"));
-            entity.frames = {{0, 0, 65, 66}, {65, 0, 65, 66}, {130, 0, 65, 66}, 
-                           {195, 0, 65, 66}, {260, 0, 66, 66}};
+            entity.frames = {{0, 0, 65, 66},
+                             {65, 0, 65, 66},
+                             {130, 0, 65, 66},
+                             {195, 0, 65, 66},
+                             {260, 0, 66, 66}};
             entity.frame_duration = 0.12F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -485,16 +488,9 @@ void Game::init_entity_sprite(Entity& entity) {
         // Boss entity - main boss sprite (r-typesheet30.gif)
         if (texture_manager_.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
-            entity.frames = {
-                {0, 0,    185, 204},
-                {0, 215,  185, 204},
-                {0, 428,  185, 204},
-                {0, 642,  185, 204},
-                {0, 859,  185, 204},
-                {0, 1071, 185, 204},
-                {0, 1283, 185, 204},
-                {0, 1496, 185, 204}
-            };
+            entity.frames = {{0, 0, 185, 204},    {0, 215, 185, 204}, {0, 428, 185, 204},
+                             {0, 642, 185, 204},  {0, 859, 185, 204}, {0, 1071, 185, 204},
+                             {0, 1283, 185, 204}, {0, 1496, 185, 204}};
 
             entity.frame_duration = 1.15F;
             entity.loop = false;
@@ -509,11 +505,7 @@ void Game::init_entity_sprite(Entity& entity) {
         if (texture_manager_.has("assets/r-typesheet30a.gif")) {
             entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30a.gif"));
 
-            entity.frames = {
-                {0,  0, 33, 33},
-                {33, 0, 33, 33},
-                {66, 0, 33, 33}
-            };
+            entity.frames = {{0, 0, 33, 33}, {33, 0, 33, 33}, {66, 0, 33, 33}};
 
             entity.frame_duration = 0.1F;
             entity.loop = true;
@@ -609,8 +601,7 @@ void Game::process_network_messages() {
                                 AudioManager::getInstance().playSound(
                                     AudioManager::SoundType::PlayerHit);
                                 EffectsManager::getInstance().triggerDamageFlash();
-                                EffectsManager::getInstance().triggerScreenShake(
-                                    10.0f, 0.15f);
+                                EffectsManager::getInstance().triggerScreenShake(10.0f, 0.15f);
                             }
                             prev_player_health_ = incoming.health;
                         }
@@ -646,7 +637,8 @@ void Game::process_network_messages() {
                 }
 
                 for (const auto& [id, entity] : entities_) {
-                    if ((entity.type == 0x02 || entity.type == 0x06) && next.find(id) == next.end()) {
+                    if ((entity.type == 0x02 || entity.type == 0x06) &&
+                        next.find(id) == next.end()) {
                         AudioManager::getInstance().playSound(AudioManager::SoundType::HitSound);
 
                         EffectsManager::getInstance().addComboKill();
@@ -689,7 +681,8 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::LevelStart:
                 current_level_ = static_cast<uint8_t>(msg.level);
                 enemies_killed_ = 0;
-                enemies_needed_ = static_cast<uint16_t>(msg.level);  // Match server logic: level N needs N enemies
+                enemies_needed_ = static_cast<uint16_t>(
+                    msg.level);  // Match server logic: level N needs N enemies
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
@@ -958,11 +951,13 @@ void Game::render_powerup_active() {
                 auto frame_it = player_shield_frame_.find(player_id);
                 if (frame_it != player_shield_frame_.end()) {
                     int frame_index = frame_it->second;
-                    if (frame_index >= 0 && static_cast<size_t>(frame_index) < shield_frames_.size()) {
+                    if (frame_index >= 0 &&
+                        static_cast<size_t>(frame_index) < shield_frames_.size()) {
                         if (texture_manager_.has("assets/shield.png")) {
                             shield_visual_.setTexture(*texture_manager_.get("assets/shield.png"));
                         }
-                        shield_visual_.setTextureRect(shield_frames_[static_cast<size_t>(frame_index)]);
+                        shield_visual_.setTextureRect(
+                            shield_frames_[static_cast<size_t>(frame_index)]);
                         sf::FloatRect bounds = shield_visual_.getLocalBounds();
                         shield_visual_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                         shield_visual_.setPosition(it->second.x, it->second.y);

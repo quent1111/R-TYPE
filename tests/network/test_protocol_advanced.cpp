@@ -100,8 +100,9 @@ TEST(ProtocolAdvanced, LevelCompletePacket) {
                << static_cast<uint32_t>(3); // level completed
     
     uint8_t opcode;
+    uint8_t magic1, magic2;
     serializer.reset_read_position();
-    serializer.read_bytes(nullptr, 2); // skip magic
+    serializer >> magic1 >> magic2; // skip magic
     serializer >> opcode;
     
     EXPECT_EQ(opcode, static_cast<uint8_t>(OpCode::LevelComplete));
@@ -148,8 +149,8 @@ TEST(ProtocolAdvanced, MultipleEntityPositions) {
     for (uint32_t i = 0; i < 3; ++i) {
         serializer << static_cast<uint32_t>(i)
                    << static_cast<uint8_t>(EntityType::Enemy)
-                   << static_cast<float>(i * 10.0f)
-                   << static_cast<float>(i * 20.0f);
+                   << static_cast<float>(i * 10.0)
+                   << static_cast<float>(i * 20.0);
     }
     
     for (uint32_t i = 0; i < 3; ++i) {
@@ -161,8 +162,8 @@ TEST(ProtocolAdvanced, MultipleEntityPositions) {
         
         EXPECT_EQ(id, i);
         EXPECT_EQ(type, static_cast<uint8_t>(EntityType::Enemy));
-        EXPECT_FLOAT_EQ(x, i * 10.0f);
-        EXPECT_FLOAT_EQ(y, i * 20.0f);
+        EXPECT_FLOAT_EQ(x, static_cast<float>(i * 10.0));
+        EXPECT_FLOAT_EQ(y, static_cast<float>(i * 20.0));
     }
 }
 
