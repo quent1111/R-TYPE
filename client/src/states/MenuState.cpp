@@ -1,6 +1,7 @@
 #include "states/MenuState.hpp"
 
 #include "AudioManager.hpp"
+#include "ui/SettingsPanel.hpp"
 
 #include <iostream>
 
@@ -68,9 +69,21 @@ void MenuState::setup_ui() {
                          sf::Color(20, 60, 150, 255));
     play_btn->set_callback([this]() { on_play_clicked(); });
     m_buttons.push_back(std::move(play_btn));
+    auto settings_btn = std::make_unique<ui::Button>(
+        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
+        sf::Vector2f(button_width, button_height), "SETTINGS");
+    settings_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255),
+                             sf::Color(160, 90, 20, 255));
+    settings_btn->set_callback([this]() {
+        if (!m_settings_panel) {
+            m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+        }
+        m_settings_panel->open();
+    });
+    m_buttons.push_back(std::move(settings_btn));
 
     auto quit_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
+        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing * 2.0f),
         sf::Vector2f(button_width, button_height), "QUIT");
     quit_btn->set_colors(sf::Color(120, 30, 40, 200), sf::Color(180, 50, 60, 255),
                          sf::Color(100, 20, 30, 255));
@@ -94,8 +107,12 @@ void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
         sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
         m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
-        for (auto& button : m_buttons) {
-            button->handle_mouse_move(m_mouse_pos);
+        if (m_settings_panel && m_settings_panel->is_open()) {
+            m_settings_panel->handle_mouse_move(m_mouse_pos);
+        } else {
+            for (auto& button : m_buttons) {
+                button->handle_mouse_move(m_mouse_pos);
+            }
         }
     }
 
@@ -103,8 +120,12 @@ void MenuState::handle_event(const sf::Event& event) {
         if (event.mouseButton.button == sf::Mouse::Left) {
             sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
             sf::Vector2f click_pos = m_window.mapPixelToCoords(pixel_pos);
-            for (auto& button : m_buttons) {
-                button->handle_mouse_click(click_pos);
+            if (m_settings_panel && m_settings_panel->is_open()) {
+                m_settings_panel->handle_mouse_click(click_pos);
+            } else {
+                for (auto& button : m_buttons) {
+                    button->handle_mouse_click(click_pos);
+                }
             }
         }
     }
@@ -112,6 +133,16 @@ void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             m_window.close();
+        }
+        if (event.key.code == sf::Keyboard::S) {
+            if (!m_settings_panel) m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+            if (m_settings_panel->is_open()) m_settings_panel->close();
+            else m_settings_panel->open();
+        }
+        if (m_settings_panel && m_settings_panel->is_open()) {
+            if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
+                m_settings_panel->handle_key_press(event.key.code);
+            }
         }
     }
 }
@@ -131,6 +162,36 @@ void MenuState::update(float dt) {
     }
     for (auto& panel : m_side_panels) {
         panel->update(dt);
+    }
+    if (m_settings_panel && m_settings_panel->is_open()) {
+        m_settings_panel->update(dt);
+        
+        // Check if window needs to be recreated
+        if (m_settings_panel->needs_window_recreate()) {
+            sf::Vector2u new_size;
+            bool fullscreen;
+            m_settings_panel->get_new_window_settings(new_size, fullscreen);
+            m_settings_panel->clear_window_recreate_flag();
+            
+            // Recreate window with new settings
+            if (fullscreen) {
+                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer", sf::Style::Fullscreen);
+            } else {
+                m_window.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer");
+            }
+            m_window.setVerticalSyncEnabled(false);
+            m_window.setFramerateLimit(60);
+            
+            // Recreate UI elements with new window size
+            m_buttons.clear();
+            m_corners.clear();
+            m_side_panels.clear();
+            m_background.reset();
+            m_title.reset();
+            m_footer.reset();
+            m_settings_panel.reset();
+            setup_ui();
+        }
     }
 }
 
@@ -157,6 +218,9 @@ void MenuState::render(sf::RenderWindow& window) {
 
     if (m_footer) {
         m_footer->render(window);
+    }
+    if (m_settings_panel && m_settings_panel->is_open()) {
+        m_settings_panel->render(window);
     }
 }
 

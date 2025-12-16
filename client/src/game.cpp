@@ -1,6 +1,7 @@
 #include "Game.hpp"
 
 #include "inputKey.hpp"
+#include "Settings.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -58,6 +59,35 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     auto& audio = AudioManager::getInstance();
     audio.loadSounds();
     audio.playMusic("assets/sounds/game-loop.ogg", true);
+
+    // Initialize game view for proper scaling
+    update_game_view();
+}
+
+void Game::update_game_view() {
+    // Create a view that maps 1920x1080 game space to actual window size
+    game_view_.setSize(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
+    game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f);
+    
+    // Get actual window size
+    sf::Vector2u window_size = window_.getSize();
+    
+    // Calculate viewport to maintain aspect ratio and center
+    float window_ratio = static_cast<float>(window_size.x) / static_cast<float>(window_size.y);
+    float game_ratio = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT);
+    
+    sf::FloatRect viewport;
+    if (window_ratio > game_ratio) {
+        // Window is wider than game aspect ratio - add black bars on sides
+        float viewport_width = game_ratio / window_ratio;
+        viewport = sf::FloatRect((1.0f - viewport_width) / 2.0f, 0.0f, viewport_width, 1.0f);
+    } else {
+        // Window is taller than game aspect ratio - add black bars on top/bottom
+        float viewport_height = window_ratio / game_ratio;
+        viewport = sf::FloatRect(0.0f, (1.0f - viewport_height) / 2.0f, 1.0f, viewport_height);
+    }
+    
+    game_view_.setViewport(viewport);
 }
 
 Game::~Game() {
@@ -688,7 +718,7 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::LevelStart:
                 current_level_ = static_cast<uint8_t>(msg.level);
                 enemies_killed_ = 0;
-                enemies_needed_ = static_cast<uint16_t>(msg.level);  // Match server logic: level N needs N enemies
+                enemies_needed_ = static_cast<uint16_t>(msg.level);
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
@@ -717,9 +747,9 @@ void Game::process_network_messages() {
 }
 
 void Game::render() {
-    window_.clear(sf::Color(10, 10, 30));
+    window_.clear(sf::Color(0, 0, 0));
 
-    sf::View view = window_.getDefaultView();
+    sf::View view = game_view_;
     sf::Vector2f shake_offset = EffectsManager::getInstance().getScreenShakeOffset();
     view.move(shake_offset);
     window_.setView(view);
@@ -776,7 +806,8 @@ void Game::render() {
 
     EffectsManager::getInstance().render(window_);
 
-    window_.setView(window_.getDefaultView());
+    // Reset to game view (without shake) for UI elements
+    window_.setView(game_view_);
 
     window_.draw(timer_text_);
 
@@ -828,6 +859,12 @@ void Game::render() {
         sf::RectangleShape flash_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
         flash_overlay.setFillColor(sf::Color(255, 0, 0, static_cast<sf::Uint8>(flash_alpha)));
         window_.draw(flash_overlay);
+    }
+
+    if (Settings::instance().colorblind_mode) {
+        sf::RectangleShape colorblind_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+        colorblind_overlay.setFillColor(sf::Color(255, 200, 100, 40));
+        window_.draw(colorblind_overlay);
     }
 }
 

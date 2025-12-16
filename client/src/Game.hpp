@@ -100,6 +100,9 @@ private:
     uint16_t prev_enemies_killed_ = 0;
     int prev_player_health_ = -1;
 
+    sf::View game_view_;
+    void update_game_view();
+
     void render_level_intro();
     void render_level_hud();
     void render_combo_bar();
