@@ -3,38 +3,51 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <memory>
 
 extern std::atomic<bool> server_running;
 
 namespace server {
 
 GameSession::GameSession() {
-    _registry.register_component<position>();
-    _registry.register_component<velocity>();
-    _registry.register_component<health>();
-    _registry.register_component<collider>();
-    _registry.register_component<entity_tag>();
-    _registry.register_component<network_id>();
-    _registry.register_component<controllable>();
-    _registry.register_component<weapon>();
-    _registry.register_component<collision_box>();
-    _registry.register_component<multi_hitbox>();
-    _registry.register_component<damage_on_contact>();
-    _registry.register_component<player_tag>();
-    _registry.register_component<enemy_tag>();
-    _registry.register_component<boss_tag>();
-    _registry.register_component<projectile_tag>();
-    _registry.register_component<bounded_movement>();
-    _registry.register_component<explosion_tag>();
-    _registry.register_component<wave_manager>();
-    _registry.register_component<level_manager>();
-    _registry.register_component<sprite_component>();
-    _registry.register_component<animation_component>();
-    _registry.register_component<power_cannon>();
-    _registry.register_component<shield>();
-    _registry.register_component<damage_flash_component>();
-    auto level_mgr_entity = _registry.spawn_entity();
-    _registry.emplace_component<level_manager>(level_mgr_entity);
+
+    auto& reg = _engine.get_registry();
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<health>();
+    reg.register_component<collider>();
+    reg.register_component<entity_tag>();
+    reg.register_component<network_id>();
+    reg.register_component<controllable>();
+    reg.register_component<weapon>();
+    reg.register_component<collision_box>();
+    reg.register_component<multi_hitbox>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<player_tag>();
+    reg.register_component<enemy_tag>();
+    reg.register_component<boss_tag>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<bounded_movement>();
+    reg.register_component<explosion_tag>();
+    reg.register_component<wave_manager>();
+    reg.register_component<level_manager>();
+    reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
+    reg.register_component<power_cannon>();
+    reg.register_component<shield>();
+    reg.register_component<damage_flash_component>();
+
+    _engine.register_system(std::make_unique<ShootingSystem>());
+    _engine.register_system(std::make_unique<EnemyShootingSystem>());
+    _engine.register_system(std::make_unique<WaveSystem>());
+    _engine.register_system(std::make_unique<MovementSystem>());
+    _engine.register_system(std::make_unique<CollisionSystem>());
+    _engine.register_system(std::make_unique<CleanupSystem>());
+
+    _engine.init();
+
+    auto level_mgr_entity = reg.spawn_entity();
+    reg.emplace_component<level_manager>(level_mgr_entity);
 }
 
 GameSession::~GameSession() {}
@@ -76,7 +89,7 @@ void GameSession::start_game(UDPServer& server) {
 
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
-        _player_manager.create_player(_registry, _client_entity_ids, client_id, start_x, 300.0f);
+        _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, 300.0f);
         start_x += 50.0f;
     }
 
@@ -115,11 +128,11 @@ void GameSession::process_network_events(UDPServer& server) {
                         break;
                     }
                     auto player_opt =
-                        _player_manager.get_player_entity(_registry, _client_entity_ids, client_id);
+                        _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
                     if (!player_opt.has_value()) {
                         float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                         float start_y = 300.0f;
-                        auto player = _player_manager.create_player(_registry, _client_entity_ids,
+                        auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
                                                                     client_id, start_x, start_y);
                         std::cout << "[Game] New player connected (Implicit): Client " << client_id
                                   << " (Entity " << player.id() << ")" << std::endl;
@@ -129,7 +142,7 @@ void GameSession::process_network_events(UDPServer& server) {
                         deserializer.data().begin() +
                             static_cast<std::ptrdiff_t>(deserializer.read_position()),
                         deserializer.data().end());
-                    _input_handler.handle_player_input(_registry, _client_entity_ids, client_id,
+                    _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids, client_id,
                                                        payload);
                     break;
                 }
@@ -137,7 +150,7 @@ void GameSession::process_network_events(UDPServer& server) {
                     std::cout << "[Game] Login request received from client " << client_id
                               << std::endl;
                     auto player_opt =
-                        _player_manager.get_player_entity(_registry, _client_entity_ids, client_id);
+                        _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
                     if (!player_opt.has_value()) {
                         _client_ready_status[client_id] = false;
                         std::cout << "[Game] Client " << client_id << " joined lobby" << std::endl;
@@ -170,7 +183,7 @@ void GameSession::process_network_events(UDPServer& server) {
                     try {
                         deserializer >> upgrade_choice;
                         bool all_ready = _weapon_handler.handle_weapon_upgrade_choice(
-                            _registry, _client_entity_ids, client_id, upgrade_choice);
+                            _engine.get_registry(), _client_entity_ids, client_id, upgrade_choice);
                         if (all_ready) {
                             advance_level(server);
                         }
@@ -184,12 +197,12 @@ void GameSession::process_network_events(UDPServer& server) {
                     uint8_t powerup_choice;
                     try {
                         deserializer >> powerup_choice;
-                        _powerup_handler.handle_powerup_choice(_registry, _client_entity_ids,
+                        _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
                                                                _players_who_chose_powerup,
                                                                client_id, powerup_choice);
 
                         int alive_players =
-                            _powerup_handler.count_alive_players(_registry, _client_entity_ids);
+                            _powerup_handler.count_alive_players(_engine.get_registry(), _client_entity_ids);
                         if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
                             std::cout << "[Game] All players have chosen! Advancing level..."
                                       << std::endl;
@@ -197,7 +210,7 @@ void GameSession::process_network_events(UDPServer& server) {
                             _level_complete_waiting = false;
                             _players_who_chose_powerup.clear();
 
-                            _powerup_broadcaster.broadcast_powerup_status(server, _registry,
+                            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                                           _client_entity_ids);
                             std::this_thread::sleep_for(std::chrono::milliseconds(500));
                             advance_level(server);
@@ -210,9 +223,9 @@ void GameSession::process_network_events(UDPServer& server) {
                 case RType::OpCode::PowerUpActivate: {
                     uint8_t powerup_type = 0;
                     deserializer >> powerup_type;
-                    _powerup_handler.handle_powerup_activate(_registry, _client_entity_ids,
+                    _powerup_handler.handle_powerup_activate(_engine.get_registry(), _client_entity_ids,
                                                              client_id, powerup_type);
-                    _powerup_broadcaster.broadcast_powerup_status(server, _registry,
+                    _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                                   _client_entity_ids);
                     break;
                 }
@@ -253,7 +266,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         return;
     }
 
-    if (_player_manager.check_all_players_dead(_registry, _client_entity_ids)) {
+    if (_player_manager.check_all_players_dead(_engine.get_registry(), _client_entity_ids)) {
         _waiting_for_game_over_reset = true;
         _game_over_timer = 0.0f;
         _game_over_broadcast_accumulator = 0.0f;
@@ -261,21 +274,17 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         return;
     }
 
-    shootingSystem(_registry, dt);
-    enemyShootingSystem(_registry, dt);
-    waveSystem(_registry, dt);
-    movementSystem(_registry, dt);
-    collisionSystem(_registry);
+    _engine.update(dt);
 
     _boss_manager.update_boss_behavior(
-        _registry, _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
+        _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
         _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
         _boss_shoot_counter, dt);
 
-    _boss_manager.update_homing_enemies(_registry, _client_entity_ids, dt);
+    _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
-    auto& cannons = _registry.get_components<power_cannon>();
-    auto& shields = _registry.get_components<shield>();
+    auto& cannons = _engine.get_registry().get_components<power_cannon>();
+    auto& shields = _engine.get_registry().get_components<shield>();
     for (std::size_t i = 0; i < cannons.size(); ++i) {
         if (cannons[i].has_value()) {
             cannons[i]->update(dt);
@@ -287,14 +296,14 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         }
     }
 
-    auto& damage_flashes = _registry.get_components<damage_flash_component>();
+    auto& damage_flashes = _engine.get_registry().get_components<damage_flash_component>();
     for (std::size_t i = 0; i < damage_flashes.size(); ++i) {
         if (damage_flashes[i].has_value()) {
             damage_flashes[i]->update(dt);
         }
     }
 
-    auto& explosion_tags = _registry.get_components<explosion_tag>();
+    auto& explosion_tags = _engine.get_registry().get_components<explosion_tag>();
 
     for (std::size_t i = 0; i < explosion_tags.size(); ++i) {
         if (explosion_tags[i].has_value()) {
@@ -302,11 +311,9 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         }
     }
 
-    cleanupSystem(_registry);
 }
 
 void GameSession::send_periodic_updates(UDPServer& server, float dt) {
-    // Increased from 20Hz (0.05s) to 30Hz (~0.033s) for smoother movement
     const float position_broadcast_interval = 0.033f;
     const float lobby_broadcast_interval = 0.5f;
     const float cleanup_interval = 1.0f;
@@ -325,18 +332,18 @@ void GameSession::send_periodic_updates(UDPServer& server, float dt) {
     } else {
         _pos_broadcast_accumulator += dt;
         if (_pos_broadcast_accumulator >= position_broadcast_interval) {
-            _entity_broadcaster.broadcast_entity_positions(server, _registry, _client_entity_ids);
+            _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids);
             _pos_broadcast_accumulator -= position_broadcast_interval;
         }
         _level_broadcast_accumulator += dt;
         if (_level_broadcast_accumulator >= level_broadcast_interval) {
-            _game_broadcaster.broadcast_level_info(server, _registry);
+            _game_broadcaster.broadcast_level_info(server, _engine.get_registry());
             _level_broadcast_accumulator -= level_broadcast_interval;
         }
         check_level_completion(server);
         _powerup_broadcast_accumulator += dt;
         if (_powerup_broadcast_accumulator >= 0.2f) {
-            _powerup_broadcaster.broadcast_powerup_status(server, _registry, _client_entity_ids);
+            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(), _client_entity_ids);
             _powerup_broadcast_accumulator -= 0.2f;
         }
     }
@@ -346,14 +353,14 @@ void GameSession::send_periodic_updates(UDPServer& server, float dt) {
         auto dead_clients = server.remove_inactive_clients(std::chrono::seconds(90));
         for (int id : dead_clients) {
             _client_ready_status.erase(id);
-            _player_manager.remove_player(_registry, _client_entity_ids, id);
+            _player_manager.remove_player(_engine.get_registry(), _client_entity_ids, id);
         }
         _cleanup_accumulator -= cleanup_interval;
     }
 }
 
 void GameSession::check_level_completion(UDPServer& server) {
-    auto& level_managers = _registry.get_components<level_manager>();
+    auto& level_managers = _engine.get_registry().get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
             auto& lvl_mgr = level_managers[i].value();
@@ -363,9 +370,9 @@ void GameSession::check_level_completion(UDPServer& server) {
                           << " completed! Clearing enemies..." << std::endl;
 
                 _players_who_chose_powerup.clear();
-                _level_manager.clear_enemies_and_projectiles(_registry, _boss_entity);
+                _level_manager.clear_enemies_and_projectiles(_engine.get_registry(), _boss_entity);
 
-                _game_broadcaster.broadcast_level_complete(server, _registry);
+                _game_broadcaster.broadcast_level_complete(server, _engine.get_registry());
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 _powerup_broadcaster.broadcast_powerup_selection(server);
                 _level_complete_waiting = true;
@@ -377,15 +384,15 @@ void GameSession::check_level_completion(UDPServer& server) {
 }
 
 void GameSession::advance_level(UDPServer& server) {
-    _level_manager.advance_level(_registry);
+    _level_manager.advance_level(_engine.get_registry());
 
-    _player_manager.respawn_dead_players(_registry, _client_entity_ids);
+    _player_manager.respawn_dead_players(_engine.get_registry(), _client_entity_ids);
 
-    uint8_t current_level = _level_manager.get_current_level(_registry);
+    uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
 
     if (current_level == 5) {
         std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
-        _boss_manager.spawn_boss_level_5(_registry, _boss_entity, _boss_animation_timer,
+        _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
                                          _boss_shoot_timer, _boss_animation_complete,
                                          _boss_entrance_complete, _boss_target_x);
 
@@ -396,8 +403,8 @@ void GameSession::advance_level(UDPServer& server) {
 }
 
 void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
-    auto& level_managers = _registry.get_components<level_manager>();
-    std::optional<size_t> level_mgr_idx = _level_manager.get_level_manager_index(_registry);
+    auto& level_managers = _engine.get_registry().get_components<level_manager>();
+    std::optional<size_t> level_mgr_idx = _level_manager.get_level_manager_index(_engine.get_registry());
 
     _client_entity_ids.clear();
 
@@ -405,17 +412,17 @@ void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
         ready = false;
     }
 
-    auto& positions = _registry.get_components<position>();
-    auto& velocities = _registry.get_components<velocity>();
-    auto& healths = _registry.get_components<health>();
+    auto& positions = _engine.get_registry().get_components<position>();
+    auto& velocities = _engine.get_registry().get_components<velocity>();
+    auto& healths = _engine.get_registry().get_components<health>();
 
     for (size_t i = 0; i < positions.size(); ++i) {
         if (positions[i].has_value() || velocities[i].has_value() || healths[i].has_value()) {
             if (level_mgr_idx.has_value() && i == level_mgr_idx.value()) {
                 continue;
             }
-            auto ent = _registry.entity_from_index(i);
-            _registry.kill_entity(ent);
+            auto ent = _engine.get_registry().entity_from_index(i);
+            _engine.get_registry().kill_entity(ent);
         }
     }
 
@@ -432,8 +439,8 @@ void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
     if (_boss_entity.has_value()) {
         try {
             auto boss_entity = _boss_entity.value();
-            _registry.remove_component<entity_tag>(boss_entity);
-            _registry.kill_entity(boss_entity);
+            _engine.get_registry().remove_component<entity_tag>(boss_entity);
+            _engine.get_registry().kill_entity(boss_entity);
         } catch (...) {}
     }
     _boss_entity = std::nullopt;
