@@ -47,7 +47,7 @@ void collisionSystem(registry& reg) {
                         }
                     }
                 }
-                
+
                 for (std::size_t b = 0; b < positions.size() && b < boss_tags.size(); ++b) {
                     if (boss_tags[b] && positions[b] && healths[b]) {
                         auto& boss_pos = positions[b].value();
@@ -60,6 +60,9 @@ void collisionSystem(registry& reg) {
                             if (b < damage_flashes.size() && damage_flashes[b].has_value()) {
                                 damage_flashes[b]->trigger();
                             }
+
+                            createExplosion(reg, boss_pos.x + (player_pos.x - boss_pos.x) * 0.3f, 
+                                          boss_pos.y + (player_pos.y - boss_pos.y) * 0.3f);
 
                             if (boss_hp.is_dead()) {
                                 createExplosion(reg, boss_pos.x, boss_pos.y);
@@ -192,6 +195,8 @@ void collisionSystem(registry& reg) {
                         if (j < damage_flashes.size() && damage_flashes[j].has_value()) {
                             damage_flashes[j]->trigger();
                         }
+
+                        createExplosion(reg, proj_pos.x, proj_pos.y);
 
                         if (proj_dmg.destroy_on_hit) {
                             auto proj_entity = reg.entity_from_index(i);

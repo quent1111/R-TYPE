@@ -39,6 +39,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/shield.png");
         texture_mgr.load("assets/r-typesheet30.gif");
         texture_mgr.load("assets/r-typesheet30a.gif");
+        texture_mgr.load("assets/explosion.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
@@ -156,7 +157,6 @@ void Game::update() {
 
     process_network_messages();
 
-    // Update boss damage flash timers
     for (auto& [id, entity] : entities_) {
         if (entity.type == 0x08 && entity.damage_flash_timer > 0.0f) {
             entity.damage_flash_timer -= dt;
@@ -297,17 +297,18 @@ void Game::init_entity_sprite(Entity& entity) {
             }
         }
     } else if (entity.type == 0x05) {
-        if (texture_mgr.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet1.png"));
-            entity.frames = {{330, 289, 28, 34},
-                             {362, 289, 28, 34},
-                             {394, 289, 28, 34},
-                             {426, 289, 28, 34},
-                             {0, 0, 1, 1}};
+        if (texture_mgr.has("assets/explosion.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/explosion.gif"));
+            entity.frames = {{0, 0, 34, 38},
+                             {34, 0, 33, 38},
+                             {67, 0, 35, 38},
+                             {102, 0, 34, 38},
+                             {136, 0, 35, 38},
+                             {171, 0, 35, 38}};
             entity.frame_duration = 0.08F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(4.0F, 4.0F);
+            entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x08) {
         if (texture_mgr.has("assets/r-typesheet30.gif")) {
