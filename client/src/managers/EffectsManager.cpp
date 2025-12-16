@@ -1,13 +1,17 @@
-#include "EffectsManager.hpp"
+#include "managers/EffectsManager.hpp"
 
 #include <cmath>
 
-EffectsManager& EffectsManager::getInstance() {
+namespace managers {
+
+EffectsManager& EffectsManager::instance() {
     static EffectsManager instance;
     return instance;
 }
 
-EffectsManager::EffectsManager() : rng_(std::random_device{}()), score_position_(100.0f, 50.0f) {
+EffectsManager::EffectsManager() 
+    : score_position_(100.0f, 50.0f)
+    , rng_(std::random_device{}()) {
     particle_shape_.setRadius(4.0f);
     particle_shape_.setOrigin(4.0f, 4.0f);
 }
@@ -18,8 +22,8 @@ void EffectsManager::update(float dt) {
         float progress = shake_timer_ / shake_duration_;
         float current_intensity = shake_intensity_ * progress;
 
-        shake_offset_.x = randomFloat(-current_intensity, current_intensity);
-        shake_offset_.y = randomFloat(-current_intensity, current_intensity);
+        shake_offset_.x = random_float(-current_intensity, current_intensity);
+        shake_offset_.y = random_float(-current_intensity, current_intensity);
 
         if (shake_timer_ <= 0.0f) {
             shake_offset_ = sf::Vector2f(0.0f, 0.0f);
@@ -44,7 +48,6 @@ void EffectsManager::update(float dt) {
 
     if (score_bouncing_) {
         score_bounce_timer_ += dt;
-
         const float bounce_duration = 0.25f;
         if (score_bounce_timer_ < bounce_duration) {
             float t = score_bounce_timer_ / bounce_duration;
@@ -77,13 +80,11 @@ void EffectsManager::update(float dt) {
 
         if (dist > 5.0f) {
             to_target /= dist;
-
             it->velocity = it->velocity * 0.92f + to_target * 800.0f * speed_mult * 0.08f;
             it->position += it->velocity * dt;
         }
 
         it->size = 8.0f * (1.0f - progress * 0.3f);
-
         ++it;
     }
 
@@ -102,117 +103,8 @@ void EffectsManager::update(float dt) {
         float progress = 1.0f - (it->lifetime / it->max_lifetime);
         it->size = 12.0f * (1.0f - progress);
         it->color.a = static_cast<sf::Uint8>(255.0f * (1.0f - progress));
-
         ++it;
     }
-}
-
-void EffectsManager::triggerScreenShake(float intensity, float duration) {
-    shake_intensity_ = intensity;
-    shake_duration_ = duration;
-    shake_timer_ = duration;
-}
-
-sf::Vector2f EffectsManager::getScreenShakeOffset() const {
-    return shake_offset_;
-}
-
-void EffectsManager::spawnScoreParticles(sf::Vector2f from_pos, sf::Vector2f to_pos, int count) {
-    for (int i = 0; i < count; ++i) {
-        ScoreParticle particle;
-        particle.position = from_pos;
-        particle.target = to_pos;
-
-        float angle = randomFloat(0.0f, 6.28318f);
-        float speed = randomFloat(100.0f, 300.0f);
-        particle.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
-
-        particle.lifetime = randomFloat(0.5f, 0.9f);
-        particle.max_lifetime = particle.lifetime;
-        particle.size = randomFloat(6.0f, 10.0f);
-
-        particle.color = sf::Color(255, 215, 0, 255);
-
-        score_particles_.push_back(particle);
-    }
-}
-
-void EffectsManager::spawnExplosion(sf::Vector2f position, int count) {
-    for (int i = 0; i < count; ++i) {
-        ExplosionParticle particle;
-        particle.position = position;
-
-        float angle = randomFloat(0.0f, 6.28318f);
-        float speed = randomFloat(200.0f, 500.0f);
-        particle.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
-
-        particle.lifetime = randomFloat(0.4f, 0.8f);
-        particle.max_lifetime = particle.lifetime;
-        particle.size = randomFloat(8.0f, 16.0f);
-
-        float color_type = randomFloat(0.0f, 1.0f);
-        if (color_type < 0.4f) {
-            particle.color =
-                sf::Color(255, static_cast<sf::Uint8>(randomFloat(100.0f, 180.0f)), 0, 255);
-        } else if (color_type < 0.7f) {
-            particle.color =
-                sf::Color(255, 255, static_cast<sf::Uint8>(randomFloat(0.0f, 100.0f)), 255);
-        } else {
-            particle.color =
-                sf::Color(255, static_cast<sf::Uint8>(randomFloat(50.0f, 100.0f)), 0, 255);
-        }
-
-        explosion_particles_.push_back(particle);
-    }
-}
-
-void EffectsManager::triggerScoreBounce() {
-    score_bouncing_ = true;
-    score_bounce_timer_ = 0.0f;
-}
-
-float EffectsManager::getScoreScale() const {
-    return score_scale_;
-}
-
-void EffectsManager::triggerDamageFlash() {
-    damage_flash_timer_ = damage_flash_duration_;
-}
-
-float EffectsManager::getDamageFlashAlpha() const {
-    if (damage_flash_timer_ <= 0.0f)
-        return 0.0f;
-    float progress = damage_flash_timer_ / damage_flash_duration_;
-    return progress * 100.0f;
-}
-
-void EffectsManager::addComboKill() {
-    combo_timer_ = 0.0f;
-    combo_kills_++;
-
-    if (combo_kills_ >= kills_per_level_ && combo_multiplier_ < 5) {
-        combo_multiplier_++;
-        combo_kills_ = 0;
-    }
-}
-
-void EffectsManager::updateCombo(float dt) {
-    (void)dt;
-}
-
-int EffectsManager::getComboMultiplier() const {
-    return combo_multiplier_;
-}
-
-float EffectsManager::getComboProgress() const {
-    float progress = static_cast<float>(combo_kills_) / static_cast<float>(kills_per_level_);
-    return std::min(progress, 1.0f);
-}
-
-float EffectsManager::getComboTimer() const {
-    if (combo_kills_ == 0 && combo_multiplier_ == 1)
-        return 0.0f;
-    return 1.0f - (combo_timer_ / combo_decay_time_);
 }
 
 void EffectsManager::render(sf::RenderWindow& window) {
@@ -234,9 +126,9 @@ void EffectsManager::render(sf::RenderWindow& window) {
             particle_shape_.setRadius(trail_size);
             particle_shape_.setOrigin(trail_size, trail_size);
             particle_shape_.setPosition(trail_pos);
-            particle_shape_.setFillColor(sf::Color(particle.color.r, particle.color.g,
-                                                   particle.color.b,
-                                                   static_cast<sf::Uint8>(alpha * 150.0f)));
+            particle_shape_.setFillColor(sf::Color(
+                particle.color.r, particle.color.g, particle.color.b,
+                static_cast<sf::Uint8>(alpha * 150.0f)));
             window.draw(particle_shape_);
             ++trail_index;
         }
@@ -249,7 +141,120 @@ void EffectsManager::render(sf::RenderWindow& window) {
     }
 }
 
-float EffectsManager::randomFloat(float min, float max) {
+void EffectsManager::trigger_screen_shake(float intensity, float duration) {
+    shake_intensity_ = intensity;
+    shake_duration_ = duration;
+    shake_timer_ = duration;
+}
+
+sf::Vector2f EffectsManager::get_screen_shake_offset() const {
+    return shake_offset_;
+}
+
+void EffectsManager::spawn_score_particles(sf::Vector2f from_pos, sf::Vector2f to_pos, int count) {
+    for (int i = 0; i < count; ++i) {
+        ScoreParticle particle;
+        particle.position = from_pos;
+        particle.target = to_pos;
+
+        float angle = random_float(0.0f, 6.28318f);
+        float speed = random_float(100.0f, 300.0f);
+        particle.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
+
+        particle.lifetime = random_float(0.5f, 0.9f);
+        particle.max_lifetime = particle.lifetime;
+        particle.size = random_float(6.0f, 10.0f);
+        particle.color = sf::Color(255, 215, 0, 255);
+
+        score_particles_.push_back(particle);
+    }
+}
+
+void EffectsManager::spawn_explosion(sf::Vector2f position, int count) {
+    for (int i = 0; i < count; ++i) {
+        ExplosionParticle particle;
+        particle.position = position;
+
+        float angle = random_float(0.0f, 6.28318f);
+        float speed = random_float(200.0f, 500.0f);
+        particle.velocity = sf::Vector2f(std::cos(angle) * speed, std::sin(angle) * speed);
+
+        particle.lifetime = random_float(0.4f, 0.8f);
+        particle.max_lifetime = particle.lifetime;
+        particle.size = random_float(8.0f, 16.0f);
+
+        float color_type = random_float(0.0f, 1.0f);
+        if (color_type < 0.4f) {
+            particle.color = sf::Color(
+                255, static_cast<sf::Uint8>(random_float(100.0f, 180.0f)), 0, 255);
+        } else if (color_type < 0.7f) {
+            particle.color = sf::Color(
+                255, 255, static_cast<sf::Uint8>(random_float(0.0f, 100.0f)), 255);
+        } else {
+            particle.color = sf::Color(
+                255, static_cast<sf::Uint8>(random_float(50.0f, 100.0f)), 0, 255);
+        }
+
+        explosion_particles_.push_back(particle);
+    }
+}
+
+void EffectsManager::trigger_damage_flash() {
+    damage_flash_timer_ = damage_flash_duration_;
+}
+
+float EffectsManager::get_damage_flash_alpha() const {
+    if (damage_flash_timer_ <= 0.0f) return 0.0f;
+    float progress = damage_flash_timer_ / damage_flash_duration_;
+    return progress * 100.0f;
+}
+
+void EffectsManager::add_combo_kill() {
+    combo_timer_ = 0.0f;
+    combo_kills_++;
+
+    if (combo_kills_ >= kills_per_level_ && combo_multiplier_ < 5) {
+        combo_multiplier_++;
+        combo_kills_ = 0;
+    }
+}
+
+void EffectsManager::reset_combo() {
+    combo_kills_ = 0;
+    combo_multiplier_ = 1;
+    combo_timer_ = 0.0f;
+}
+
+int EffectsManager::get_combo_multiplier() const {
+    return combo_multiplier_;
+}
+
+float EffectsManager::get_combo_progress() const {
+    float progress = static_cast<float>(combo_kills_) / static_cast<float>(kills_per_level_);
+    return std::min(progress, 1.0f);
+}
+
+float EffectsManager::get_combo_timer() const {
+    if (combo_kills_ == 0 && combo_multiplier_ == 1) return 0.0f;
+    return 1.0f - (combo_timer_ / combo_decay_time_);
+}
+
+void EffectsManager::trigger_score_bounce() {
+    score_bouncing_ = true;
+    score_bounce_timer_ = 0.0f;
+}
+
+float EffectsManager::get_score_scale() const {
+    return score_scale_;
+}
+
+void EffectsManager::set_score_position(sf::Vector2f pos) {
+    score_position_ = pos;
+}
+
+float EffectsManager::random_float(float min, float max) {
     std::uniform_real_distribution<float> dist(min, max);
     return dist(rng_);
 }
+
+}  // namespace managers

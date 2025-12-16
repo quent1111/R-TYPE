@@ -1,6 +1,6 @@
 #include "states/MenuState.hpp"
 
-#include "AudioManager.hpp"
+#include "managers/AudioManager.hpp"
 #include "ui/SettingsPanel.hpp"
 
 #include <iostream>
@@ -19,9 +19,9 @@ void MenuState::on_enter() {
     m_footer.reset();
     setup_ui();
 
-    auto& audio = AudioManager::getInstance();
-    audio.loadSounds();
-    audio.playMusic("assets/sounds/menu-loop.ogg", true);
+    auto& audio = managers::AudioManager::instance();
+    audio.load_sounds();
+    audio.play_music("assets/sounds/menu-loop.ogg", true);
 }
 
 void MenuState::on_exit() {
@@ -93,13 +93,13 @@ void MenuState::setup_ui() {
 
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_next_state = "lobby";
 }
 
 void MenuState::on_quit_clicked() {
     std::cout << "[MenuState] Quit button clicked\n";
-    AudioManager::getInstance().playSound(AudioManager::SoundType::Plop);
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
     m_window.close();
 }
 

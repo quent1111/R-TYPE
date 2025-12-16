@@ -1,6 +1,6 @@
 #include "ui/SettingsPanel.hpp"
 #include <SFML/Graphics.hpp>
-#include "AudioManager.hpp"
+#include "managers/AudioManager.hpp"
 
 using namespace rtype::ui;
 
@@ -85,7 +85,7 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
 
     create_buttons();
 
-    AudioManager::getInstance().setMasterVolume(static_cast<float>(Settings::instance().master_volume));
+    managers::AudioManager::instance().set_master_volume(static_cast<float>(Settings::instance().master_volume));
 }
 
 void SettingsPanel::create_buttons() {
@@ -99,7 +99,7 @@ void SettingsPanel::create_buttons() {
         vol_down->set_callback([]() {
             auto& s = Settings::instance();
             s.master_volume = std::max(0, s.master_volume - 5);
-            AudioManager::getInstance().setMasterVolume(static_cast<float>(s.master_volume));
+            managers::AudioManager::instance().set_master_volume(static_cast<float>(s.master_volume));
         });
         vol_down->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
         m_buttons.push_back(std::move(vol_down));
@@ -109,7 +109,7 @@ void SettingsPanel::create_buttons() {
         vol_up->set_callback([]() {
             auto& s = Settings::instance();
             s.master_volume = std::min(100, s.master_volume + 5);
-            AudioManager::getInstance().setMasterVolume(static_cast<float>(s.master_volume));
+            managers::AudioManager::instance().set_master_volume(static_cast<float>(s.master_volume));
         });
         vol_up->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
         m_buttons.push_back(std::move(vol_up));

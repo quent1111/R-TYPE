@@ -1,8 +1,11 @@
-#include "AudioManager.hpp"
+#include "managers/AudioManager.hpp"
 
+#include <algorithm>
 #include <iostream>
 
-AudioManager& AudioManager::getInstance() {
+namespace managers {
+
+AudioManager& AudioManager::instance() {
     static AudioManager instance;
     return instance;
 }
@@ -11,7 +14,7 @@ AudioManager::AudioManager() {
     sound_pool_.resize(SOUND_POOL_SIZE);
 }
 
-bool AudioManager::loadSounds() {
+bool AudioManager::load_sounds() {
     bool success = true;
 
     const std::map<SoundType, std::string> sound_paths = {
@@ -21,7 +24,8 @@ bool AudioManager::loadSounds() {
         {SoundType::PlayerHit, "assets/sounds/player-hit.mp3"},
         {SoundType::LevelUp, "assets/sounds/level-up.mp3"},
         {SoundType::Plop, "assets/sounds/plop.wav"},
-        {SoundType::Coin, "assets/sounds/coin.wav"}};
+        {SoundType::Coin, "assets/sounds/coin.wav"}
+    };
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {
@@ -35,7 +39,7 @@ bool AudioManager::loadSounds() {
     return success;
 }
 
-void AudioManager::playSound(SoundType type) {
+void AudioManager::play_sound(SoundType type) {
     auto it = sound_buffers_.find(type);
     if (it == sound_buffers_.end()) {
         return;
@@ -63,13 +67,13 @@ void AudioManager::playSound(SoundType type) {
             break;
     }
 
-    sf::Sound& sound = getNextSound();
+    sf::Sound& sound = get_next_sound();
     sound.setBuffer(it->second);
-    sound.setVolume(getEffectiveVolume(sound_volume_) * volume_multiplier);
+    sound.setVolume(get_effective_volume(sound_volume_) * volume_multiplier);
     sound.play();
 }
 
-sf::Sound& AudioManager::getNextSound() {
+sf::Sound& AudioManager::get_next_sound() {
     for (size_t i = 0; i < SOUND_POOL_SIZE; ++i) {
         size_t index = (current_sound_index_ + i) % SOUND_POOL_SIZE;
         if (sound_pool_[index].getStatus() == sf::Sound::Stopped) {
@@ -83,56 +87,74 @@ sf::Sound& AudioManager::getNextSound() {
     return sound;
 }
 
-void AudioManager::playMusic(const std::string& musicPath, bool loop) {
-    if (current_music_path_ == musicPath && music_.getStatus() == sf::Music::Playing) {
+void AudioManager::play_music(const std::string& music_path, bool loop) {
+    if (current_music_path_ == music_path && music_.getStatus() == sf::Music::Playing) {
         return;
     }
 
-    if (!music_.openFromFile(musicPath)) {
-        std::cerr << "[AudioManager] Failed to load music: " << musicPath << std::endl;
+    if (!music_.openFromFile(music_path)) {
+        std::cerr << "[AudioManager] Failed to load music: " << music_path << std::endl;
         return;
     }
 
-    current_music_path_ = musicPath;
+    current_music_path_ = music_path;
     music_.setLoop(loop);
-    music_.setVolume(getEffectiveVolume(music_volume_));
+    music_.setVolume(get_effective_volume(music_volume_));
     music_.play();
-    std::cout << "[AudioManager] Playing music: " << musicPath << std::endl;
+    std::cout << "[AudioManager] Playing music: " << music_path << std::endl;
 }
 
-void AudioManager::stopMusic() {
+void AudioManager::stop_music() {
     music_.stop();
     current_music_path_.clear();
 }
 
-void AudioManager::pauseMusic() {
+void AudioManager::pause_music() {
     music_.pause();
 }
 
-void AudioManager::resumeMusic() {
+void AudioManager::resume_music() {
     if (music_.getStatus() == sf::Music::Paused) {
         music_.play();
     }
 }
 
-bool AudioManager::isMusicPlaying() const {
+bool AudioManager::is_music_playing() const {
     return music_.getStatus() == sf::Music::Playing;
 }
 
-void AudioManager::setSoundVolume(float volume) {
-    sound_volume_ = std::max(0.0f, std::min(100.0f, volume));
+std::string AudioManager::get_current_music() const {
+    return current_music_path_;
 }
 
-void AudioManager::setMusicVolume(float volume) {
-    music_volume_ = std::max(0.0f, std::min(100.0f, volume));
-    music_.setVolume(getEffectiveVolume(music_volume_));
+void AudioManager::set_sound_volume(float volume) {
+    sound_volume_ = std::clamp(volume, 0.0f, 100.0f);
 }
 
-void AudioManager::setMasterVolume(float volume) {
-    master_volume_ = std::max(0.0f, std::min(100.0f, volume));
-    music_.setVolume(getEffectiveVolume(music_volume_));
+void AudioManager::set_music_volume(float volume) {
+    music_volume_ = std::clamp(volume, 0.0f, 100.0f);
+    music_.setVolume(get_effective_volume(music_volume_));
 }
 
-float AudioManager::getEffectiveVolume(float base_volume) const {
+void AudioManager::set_master_volume(float volume) {
+    master_volume_ = std::clamp(volume, 0.0f, 100.0f);
+    music_.setVolume(get_effective_volume(music_volume_));
+}
+
+float AudioManager::get_sound_volume() const {
+    return sound_volume_;
+}
+
+float AudioManager::get_music_volume() const {
+    return music_volume_;
+}
+
+float AudioManager::get_master_volume() const {
+    return master_volume_;
+}
+
+float AudioManager::get_effective_volume(float base_volume) const {
     return (base_volume * master_volume_) / 100.0f;
 }
+
+}  // namespace managers

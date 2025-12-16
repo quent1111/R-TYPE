@@ -6,37 +6,37 @@
 #include <random>
 #include <vector>
 
+namespace managers {
+
 class EffectsManager {
 public:
-    static EffectsManager& getInstance();
+    static EffectsManager& instance();
 
     EffectsManager(const EffectsManager&) = delete;
     EffectsManager& operator=(const EffectsManager&) = delete;
 
     void update(float dt);
-
-    void triggerScreenShake(float intensity = 5.0f, float duration = 0.12f);
-    sf::Vector2f getScreenShakeOffset() const;
-
-    void spawnScoreParticles(sf::Vector2f from_pos, sf::Vector2f to_pos, int count = 8);
-
-    void spawnExplosion(sf::Vector2f position, int count = 20);
-
-    void triggerDamageFlash();
-    float getDamageFlashAlpha() const;
-
-    void addComboKill();
-    void updateCombo(float dt);
-    int getComboMultiplier() const;
-    float getComboProgress() const;
-    float getComboTimer() const;
-
-    void triggerScoreBounce();
-    float getScoreScale() const;
-
     void render(sf::RenderWindow& window);
 
-    void setScorePosition(sf::Vector2f pos) { score_position_ = pos; }
+    void trigger_screen_shake(float intensity = 5.0f, float duration = 0.12f);
+    sf::Vector2f get_screen_shake_offset() const;
+
+    void spawn_score_particles(sf::Vector2f from_pos, sf::Vector2f to_pos, int count = 8);
+    void spawn_explosion(sf::Vector2f position, int count = 20);
+
+    void trigger_damage_flash();
+    float get_damage_flash_alpha() const;
+
+    void add_combo_kill();
+    void reset_combo();
+    int get_combo_multiplier() const;
+    float get_combo_progress() const;
+    float get_combo_timer() const;
+
+    void trigger_score_bounce();
+    float get_score_scale() const;
+
+    void set_score_position(sf::Vector2f pos);
 
 private:
     EffectsManager();
@@ -46,7 +46,6 @@ private:
     float shake_duration_ = 0.0f;
     float shake_timer_ = 0.0f;
     sf::Vector2f shake_offset_;
-    std::mt19937 rng_;
 
     float score_scale_ = 1.0f;
     float score_bounce_timer_ = 0.0f;
@@ -64,8 +63,6 @@ private:
     };
     std::vector<ScoreParticle> score_particles_;
     sf::Vector2f score_position_;
-
-    sf::CircleShape particle_shape_;
 
     struct ExplosionParticle {
         sf::Vector2f position;
@@ -86,5 +83,10 @@ private:
     int combo_multiplier_ = 1;
     int kills_per_level_ = 3;
 
-    float randomFloat(float min, float max);
+    sf::CircleShape particle_shape_;
+    std::mt19937 rng_;
+
+    float random_float(float min, float max);
 };
+
+}  // namespace managers

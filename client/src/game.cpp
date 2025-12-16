@@ -26,63 +26,32 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     show_level_intro_ = true;
     level_intro_timer_ = 0.0f;
 
+    auto& texture_mgr = managers::TextureManager::instance();
     try {
-        texture_manager_.load("assets/bg.png");
-        texture_manager_.load("assets/r-typesheet1.png");
-        texture_manager_.load("assets/r-typesheet1.3.png");
-        texture_manager_.load("assets/r-typesheet1.4.png");
-        texture_manager_.load("assets/r-typesheet1.5.png");
-        texture_manager_.load("assets/r-typesheet26.png");
-        texture_manager_.load("assets/r-typesheet24.png");
-        texture_manager_.load("assets/ennemi-projectile.png");
-        texture_manager_.load("assets/shield.png");
-        texture_manager_.load("assets/r-typesheet30.gif");
-        texture_manager_.load("assets/r-typesheet30a.gif");
+        texture_mgr.load("assets/bg.png");
+        texture_mgr.load("assets/r-typesheet1.png");
+        texture_mgr.load("assets/r-typesheet1.3.png");
+        texture_mgr.load("assets/r-typesheet1.4.png");
+        texture_mgr.load("assets/r-typesheet1.5.png");
+        texture_mgr.load("assets/r-typesheet26.png");
+        texture_mgr.load("assets/r-typesheet24.png");
+        texture_mgr.load("assets/ennemi-projectile.png");
+        texture_mgr.load("assets/shield.png");
+        texture_mgr.load("assets/r-typesheet30.gif");
+        texture_mgr.load("assets/r-typesheet30a.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
 
-    sf::Texture* bg_tex = texture_manager_.get("assets/bg.png");
-    if (bg_tex) {
-        bg_tex->setRepeated(true);
-        bg_sprite1_.setTexture(*bg_tex);
-        bg_sprite2_.setTexture(*bg_tex);
+    game_renderer_.init(window_);
+    hud_renderer_.init(font_);
+    overlay_renderer_.init(font_);
 
-        bg_sprite1_.setTextureRect(sf::IntRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT));
-        bg_sprite2_.setTextureRect(sf::IntRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT));
-
-        bg_sprite1_.setPosition(0, 0);
-        bg_sprite2_.setPosition(WINDOW_WIDTH, 0);
-    }
-
-    auto& audio = AudioManager::getInstance();
-    audio.loadSounds();
-    audio.playMusic("assets/sounds/game-loop.ogg", true);
-
-    update_game_view();
-}
-
-void Game::update_game_view() {
-    game_view_.setSize(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
-    game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f, static_cast<float>(WINDOW_HEIGHT) / 2.0f);
-
-    sf::Vector2u window_size = window_.getSize();
-
-    float window_ratio = static_cast<float>(window_size.x) / static_cast<float>(window_size.y);
-    float game_ratio = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT);
-
-    sf::FloatRect viewport;
-    if (window_ratio > game_ratio) {
-        float viewport_width = game_ratio / window_ratio;
-        viewport = sf::FloatRect((1.0f - viewport_width) / 2.0f, 0.0f, viewport_width, 1.0f);
-    } else {
-        float viewport_height = window_ratio / game_ratio;
-        viewport = sf::FloatRect(0.0f, (1.0f - viewport_height) / 2.0f, 1.0f, viewport_height);
-    }
-
-    game_view_.setViewport(viewport);
+    auto& audio = managers::AudioManager::instance();
+    audio.load_sounds();
+    audio.play_music("assets/sounds/game-loop.ogg", true);
 }
 
 Game::~Game() {
@@ -93,164 +62,24 @@ void Game::setup_ui() {
     if (!font_.loadFromFile("assets/fonts/arial.ttf")) {
         std::cerr << "[Game] Warning: Could not load font assets/fonts/arial.ttf" << std::endl;
     }
-    info_text_.setFont(font_);
-    info_text_.setCharacterSize(20);
-    info_text_.setFillColor(sf::Color::White);
-    info_text_.setPosition(10, 10);
 
-    score_text_.setFont(font_);
-    score_text_.setCharacterSize(36);
-    score_text_.setFillColor(sf::Color(255, 215, 0));
-    score_text_.setStyle(sf::Text::Bold);
-    score_text_.setString("SCORE: 0");
-    score_text_.setPosition(WINDOW_WIDTH - 300, 20);
-
-    timer_text_.setFont(font_);
-    timer_text_.setCharacterSize(28);
-    timer_text_.setFillColor(sf::Color(50, 255, 50));
-    timer_text_.setStyle(sf::Text::Bold);
-    timer_text_.setString("00:00.000");
-    sf::FloatRect timer_bounds = timer_text_.getLocalBounds();
-    timer_text_.setPosition((WINDOW_WIDTH - timer_bounds.width) / 2.0f, 15);
-
-    combo_text_.setFont(font_);
-    combo_text_.setCharacterSize(24);
-    combo_text_.setFillColor(sf::Color::White);
-    combo_text_.setStyle(sf::Text::Bold);
-    combo_text_.setString("1x");
-    combo_text_.setPosition(WINDOW_WIDTH - 250, 75);
-
-    combo_bar_bg_.setSize(sf::Vector2f(150, 20));
-    combo_bar_bg_.setFillColor(sf::Color(40, 40, 40, 200));
-    combo_bar_bg_.setPosition(WINDOW_WIDTH - 210, 80);
-    combo_bar_bg_.setOutlineColor(sf::Color(100, 100, 100));
-    combo_bar_bg_.setOutlineThickness(2);
-
-    combo_bar_fill_.setSize(sf::Vector2f(0, 16));
-    combo_bar_fill_.setFillColor(sf::Color(255, 150, 0));
-    combo_bar_fill_.setPosition(WINDOW_WIDTH - 206, 82);
-
-    combo_timer_bar_.setSize(sf::Vector2f(150, 4));
-    combo_timer_bar_.setFillColor(sf::Color(255, 80, 80));
-    combo_timer_bar_.setPosition(WINDOW_WIDTH - 210, 103);
-
-    EffectsManager::getInstance().setScorePosition(sf::Vector2f(WINDOW_WIDTH - 200, 40));
-
-    level_intro_title_.setFont(font_);
-    level_intro_title_.setCharacterSize(80);
-    level_intro_title_.setFillColor(sf::Color::Yellow);
-    level_intro_title_.setStyle(sf::Text::Bold);
-    level_intro_subtitle_.setFont(font_);
-    level_intro_subtitle_.setCharacterSize(40);
-    level_intro_subtitle_.setFillColor(sf::Color::White);
-    level_intro_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    level_intro_overlay_.setFillColor(sf::Color(0, 0, 0, 150));
-    level_text_.setFont(font_);
-    level_text_.setCharacterSize(24);
-    level_text_.setFillColor(sf::Color::Yellow);
-    level_text_.setPosition(10, 10);
-    level_text_.setStyle(sf::Text::Bold);
-    progress_text_.setFont(font_);
-    progress_text_.setCharacterSize(20);
-    progress_text_.setFillColor(sf::Color::White);
-    progress_text_.setPosition(10, 45);
-    progress_bar_bg_.setSize(sf::Vector2f(300.0f, 25.0f));
-    progress_bar_bg_.setPosition(10.0f, 75.0f);
-    progress_bar_bg_.setFillColor(sf::Color(50, 50, 50, 200));
-    progress_bar_bg_.setOutlineColor(sf::Color::White);
-    progress_bar_bg_.setOutlineThickness(2.0f);
-    progress_bar_fill_.setSize(sf::Vector2f(0.0f, 21.0f));
-    progress_bar_fill_.setPosition(12.0f, 77.0f);
-    progress_bar_fill_.setFillColor(sf::Color(0, 200, 0));
-
-    powerup_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    powerup_overlay_.setFillColor(sf::Color(0, 0, 0, 180));
-    powerup_title_.setFont(font_);
-    powerup_title_.setCharacterSize(60);
-    powerup_title_.setFillColor(sf::Color::Yellow);
-    powerup_title_.setStyle(sf::Text::Bold);
-    powerup_title_.setString("CHOOSE YOUR POWER-UP");
-    auto& bonus_texture = texture_manager_.load("assets/bonus.png");
-    const int card_width = 459;
-    const int card_height = 759;
-    powerup_card1_sprite_.setTexture(bonus_texture);
-    powerup_card1_sprite_.setTextureRect(sf::IntRect(card_width * 2, 0, card_width, card_height));
-    powerup_card1_sprite_.setScale(0.6f, 0.6f);
-    powerup_card1_sprite_.setPosition(560.0f, 300.0f);
-    powerup_card2_sprite_.setTexture(bonus_texture);
-    powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
-    powerup_card2_sprite_.setScale(0.6f, 0.6f);
-    powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
-    powerup_number1_text_.setFont(font_);
-    powerup_number1_text_.setCharacterSize(50);
-    powerup_number1_text_.setFillColor(sf::Color::Yellow);
-    powerup_number1_text_.setStyle(sf::Text::Bold);
-    powerup_number1_text_.setString("1");
-    powerup_number1_text_.setPosition(670.0f, 720.0f);
-    powerup_number2_text_.setFont(font_);
-    powerup_number2_text_.setCharacterSize(50);
-    powerup_number2_text_.setFillColor(sf::Color::Yellow);
-    powerup_number2_text_.setStyle(sf::Text::Bold);
-    powerup_number2_text_.setString("2");
-    powerup_number2_text_.setPosition(1305.0f, 720.0f);
-    powerup_instruction_.setFont(font_);
-    powerup_instruction_.setCharacterSize(25);
-    powerup_instruction_.setFillColor(sf::Color::Cyan);
-    powerup_instruction_.setString("Press 1 or 2 to choose (or click on a card)");
-    powerup_instruction_.setPosition(660.0f, 850.0f);
-    powerup_active_text_.setFont(font_);
-    powerup_active_text_.setCharacterSize(22);
-    powerup_active_text_.setFillColor(sf::Color::Cyan);
-    powerup_active_text_.setPosition(10, 150);
-    powerup_active_text_.setStyle(sf::Text::Bold);
-
-    shield_frames_ = {
-        {0, 0, 27, 27}, {27, 0, 34, 34}, {61, 0, 42, 42}, {103, 0, 51, 51}, {154, 0, 55, 55}};
-
-    shield_visual_.setTextureRect(shield_frames_[0]);
-    shield_visual_.setScale(2.0f, 2.0f);
-
-    powerup_hint_text_.setFont(font_);
-    powerup_hint_text_.setCharacterSize(28);
-    powerup_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
-    powerup_hint_text_.setStyle(sf::Text::Bold);
-    powerup_hint_text_.setOutlineColor(sf::Color::Black);
-    powerup_hint_text_.setOutlineThickness(3.0f);
-    powerup_hint_text_.setPosition(20, 950);
-
-    powerup_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
-    powerup_hint_bg_.setPosition(10, 940);
-    powerup_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
-    powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
-    powerup_hint_bg_.setOutlineThickness(2.0f);
-
-    health_bar_bg_.setSize(sf::Vector2f(300.0f, 30.0f));
-    health_bar_bg_.setPosition(10.0f, 160.0f);
-    health_bar_bg_.setFillColor(sf::Color(50, 50, 50, 200));
-    health_bar_bg_.setOutlineColor(sf::Color::White);
-    health_bar_bg_.setOutlineThickness(2.0f);
-
-    health_bar_fill_.setSize(sf::Vector2f(296.0f, 26.0f));
-    health_bar_fill_.setPosition(12.0f, 162.0f);
-    health_bar_fill_.setFillColor(sf::Color(0, 255, 0));
-
-    health_text_.setFont(font_);
-    health_text_.setCharacterSize(20);
-    health_text_.setFillColor(sf::Color::White);
-    health_text_.setPosition(20.0f, 165.0f);
-    health_text_.setStyle(sf::Text::Bold);
-    health_text_.setString("HP: 100 / 100");
-
-    game_over_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-    game_over_overlay_.setFillColor(sf::Color(0, 0, 0, 200));
-
-    texture_manager_.load("assets/gameover2.png");
-    if (texture_manager_.has("assets/gameover2.png")) {
-        game_over_sprite_.setTexture(*texture_manager_.get("assets/gameover2.png"));
-        auto bounds = game_over_sprite_.getLocalBounds();
-        game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-        game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+    auto& texture_mgr = managers::TextureManager::instance();
+    texture_mgr.load("assets/bonus.png");
+    auto* bonus_texture = texture_mgr.get("assets/bonus.png");
+    if (bonus_texture) {
+        const int card_width = 459;
+        const int card_height = 759;
+        powerup_card1_sprite_.setTexture(*bonus_texture);
+        powerup_card1_sprite_.setTextureRect(sf::IntRect(card_width * 2, 0, card_width, card_height));
+        powerup_card1_sprite_.setScale(0.6f, 0.6f);
+        powerup_card1_sprite_.setPosition(560.0f, 300.0f);
+        powerup_card2_sprite_.setTexture(*bonus_texture);
+        powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
+        powerup_card2_sprite_.setScale(0.6f, 0.6f);
+        powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
     }
+
+    managers::EffectsManager::instance().set_score_position(sf::Vector2f(WINDOW_WIDTH - 200, 40));
 }
 
 void Game::handle_event(const sf::Event& event) {
@@ -321,7 +150,7 @@ void Game::handle_input() {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
         input_mask |= KEY_SPACE;
         if (!was_shooting_) {
-            AudioManager::getInstance().playSound(AudioManager::SoundType::Laser);
+            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Laser);
             was_shooting_ = true;
         }
     } else {
@@ -336,37 +165,22 @@ void Game::handle_input() {
 
 void Game::update() {
     float dt = 1.0F / 60.0F;
-    bg_scroll_offset_ += bg_scroll_speed_ * dt;
-    if (bg_scroll_offset_ > WINDOW_WIDTH) {
-        bg_scroll_offset_ -= WINDOW_WIDTH;
-    }
-    bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
-    bg_sprite2_.setPosition(WINDOW_WIDTH - bg_scroll_offset_, 0);
 
-    EffectsManager::getInstance().update(dt);
+    game_renderer_.update(dt);
+
+    managers::EffectsManager::instance().update(dt);
 
     if (timer_running_ && !show_game_over_) {
         game_time_ += dt;
-        int total_ms = static_cast<int>(game_time_ * 1000.0f);
-        int minutes = total_ms / 60000;
-        int seconds = (total_ms % 60000) / 1000;
-        int milliseconds = total_ms % 1000;
-        char timer_str[16];
-        std::snprintf(timer_str, sizeof(timer_str), "%02d:%02d.%03d", minutes, seconds,
-                      milliseconds);
-        timer_text_.setString(timer_str);
-        sf::FloatRect bounds = timer_text_.getLocalBounds();
-        timer_text_.setPosition((WINDOW_WIDTH - bounds.width) / 2.0f, 15);
     }
 
     if (displayed_score_ < current_score_) {
         uint32_t diff = current_score_ - displayed_score_;
         uint32_t increment = std::max(1u, diff / 10);
         displayed_score_ = std::min(displayed_score_ + increment, current_score_);
-        score_text_.setString("SCORE: " + std::to_string(displayed_score_));
     }
 
-    process_network_messages();
+    process_network_messages();;
 
     for (auto& [player_id, powerup_info] : player_powerups_) {
         uint8_t type = powerup_info.first;
@@ -415,6 +229,8 @@ void Game::update() {
 }
 
 void Game::init_entity_sprite(Entity& entity) {
+    auto& texture_mgr = managers::TextureManager::instance();
+
     if (entity.type == 0x01) {
         std::string sprite_sheet;
         if (entity.id == 2) {
@@ -427,12 +243,12 @@ void Game::init_entity_sprite(Entity& entity) {
             sprite_sheet = "assets/r-typesheet1.png";
         }
 
-        if (!texture_manager_.has(sprite_sheet)) {
+        if (!texture_mgr.has(sprite_sheet)) {
             sprite_sheet = "assets/r-typesheet1.png";
         }
 
-        if (texture_manager_.has(sprite_sheet)) {
-            entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
+        if (texture_mgr.has(sprite_sheet)) {
+            entity.sprite.setTexture(*texture_mgr.get(sprite_sheet));
 
             entity.frames = {{100, 0, 33, 17},
                              {133, 0, 33, 17},
@@ -445,8 +261,8 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x02) {
-        if (texture_manager_.has("assets/r-typesheet26.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet26.png"));
+        if (texture_mgr.has("assets/r-typesheet26.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet26.png"));
             entity.frames = {{0, 0, 65, 50}, {65, 0, 65, 50}, {130, 0, 65, 50}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
@@ -454,8 +270,8 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(1.5F, 1.5F);
         }
     } else if (entity.type == 0x06) {
-        if (texture_manager_.has("assets/r-typesheet24.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet24.png"));
+        if (texture_mgr.has("assets/r-typesheet24.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet24.png"));
             entity.frames = {{0, 0, 65, 66},
                              {65, 0, 65, 66},
                              {130, 0, 65, 66},
@@ -472,8 +288,8 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x03) {
         bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
 
-        if (is_enemy2_projectile && texture_manager_.has("assets/ennemi-projectile.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/ennemi-projectile.png"));
+        if (is_enemy2_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/ennemi-projectile.png"));
             entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
             entity.frame_duration = 0.1F;
             entity.loop = true;
@@ -483,12 +299,12 @@ void Game::init_entity_sprite(Entity& entity) {
             std::string sprite_sheet =
                 (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
-            if (!texture_manager_.has(sprite_sheet)) {
+            if (!texture_mgr.has(sprite_sheet)) {
                 sprite_sheet = "assets/r-typesheet1.png";
             }
 
-            if (texture_manager_.has(sprite_sheet)) {
-                entity.sprite.setTexture(*texture_manager_.get(sprite_sheet));
+            if (texture_mgr.has(sprite_sheet)) {
+                entity.sprite.setTexture(*texture_mgr.get(sprite_sheet));
                 entity.frames = {{231, 102, 16, 17}, {247, 102, 16, 17}};
                 entity.frame_duration = 0.08F;
                 entity.loop = true;
@@ -497,8 +313,8 @@ void Game::init_entity_sprite(Entity& entity) {
             }
         }
     } else if (entity.type == 0x05) {
-        if (texture_manager_.has("assets/r-typesheet1.png")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet1.png"));
+        if (texture_mgr.has("assets/r-typesheet1.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet1.png"));
             entity.frames = {{330, 289, 28, 34},
                              {362, 289, 28, 34},
                              {394, 289, 28, 34},
@@ -510,8 +326,8 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(4.0F, 4.0F);
         }
     } else if (entity.type == 0x08) {
-        if (texture_manager_.has("assets/r-typesheet30.gif")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30.gif"));
+        if (texture_mgr.has("assets/r-typesheet30.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet30.gif"));
             entity.frames = {{0, 0, 185, 204},    {0, 215, 185, 204}, {0, 428, 185, 204},
                              {0, 642, 185, 204},  {0, 859, 185, 204}, {0, 1071, 185, 204},
                              {0, 1283, 185, 204}, {0, 1496, 185, 204}};
@@ -525,8 +341,8 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setScale(3.5F, 3.5F);
         }
     } else if (entity.type == 0x07) {
-        if (texture_manager_.has("assets/r-typesheet30a.gif")) {
-            entity.sprite.setTexture(*texture_manager_.get("assets/r-typesheet30a.gif"));
+        if (texture_mgr.has("assets/r-typesheet30a.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet30a.gif"));
 
             entity.frames = {{0, 0, 33, 33}, {33, 0, 33, 33}, {66, 0, 33, 33}};
 
@@ -539,70 +355,6 @@ void Game::init_entity_sprite(Entity& entity) {
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
     entity.sprite.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-}
-
-void Game::update_ship_tilt(Entity& entity, float) {
-    if (entity.type != 0x01 || entity.frames.size() != 5) {
-        return;
-    }
-
-    int target_frame = 2;
-    const float velocity_threshold = 50.0f;
-    float target_rotation = 0.0f;
-
-    if (entity.vy < -velocity_threshold) {
-        if (entity.vy < -200.0f) {
-            target_frame = 4;
-            target_rotation = -15.0f;
-        } else {
-            target_frame = 3;
-            target_rotation = -8.0f;
-        }
-    } else if (entity.vy > velocity_threshold) {
-        if (entity.vy > 200.0f) {
-            target_frame = 0;
-            target_rotation = 15.0f;
-        } else {
-            target_frame = 1;
-            target_rotation = 8.0f;
-        }
-    } else if (std::abs(entity.vy) < velocity_threshold * 0.5f) {
-        if (entity.vx > velocity_threshold) {
-            target_rotation = 15.0f;
-        } else if (entity.vx < -velocity_threshold) {
-            target_rotation = -15.0f;
-        }
-    }
-
-    int current = static_cast<int>(entity.current_frame_index);
-    if (current != target_frame) {
-        if (current < target_frame) {
-            current = std::min(current + 1, target_frame);
-        } else {
-            current = std::max(current - 1, target_frame);
-        }
-        entity.current_frame_index = static_cast<size_t>(current);
-        entity.sprite.setTextureRect(entity.frames[entity.current_frame_index]);
-    }
-
-    float current_rotation = entity.sprite.getRotation();
-    if (current_rotation > 180.0f) {
-        current_rotation -= 360.0f;
-    }
-
-    float rotation_diff = target_rotation - current_rotation;
-    float rotation_speed = 120.0f;
-    float max_change = rotation_speed * (1.0f / 60.0f);
-
-    if (std::abs(rotation_diff) > max_change) {
-        if (rotation_diff > 0) {
-            entity.sprite.setRotation(current_rotation + max_change);
-        } else {
-            entity.sprite.setRotation(current_rotation - max_change);
-        }
-    } else {
-        entity.sprite.setRotation(target_rotation);
-    }
 }
 
 void Game::process_network_messages() {
@@ -621,10 +373,10 @@ void Game::process_network_messages() {
                     if (it != entities_.end()) {
                         if (id == my_network_id_ && incoming.type == 0x01) {
                             if (prev_player_health_ > 0 && incoming.health < prev_player_health_) {
-                                AudioManager::getInstance().playSound(
-                                    AudioManager::SoundType::PlayerHit);
-                                EffectsManager::getInstance().triggerDamageFlash();
-                                EffectsManager::getInstance().triggerScreenShake(10.0f, 0.15f);
+                                managers::AudioManager::instance().play_sound(
+                                    managers::AudioManager::SoundType::PlayerHit);
+                                managers::EffectsManager::instance().trigger_damage_flash();
+                                managers::EffectsManager::instance().trigger_screen_shake(10.0f, 0.15f);
                             }
                             prev_player_health_ = incoming.health;
                         }
@@ -662,23 +414,23 @@ void Game::process_network_messages() {
                 for (const auto& [id, entity] : entities_) {
                     if ((entity.type == 0x02 || entity.type == 0x06) &&
                         next.find(id) == next.end()) {
-                        AudioManager::getInstance().playSound(AudioManager::SoundType::HitSound);
+                        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::HitSound);
 
-                        EffectsManager::getInstance().addComboKill();
-                        int combo_mult = EffectsManager::getInstance().getComboMultiplier();
+                        managers::EffectsManager::instance().add_combo_kill();
+                        int combo_mult = managers::EffectsManager::instance().get_combo_multiplier();
 
                         sf::Vector2f enemy_pos(entity.x, entity.y);
-                        EffectsManager::getInstance().spawnExplosion(enemy_pos, 25);
+                        managers::EffectsManager::instance().spawn_explosion(enemy_pos, 25);
 
                         float shake_intensity = 16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
-                        EffectsManager::getInstance().triggerScreenShake(shake_intensity, 0.25f);
+                        managers::EffectsManager::instance().trigger_screen_shake(shake_intensity, 0.25f);
 
                         sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
-                        EffectsManager::getInstance().spawnScoreParticles(enemy_pos, score_pos, 12);
+                        managers::EffectsManager::instance().spawn_score_particles(enemy_pos, score_pos, 12);
 
                         current_score_ += static_cast<uint32_t>(100 * combo_mult);
-                        EffectsManager::getInstance().triggerScoreBounce();
-                        AudioManager::getInstance().playSound(AudioManager::SoundType::Coin);
+                        managers::EffectsManager::instance().trigger_score_bounce();
+                        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Coin);
                     }
                 }
 
@@ -694,7 +446,7 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::LevelProgress: {
                 uint16_t new_kills = static_cast<uint16_t>(msg.kills);
                 if (new_kills > prev_enemies_killed_) {
-                    AudioManager::getInstance().playSound(AudioManager::SoundType::Explosion);
+                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Explosion);
                 }
                 prev_enemies_killed_ = new_kills;
                 current_level_ = static_cast<uint8_t>(msg.level);
@@ -735,277 +487,35 @@ void Game::process_network_messages() {
 void Game::render() {
     window_.clear(sf::Color(0, 0, 0));
 
-    sf::View view = game_view_;
-    sf::Vector2f shake_offset = EffectsManager::getInstance().getScreenShakeOffset();
-    view.move(shake_offset);
-    window_.setView(view);
-
-    window_.draw(bg_sprite1_);
-    window_.draw(bg_sprite2_);
-    const auto interp_delay = std::chrono::milliseconds(100);
-    const auto render_time = std::chrono::steady_clock::now() - interp_delay;
     float dt = 1.0F / 60.0F;
-    for (auto& pair : entities_) {
-        Entity& e = pair.second;
 
-        if (e.type == 0x01) {
-            update_ship_tilt(e, dt);
-        } else {
-            e.update_animation(dt);
-        }
+    game_renderer_.apply_screen_shake(window_);
+    game_renderer_.render_background(window_);
 
-        float draw_x = e.x;
-        float draw_y = e.y;
-        auto prev_t = e.prev_time;
-        auto curr_t = e.curr_time;
-        if (curr_t > prev_t) {
-            const float total_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(curr_t -
-                                                                                     prev_t)
-                    .count();
-            const float elapsed_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(render_time -
-                                                                                     prev_t)
-                    .count();
-            float alpha = (total_ms > 0.0f) ? (elapsed_ms / total_ms) : 1.0f;
-            if (alpha < 0.0F) {
-                alpha = 0.0F;
-            }
-            if (alpha > 1.0F) {
-                alpha = 1.0F;
-            }
-            draw_x = e.prev_x + (e.x - e.prev_x) * alpha;
-            draw_y = e.prev_y + (e.y - e.prev_y) * alpha;
-        }
-        e.sprite.setPosition(draw_x, draw_y);
+    game_renderer_.render_entities(window_, entities_, my_network_id_, dt);
 
-        if (e.type == 0x03) {
-            if (e.vx != 0.0f || e.vy != 0.0f) {
-                float angle_rad = std::atan2(e.vy, e.vx);
-                float angle_deg = angle_rad * 180.0f / 3.14159265f;
-                e.sprite.setRotation(angle_deg);
-            }
-        }
+    game_renderer_.render_effects(window_);
 
-        window_.draw(e.sprite);
-    }
+    game_renderer_.restore_view(window_);
 
-    EffectsManager::getInstance().render(window_);
+    hud_renderer_.update_score(current_score_);
+    hud_renderer_.update_timer(game_time_);
+    hud_renderer_.update_level(current_level_, enemies_killed_, enemies_needed_);
 
-    window_.setView(game_view_);
+    hud_renderer_.render_timer(window_);
+    hud_renderer_.render_score(window_);
+    hud_renderer_.render_health_bar(window_, entities_, my_network_id_);
+    hud_renderer_.render_level_hud(window_, show_level_intro_);
+    hud_renderer_.render_combo_bar(window_);
 
-    window_.draw(timer_text_);
+    overlay_renderer_.render_powerup_active(window_, powerup_type_, powerup_time_remaining_,
+                                             player_powerups_, entities_, player_shield_frame_);
+    overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_, enemies_needed_);
+    overlay_renderer_.render_powerup_selection(window_, show_powerup_selection_);
+    overlay_renderer_.render_game_over(window_, show_game_over_);
 
-    float score_scale = EffectsManager::getInstance().getScoreScale();
-    score_text_.setScale(score_scale, score_scale);
-    sf::FloatRect bounds = score_text_.getLocalBounds();
-    score_text_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-    score_text_.setPosition(WINDOW_WIDTH - 150, 40);
-    window_.draw(score_text_);
-    score_text_.setOrigin(0, 0);
-    score_text_.setScale(1.0f, 1.0f);
-
-    for (const auto& [id, entity] : entities_) {
-        if (entity.type == 0x01 && id == my_network_id_) {
-            float health_percentage =
-                static_cast<float>(entity.health) / static_cast<float>(entity.max_health);
-
-            sf::Color health_color;
-            if (health_percentage > 0.6f) {
-                health_color = sf::Color(0, 255, 0);
-            } else if (health_percentage > 0.3f) {
-                health_color = sf::Color(255, 165, 0);
-            } else {
-                health_color = sf::Color(255, 0, 0);
-            }
-
-            health_bar_fill_.setFillColor(health_color);
-            health_bar_fill_.setSize(sf::Vector2f(296.0f * health_percentage, 26.0f));
-
-            health_text_.setString("HP: " + std::to_string(entity.health) + " / " +
-                                   std::to_string(entity.max_health));
-
-            window_.draw(health_bar_bg_);
-            window_.draw(health_bar_fill_);
-            window_.draw(health_text_);
-            break;
-        }
-    }
-
-    render_level_hud();
-    render_powerup_active();
-    render_combo_bar();
-    render_level_intro();
-    render_powerup_selection();
-    render_game_over();
-
-    float flash_alpha = EffectsManager::getInstance().getDamageFlashAlpha();
-    if (flash_alpha > 0.0f) {
-        sf::RectangleShape flash_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-        flash_overlay.setFillColor(sf::Color(255, 0, 0, static_cast<sf::Uint8>(flash_alpha)));
-        window_.draw(flash_overlay);
-    }
-
-    if (Settings::instance().colorblind_mode) {
-        sf::RectangleShape colorblind_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-        colorblind_overlay.setFillColor(sf::Color(255, 200, 100, 40));
-        window_.draw(colorblind_overlay);
-    }
-}
-
-void Game::render_level_intro() {
-    if (!show_level_intro_) {
-        return;
-    }
-    window_.draw(level_intro_overlay_);
-    level_intro_title_.setString("LEVEL " + std::to_string(current_level_));
-    sf::FloatRect title_bounds = level_intro_title_.getLocalBounds();
-    level_intro_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2,
-                                   WINDOW_HEIGHT / 2 - 80.0f);
-    window_.draw(level_intro_title_);
-    level_intro_subtitle_.setString("KILL " + std::to_string(enemies_needed_) + " ENEMIES");
-    sf::FloatRect sub_bounds = level_intro_subtitle_.getLocalBounds();
-    level_intro_subtitle_.setPosition(WINDOW_WIDTH / 2 - sub_bounds.width / 2,
-                                      WINDOW_HEIGHT / 2 + 20.0f);
-    window_.draw(level_intro_subtitle_);
-}
-
-void Game::render_level_hud() {
-    if (show_level_intro_) {
-        return;
-    }
-    level_text_.setString("Level " + std::to_string(current_level_));
-    window_.draw(level_text_);
-    progress_text_.setString("Enemies: " + std::to_string(enemies_killed_) + " / " +
-                             std::to_string(enemies_needed_));
-    window_.draw(progress_text_);
-    window_.draw(progress_bar_bg_);
-    float progress = 0.0f;
-    if (enemies_needed_ > 0) {
-        progress = static_cast<float>(enemies_killed_) / static_cast<float>(enemies_needed_);
-    }
-    progress_bar_fill_.setSize(sf::Vector2f(296.0f * progress, 21.0f));
-    window_.draw(progress_bar_fill_);
-}
-
-void Game::render_combo_bar() {
-    int combo_mult = EffectsManager::getInstance().getComboMultiplier();
-    float combo_progress = EffectsManager::getInstance().getComboProgress();
-    float combo_timer = EffectsManager::getInstance().getComboTimer();
-
-    if (combo_mult == 1 && combo_progress == 0.0f) {
-        return;
-    }
-
-    combo_text_.setString(std::to_string(combo_mult) + "x");
-
-    sf::Color combo_color;
-    switch (combo_mult) {
-        case 1:
-            combo_color = sf::Color(200, 200, 200);
-            break;
-        case 2:
-            combo_color = sf::Color(255, 200, 0);
-            break;
-        case 3:
-            combo_color = sf::Color(255, 150, 0);
-            break;
-        case 4:
-            combo_color = sf::Color(255, 80, 0);
-            break;
-        case 5:
-            combo_color = sf::Color(255, 50, 50);
-            break;
-        default:
-            combo_color = sf::Color(255, 50, 50);
-            break;
-    }
-    combo_text_.setFillColor(combo_color);
-    combo_bar_fill_.setFillColor(combo_color);
-
-    window_.draw(combo_bar_bg_);
-
-    combo_bar_fill_.setSize(sf::Vector2f(142.0f * combo_progress, 16));
-    window_.draw(combo_bar_fill_);
-
-    combo_timer_bar_.setSize(sf::Vector2f(150.0f * combo_timer, 4));
-    window_.draw(combo_timer_bar_);
-
-    window_.draw(combo_text_);
-}
-
-void Game::render_powerup_selection() {
-    if (!show_powerup_selection_) {
-        return;
-    }
-    window_.draw(powerup_overlay_);
-    sf::FloatRect title_bounds = powerup_title_.getLocalBounds();
-    powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 200.0f);
-    window_.draw(powerup_title_);
-
-    window_.draw(powerup_card1_sprite_);
-    window_.draw(powerup_card2_sprite_);
-
-    window_.draw(powerup_number1_text_);
-    window_.draw(powerup_number2_text_);
-
-    sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
-    powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 850.0f);
-    window_.draw(powerup_instruction_);
-}
-
-void Game::render_powerup_active() {
-    if (powerup_type_ == 0) {
-        return;
-    }
-    std::string powerup_name = (powerup_type_ == 1) ? "Power Cannon" : "Protection";
-    if (powerup_time_remaining_ > 0.0f) {
-        int seconds = static_cast<int>(powerup_time_remaining_);
-        std::string hint_text = powerup_name + " ACTIF: " + std::to_string(seconds) + "s";
-        powerup_hint_text_.setString(hint_text);
-        powerup_hint_text_.setFillColor(sf::Color::Green);
-        powerup_hint_bg_.setOutlineColor(sf::Color::Green);
-    } else {
-        std::string hint_text = powerup_name + " disponible - Appuyez sur X";
-        powerup_hint_text_.setString(hint_text);
-        powerup_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
-        powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
-    }
-    window_.draw(powerup_hint_bg_);
-    window_.draw(powerup_hint_text_);
-    for (const auto& [player_id, powerup_info] : player_powerups_) {
-        uint8_t type = powerup_info.first;
-        float time = powerup_info.second;
-        if (type == 2 && time > 0.0f) {
-            auto it = entities_.find(player_id);
-            if (it != entities_.end() && it->second.type == 0x01) {
-                auto frame_it = player_shield_frame_.find(player_id);
-                if (frame_it != player_shield_frame_.end()) {
-                    int frame_index = frame_it->second;
-                    if (frame_index >= 0 &&
-                        static_cast<size_t>(frame_index) < shield_frames_.size()) {
-                        if (texture_manager_.has("assets/shield.png")) {
-                            shield_visual_.setTexture(*texture_manager_.get("assets/shield.png"));
-                        }
-                        shield_visual_.setTextureRect(
-                            shield_frames_[static_cast<size_t>(frame_index)]);
-                        sf::FloatRect bounds = shield_visual_.getLocalBounds();
-                        shield_visual_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
-                        shield_visual_.setPosition(it->second.x, it->second.y);
-                        window_.draw(shield_visual_);
-                    }
-                }
-            }
-        }
-    }
-}
-
-void Game::render_game_over() {
-    if (!show_game_over_) {
-        return;
-    }
-    window_.draw(game_over_overlay_);
-    window_.draw(game_over_sprite_);
+    game_renderer_.render_damage_flash(window_);
+    game_renderer_.render_colorblind_overlay(window_);
 }
 
 void Game::run() {}

@@ -1,6 +1,6 @@
 #include "ui/MenuComponents.hpp"
 
-#include "core/FontManager.hpp"
+#include "managers/FontManager.hpp"
 
 #include <cmath>
 
@@ -78,7 +78,7 @@ Button::Button(const sf::Vector2f& position, const sf::Vector2f& size, const std
     m_scan_line.setFillColor(sf::Color(100, 220, 255, 0));
     m_scan_line.setPosition(position + sf::Vector2f(15.0f, 0));
 
-    const sf::Font* font = core::FontManager::instance().get_default_font();
+    const sf::Font* font = managers::FontManager::instance().get_default();
     if (font) {
         m_text.setFont(*font);
         m_text.setString(text);
@@ -236,7 +236,7 @@ MenuTitle::MenuTitle(const std::string& text, const sf::Vector2f& position, unsi
         m_logo_sprite.setScale(0.7f, 0.7f);
         m_logo_sprite.setPosition(position);
     }
-    const sf::Font* font = core::FontManager::instance().get_default_font();
+    const sf::Font* font = managers::FontManager::instance().get_default();
     if (font) {
         m_text.setFont(*font);
         m_text.setString(text);
@@ -583,7 +583,7 @@ bool ParticleEffect::is_alive() const {
 }
 
 MenuFooter::MenuFooter(const sf::Vector2u& window_size) {
-    const sf::Font* font = core::FontManager::instance().get_default_font();
+    const sf::Font* font = managers::FontManager::instance().get_default();
     if (font) {
         m_version_text.setFont(*font);
         m_version_text.setString("R-TYPE v1.0.0");
@@ -671,7 +671,7 @@ void CornerDecoration::render(sf::RenderWindow& window) {
 }
 
 SidePanel::SidePanel(const sf::Vector2f& position, bool is_left) {
-    const sf::Font* font = core::FontManager::instance().get_default_font();
+    const sf::Font* font = managers::FontManager::instance().get_default();
     if (font) {
         m_label.setFont(*font);
         m_label.setString(is_left ? "SYS" : "PWR");
