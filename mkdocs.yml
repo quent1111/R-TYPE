@@ -77,9 +77,6 @@ nav:
       - ECS System: architecture/ecs.md
       - Network: architecture/network.md
       - Game Engine: architecture/engine.md
-  - Refactoring:
-      - Client Refactoring: REFACTOR_CLIENT.md
-      - Server Refactoring: REFACTOR_SERVER.md
   - Developer Guide:
       - Contributing: developer-guide/contributing.md
       - Code Style: developer-guide/code-style.md
