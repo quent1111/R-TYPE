@@ -88,17 +88,6 @@ void GameSession::start_game(UDPServer& server) {
 }
 
 void GameSession::process_network_events(UDPServer& server) {
-    if (_game_phase == GamePhase::InGame) {
-        auto& velocities = _registry.get_components<velocity>();
-        auto& player_tags = _registry.get_components<player_tag>();
-        for (std::size_t i = 0; i < velocities.size() && i < player_tags.size(); ++i) {
-            if (velocities[i].has_value() && player_tags[i].has_value()) {
-                velocities[i]->vx = 0.0f;
-                velocities[i]->vy = 0.0f;
-            }
-        }
-    }
-
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {
         if (packet.data.empty() || packet.data.size() < 3) {
@@ -317,7 +306,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
 }
 
 void GameSession::send_periodic_updates(UDPServer& server, float dt) {
-    const float position_broadcast_interval = 0.05f;
+    // Increased from 20Hz (0.05s) to 30Hz (~0.033s) for smoother movement
+    const float position_broadcast_interval = 0.033f;
     const float lobby_broadcast_interval = 0.5f;
     const float cleanup_interval = 1.0f;
     const float level_broadcast_interval = 0.5f;

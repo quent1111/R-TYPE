@@ -119,10 +119,8 @@ void InputHandler::handle_input(float dt) {
         shoot_sound_timer_ = 0.0f;
     }
 
-    if (input_mask != 0) {
-        if (input_callback_) {
-            input_callback_(input_mask);
-        }
+    if (input_callback_) {
+        input_callback_(input_mask);
     }
 }
 

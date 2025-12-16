@@ -113,7 +113,7 @@ void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
 
 void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
                                    uint32_t /*my_network_id*/, float dt) {
-    const auto interp_delay = std::chrono::milliseconds(100);
+    const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
     for (auto& pair : entities) {
