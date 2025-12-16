@@ -2,6 +2,8 @@
 
 #include "states/IState.hpp"
 #include "ui/MenuComponents.hpp"
+#include "ui/SettingsPanel.hpp"
+#include <memory>
 
 #include <SFML/Graphics.hpp>
 
@@ -9,6 +11,7 @@
 #include <vector>
 
 namespace rtype {
+
 
 class MenuState : public IState {
 public:
@@ -35,6 +38,7 @@ private:
     std::vector<std::unique_ptr<ui::Button>> m_buttons;
     std::vector<std::unique_ptr<ui::CornerDecoration>> m_corners;
     std::vector<std::unique_ptr<ui::SidePanel>> m_side_panels;
+    std::unique_ptr<ui::SettingsPanel> m_settings_panel;
     std::string m_next_state;
     sf::Vector2f m_mouse_pos;
 };
