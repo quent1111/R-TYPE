@@ -26,7 +26,7 @@ int PowerupHandler::count_alive_players(
 
 void PowerupHandler::handle_powerup_choice(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids,
-    std::unordered_set<int>& players_who_chose_powerup, int client_id, uint8_t powerup_choice) {
+    std::unordered_set<int>& players_who_chose_powerup, int client_id, uint8_t /*powerup_choice*/) {
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         std::cerr << "[Game] Cannot apply power-up: player not found for client " << client_id
@@ -35,10 +35,11 @@ void PowerupHandler::handle_powerup_choice(
     }
 
     auto player = player_opt.value();
-    
+
     reg.emplace_component<power_cannon>(player);
     reg.emplace_component<shield>(player);
-    std::cout << "[Game] Client " << client_id << " received both Power Cannon and Shield" << std::endl;
+    std::cout << "[Game] Client " << client_id << " received both Power Cannon and Shield"
+              << std::endl;
 
     players_who_chose_powerup.insert(client_id);
 
@@ -56,7 +57,7 @@ void PowerupHandler::handle_powerup_activate(
         return;
     }
     auto player = player_opt.value();
-    
+
     if (powerup_type == 1) {
         auto& cannon_opt = reg.get_component<power_cannon>(player);
         if (cannon_opt.has_value() && !cannon_opt->is_active()) {

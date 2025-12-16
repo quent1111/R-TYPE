@@ -153,43 +153,40 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
 }
 
 void OverlayRenderer::render_powerup_active(
-    sf::RenderWindow& window,
-    const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
-    const std::map<uint32_t, Entity>& entities,
-    const std::map<uint32_t, int>& player_shield_frame,
+    sf::RenderWindow& window, const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
+    const std::map<uint32_t, Entity>& entities, const std::map<uint32_t, int>& player_shield_frame,
     uint32_t my_network_id) {
-    
     float cannon_time = 0.0f;
     float shield_time = 0.0f;
-    
+
     auto cannon_it = player_powerups.find({my_network_id, 1});
     if (cannon_it != player_powerups.end()) {
         cannon_time = cannon_it->second;
     }
-    
+
     auto shield_it = player_powerups.find({my_network_id, 2});
     if (shield_it != player_powerups.end()) {
         shield_time = shield_it->second;
     }
-    
+
     if (cannon_time > 0.0f) {
         int seconds = static_cast<int>(cannon_time);
         std::string hint_text = "Power Cannon actif: " + std::to_string(seconds) + "s";
         cannon_hint_text_.setString(hint_text);
         cannon_hint_text_.setFillColor(sf::Color::Yellow);
         cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
-        
+
         window.draw(cannon_hint_bg_);
         window.draw(cannon_hint_text_);
     }
-    
+
     if (shield_time > 0.0f) {
         int seconds = static_cast<int>(shield_time);
         std::string hint_text = "Protection active: " + std::to_string(seconds) + "s";
         powerup_hint_text_.setString(hint_text);
         powerup_hint_text_.setFillColor(sf::Color::Cyan);
         powerup_hint_bg_.setOutlineColor(sf::Color::Cyan);
-        
+
         window.draw(powerup_hint_bg_);
         window.draw(powerup_hint_text_);
     }

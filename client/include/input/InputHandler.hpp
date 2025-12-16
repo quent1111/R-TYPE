@@ -66,7 +66,7 @@ private:
     bool was_shooting_ = false;
     bool was_activating_cannon_ = false;
     bool was_activating_shield_ = false;
-    
+
     float shoot_sound_timer_ = 0.0f;
     const float shoot_sound_interval_ = 0.2f;
 

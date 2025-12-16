@@ -29,10 +29,10 @@ uint8_t LevelManager::get_current_level(registry& reg) {
     auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
-            return level_managers[i].value().current_level;
+            return static_cast<uint8_t>(level_managers[i].value().current_level);
         }
     }
-    return 1;
+    return static_cast<uint8_t>(1);
 }
 
 void LevelManager::advance_level(registry& reg) {

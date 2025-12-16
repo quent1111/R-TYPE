@@ -57,7 +57,7 @@ private:
 
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;
-    
+
     sf::Text cannon_hint_text_;
     sf::RectangleShape cannon_hint_bg_;
 

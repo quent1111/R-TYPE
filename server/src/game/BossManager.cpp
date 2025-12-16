@@ -203,19 +203,18 @@ void BossManager::boss_spawn_homing_enemy(registry& reg, std::optional<entity>& 
 
     reg.add_component(homing, entity_tag{RType::EntityType::HomingEnemy});
 
-    std::cout << "[BOSS] Spawned homing enemy 0x09 at (" << boss_x - 100.0f << ", " << boss_y + 150.0f << ")" << std::endl;
+    std::cout << "[BOSS] Spawned homing enemy 0x09 at (" << boss_x - 100.0f << ", "
+              << boss_y + 150.0f << ")" << std::endl;
 }
 
 void BossManager::update_homing_enemies(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, float dt) {
-
     auto& positions = reg.get_components<position>();
     auto& velocities = reg.get_components<velocity>();
     auto& homing_comps = reg.get_components<homing_component>();
     auto& entity_tags = reg.get_components<entity_tag>();
     for (std::size_t i = 0; i < entity_tags.size(); ++i) {
-        if (!entity_tags[i].has_value() ||
-            entity_tags[i]->type != RType::EntityType::HomingEnemy ||
+        if (!entity_tags[i].has_value() || entity_tags[i]->type != RType::EntityType::HomingEnemy ||
             !positions[i].has_value() || !velocities[i].has_value() ||
             !homing_comps[i].has_value()) {
             continue;
@@ -236,7 +235,6 @@ void BossManager::update_homing_enemies(
 
             if (player_pos_opt.has_value() && player_health_opt.has_value() &&
                 player_health_opt->current > 0) {
-
                 float dx = player_pos_opt->x - homing_x;
                 float dy = player_pos_opt->y - homing_y;
                 float distance = std::sqrt(dx * dx + dy * dy);
@@ -259,7 +257,8 @@ void BossManager::update_homing_enemies(
             float desired_vy = (dy / distance) * homing_comps[i]->speed;
 
             float turn_factor = homing_comps[i]->turn_rate * dt;
-            if (turn_factor > 1.0f) turn_factor = 1.0f;
+            if (turn_factor > 1.0f)
+                turn_factor = 1.0f;
 
             velocities[i]->vx += (desired_vx - velocities[i]->vx) * turn_factor;
             velocities[i]->vy += (desired_vy - velocities[i]->vy) * turn_factor;

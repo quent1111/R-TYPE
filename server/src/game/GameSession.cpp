@@ -278,11 +278,10 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     movementSystem(_registry, dt);
     collisionSystem(_registry);
 
-    _boss_manager.update_boss_behavior(_registry, _boss_entity, _client_entity_ids,
-                                       _boss_animation_timer, _boss_shoot_timer,
-                                       _boss_shoot_cooldown, _boss_animation_complete,
-                                       _boss_entrance_complete, _boss_target_x,
-                                       _boss_shoot_counter, dt);
+    _boss_manager.update_boss_behavior(
+        _registry, _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
+        _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
+        _boss_shoot_counter, dt);
 
     _boss_manager.update_homing_enemies(_registry, _client_entity_ids, dt);
 

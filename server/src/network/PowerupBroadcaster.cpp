@@ -15,7 +15,7 @@ void PowerupBroadcaster::broadcast_powerup_status(
     const std::unordered_map<int, std::size_t>& client_entity_ids) {
     for (const auto& [client_id, entity_id] : client_entity_ids) {
         auto player = reg.entity_from_index(entity_id);
-        
+
         auto& cannon_opt = reg.get_component<power_cannon>(player);
         if (cannon_opt.has_value()) {
             uint8_t powerup_type = 1;
@@ -31,7 +31,7 @@ void PowerupBroadcaster::broadcast_powerup_status(
             serializer << time_remaining;
             server.send_to_all(serializer.data());
         }
-        
+
         auto& shield_opt = reg.get_component<shield>(player);
         if (shield_opt.has_value()) {
             uint8_t powerup_type = 2;

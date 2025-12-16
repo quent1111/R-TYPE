@@ -163,8 +163,10 @@ void Game::update() {
     if (boss_spawn_triggered_) {
         boss_roar_timer_ += dt;
         if (boss_roar_timer_ >= boss_roar_delay_) {
-            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::BossRoar);
-            std::cout << "[Game] BOSS ROAR! (triggered at " << boss_roar_timer_ << "s)" << std::endl;
+            managers::AudioManager::instance().play_sound(
+                managers::AudioManager::SoundType::BossRoar);
+            std::cout << "[Game] BOSS ROAR! (triggered at " << boss_roar_timer_ << "s)"
+                      << std::endl;
             boss_spawn_triggered_ = false;
         }
     }
@@ -320,12 +322,8 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x05) {
         if (texture_mgr.has("assets/explosion.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/explosion.gif"));
-            entity.frames = {{0, 0, 34, 38},
-                             {34, 0, 33, 38},
-                             {67, 0, 35, 38},
-                             {102, 0, 34, 38},
-                             {136, 0, 35, 38},
-                             {171, 0, 35, 38}};
+            entity.frames = {{0, 0, 34, 38},   {34, 0, 33, 38},  {67, 0, 35, 38},
+                             {102, 0, 34, 38}, {136, 0, 35, 38}, {171, 0, 35, 38}};
             entity.frame_duration = 0.08F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -427,8 +425,11 @@ void Game::process_network_messages() {
                             prev_player_health_ = incoming.health;
                         }
                         if (incoming.type == 0x08 && !boss_spawn_triggered_) {
-                            std::cout << "[Game] BOSS DETECTED! Launching music and preparing roar..." << std::endl;
-                            managers::AudioManager::instance().play_music("assets/sounds/bossfight.mp3", true);
+                            std::cout
+                                << "[Game] BOSS DETECTED! Launching music and preparing roar..."
+                                << std::endl;
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/bossfight.mp3", true);
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
@@ -503,7 +504,8 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
-                player_powerups_[{msg.powerup_player_id, msg.powerup_type}] = msg.powerup_time_remaining;
+                player_powerups_[{msg.powerup_player_id, msg.powerup_type}] =
+                    msg.powerup_time_remaining;
                 if (msg.powerup_player_id == my_network_id_) {
                     if (msg.powerup_type != 0) {
                         powerup_type_ = msg.powerup_type;
@@ -515,7 +517,7 @@ void Game::process_network_messages() {
                 managers::AudioManager::instance().play_music("assets/sounds/bossfight.mp3", true);
                 boss_spawn_triggered_ = true;
                 boss_roar_timer_ = 0.0f;
-                std::cout << "[Game] Boss spawn received! Starting music, roar in " 
+                std::cout << "[Game] Boss spawn received! Starting music, roar in "
                           << boss_roar_delay_ << "s" << std::endl;
                 break;
             case NetworkToGame::MessageType::GameOver:

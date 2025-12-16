@@ -90,7 +90,7 @@ void HUDRenderer::update_timer(float game_time) {
     int minutes = static_cast<int>(game_time) / 60;
     int seconds = static_cast<int>(game_time) % 60;
     int millis = static_cast<int>((game_time - static_cast<int>(game_time)) * 1000);
-    char buffer[16];
+    char buffer[32];
     std::snprintf(buffer, sizeof(buffer), "%02d:%02d.%03d", minutes, seconds, millis);
     timer_text_.setString(buffer);
 }

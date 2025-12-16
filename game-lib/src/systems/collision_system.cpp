@@ -325,14 +325,14 @@ void collisionSystem(registry& reg) {
         }
     }
 
-    for (std::size_t i = 0; i < positions.size() && i < homing_comps.size(); ++i) {
-        if (homing_comps[i] && positions[i] && collision_boxes[i] && damage_contacts[i]) {
-            auto& homing_pos = positions[i].value();
-            auto& homing_box = collision_boxes[i].value();
-            auto& homing_dmg = damage_contacts[i].value();
+    for (std::size_t h = 0; h < positions.size() && h < homing_comps.size(); ++h) {
+        if (homing_comps[h] && positions[h] && collision_boxes[h] && damage_contacts[h]) {
+            auto& homing_pos = positions[h].value();
+            auto& homing_box = collision_boxes[h].value();
+            auto& homing_dmg = damage_contacts[h].value();
 
             for (std::size_t j = 0; j < positions.size() && j < player_tags.size(); ++j) {
-                if (i == j) continue;
+                if (h == j) continue;
 
                 if (player_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
                     auto& player_pos = positions[j].value();
@@ -370,7 +370,7 @@ void collisionSystem(registry& reg) {
                         }
 
                         if (homing_dmg.destroy_on_hit) {
-                            auto homing_entity = reg.entity_from_index(i);
+                            auto homing_entity = reg.entity_from_index(h);
                             reg.remove_component<entity_tag>(homing_entity);
                             reg.kill_entity(homing_entity);
                         }

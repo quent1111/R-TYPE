@@ -97,7 +97,7 @@ void InputHandler::handle_input(float dt) {
 
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
         input_mask |= KEY_SPACE;
-        
+
         if (!was_shooting_) {
             if (shoot_sound_callback_) {
                 shoot_sound_callback_();
@@ -112,7 +112,7 @@ void InputHandler::handle_input(float dt) {
                 shoot_sound_timer_ = 0.0f;
             }
         }
-        
+
         was_shooting_ = true;
     } else {
         was_shooting_ = false;
