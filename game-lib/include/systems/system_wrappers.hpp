@@ -16,54 +16,54 @@
 
 class ShootingSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
+    void init([[maybe_unused]] registry& reg) override {}
     void update(registry& reg, float dt) override {
         shootingSystem(reg, dt);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };
 
 class EnemyShootingSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
+    void init([[maybe_unused]] registry& reg) override {}
     void update(registry& reg, float dt) override {
         enemyShootingSystem(reg, dt);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };
 
 class MovementSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
+    void init([[maybe_unused]] registry& reg) override {}
     void update(registry& reg, float dt) override {
         movementSystem(reg, dt);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };
 
 class CollisionSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
-    void update(registry& reg, float dt) override {
+    void init([[maybe_unused]] registry& reg) override {}
+    void update(registry& reg, [[maybe_unused]] float dt) override {
         collisionSystem(reg);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };
 
 class WaveSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
+    void init([[maybe_unused]] registry& reg) override {}
     void update(registry& reg, float dt) override {
         waveSystem(reg, dt);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };
 
 class CleanupSystem : public engine::ISystem {
 public:
-    void init(registry& reg) override {}
-    void update(registry& reg, float dt) override {
+    void init([[maybe_unused]] registry& reg) override {}
+    void update(registry& reg, [[maybe_unused]] float dt) override {
         cleanupSystem(reg);
     }
-    void shutdown(registry& reg) override {}
+    void shutdown([[maybe_unused]] registry& reg) override {}
 };

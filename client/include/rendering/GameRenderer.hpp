@@ -25,7 +25,7 @@ public:
     void render_background(sf::RenderWindow& window);
 
     void render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
-                         uint32_t my_network_id, float dt);
+                         uint32_t my_network_id, float dt, float predicted_x = -1.0f, float predicted_y = -1.0f);
 
     void render_effects(sf::RenderWindow& window);
 

@@ -91,6 +91,7 @@ void Game::setup_ui() {
 
 void Game::setup_input_handler() {
     input_handler_.set_input_callback([this](uint8_t input_mask) {
+        last_input_mask_ = input_mask;
         game_to_network_queue_.push(
             GameToNetwork::Message(GameToNetwork::MessageType::SendInput, input_mask));
     });
@@ -112,6 +113,46 @@ void Game::setup_input_handler() {
 
 void Game::handle_event(const sf::Event& event) {
     if (!has_focus_) {
+        return;
+    }
+
+    if (m_settings_panel && m_settings_panel->is_open()) {
+        if (event.type == sf::Event::MouseMoved) {
+            sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
+            sf::Vector2f mouse_pos = window_.mapPixelToCoords(pixel_pos);
+            m_settings_panel->handle_mouse_move(mouse_pos);
+            return;
+        }
+        if (event.type == sf::Event::MouseButtonPressed) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+                sf::Vector2f click_pos = window_.mapPixelToCoords(pixel_pos);
+                m_settings_panel->handle_mouse_click(click_pos);
+                return;
+            }
+        }
+        if (event.type == sf::Event::KeyPressed) {
+            if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
+                m_settings_panel->handle_key_press(event.key.code);
+                return;
+            }
+            if (event.key.code == sf::Keyboard::Escape) {
+                m_settings_panel->close();
+                return;
+            }
+        }
+    }
+
+    if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+        if (!m_settings_panel) {
+            m_settings_panel = std::make_unique<rtype::ui::SettingsPanel>(window_.getSize());
+        }
+        int connected = 0;
+        for (const auto& [id, e] : entities_) {
+            if (e.type == 0x01) ++connected;
+        }
+        m_settings_panel->open(true, connected);
+        m_settings_panel->set_quit_callback([this]() { this->request_return_to_menu(); });
         return;
     }
 
@@ -159,6 +200,60 @@ void Game::update() {
     }
 
     process_network_messages();
+
+    if (m_settings_panel) {
+        m_settings_panel->update(dt);
+
+        if (m_settings_panel->needs_window_recreate()) {
+            sf::Vector2u new_size;
+            bool fullscreen = false;
+            m_settings_panel->get_new_window_settings(new_size, fullscreen);
+            m_settings_panel->clear_window_recreate_flag();
+
+            if (fullscreen) {
+                window_.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer",
+                               sf::Style::Fullscreen);
+            } else {
+                window_.create(sf::VideoMode(new_size.x, new_size.y), "R-TYPE - Multiplayer");
+            }
+            window_.setVerticalSyncEnabled(false);
+            window_.setFramerateLimit(60);
+
+            m_settings_panel.reset();
+        }
+    }
+
+    if (has_server_position_ && my_network_id_ != 0) {
+        float speed = 300.0f;
+        float vx = 0.0f;
+        float vy = 0.0f;
+
+        if (last_input_mask_ & 0x01) vy = -speed;
+        if (last_input_mask_ & 0x02) vy = speed;
+        if (last_input_mask_ & 0x04) vx = -speed;
+        if (last_input_mask_ & 0x08) vx = speed;
+
+        predicted_player_x_ += vx * dt;
+        predicted_player_y_ += vy * dt;
+
+        predicted_player_x_ = std::max(0.0f, std::min(1920.0f, predicted_player_x_));
+        predicted_player_y_ = std::max(0.0f, std::min(1080.0f, predicted_player_y_));
+
+        auto it = entities_.find(my_network_id_);
+        if (it != entities_.end() && it->second.type == 0x01) {
+            float correction_speed = 10.0f;
+            float dx = it->second.x - predicted_player_x_;
+            float dy = it->second.y - predicted_player_y_;
+
+            if (std::abs(dx) > 50.0f || std::abs(dy) > 50.0f) {
+                predicted_player_x_ = it->second.x;
+                predicted_player_y_ = it->second.y;
+            } else {
+                predicted_player_x_ += dx * correction_speed * dt;
+                predicted_player_y_ += dy * correction_speed * dt;
+            }
+        }
+    }
 
     if (boss_spawn_triggered_) {
         boss_roar_timer_ += dt;
@@ -423,6 +518,11 @@ void Game::process_network_messages() {
                     } else {
                         if (id == my_network_id_ && incoming.type == 0x01) {
                             prev_player_health_ = incoming.health;
+                            if (!has_server_position_) {
+                                predicted_player_x_ = incoming.x;
+                                predicted_player_y_ = incoming.y;
+                                has_server_position_ = true;
+                            }
                         }
                         if (incoming.type == 0x08 && !boss_spawn_triggered_) {
                             std::cout
@@ -536,7 +636,8 @@ void Game::render() {
     game_renderer_.apply_screen_shake(window_);
     game_renderer_.render_background(window_);
 
-    game_renderer_.render_entities(window_, entities_, my_network_id_, dt);
+    game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
+                                    predicted_player_x_, predicted_player_y_);
 
     game_renderer_.render_effects(window_);
 
@@ -561,6 +662,10 @@ void Game::render() {
 
     game_renderer_.render_damage_flash(window_);
     game_renderer_.render_colorblind_overlay(window_);
+
+    if (m_settings_panel && m_settings_panel->is_open()) {
+        m_settings_panel->render(window_);
+    }
 }
 
 void Game::run() {}

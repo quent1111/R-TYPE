@@ -112,12 +112,13 @@ void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
 }
 
 void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
-                                   uint32_t /*my_network_id*/, float dt) {
+                                   uint32_t my_network_id, float dt, float predicted_x, float predicted_y) {
     const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
     for (auto& pair : entities) {
         Entity& e = pair.second;
+        uint32_t entity_id = pair.first;
 
         if (e.type == 0x01) {
             update_ship_tilt(e, dt);
@@ -127,24 +128,32 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         float draw_x = e.x;
         float draw_y = e.y;
-        auto prev_t = e.prev_time;
-        auto curr_t = e.curr_time;
+        
+        // Use predicted position for local player
+        if (entity_id == my_network_id && e.type == 0x01 && predicted_x >= 0.0f && predicted_y >= 0.0f) {
+            draw_x = predicted_x;
+            draw_y = predicted_y;
+        } else {
+            // Standard interpolation for other entities
+            auto prev_t = e.prev_time;
+            auto curr_t = e.curr_time;
 
-        if (curr_t > prev_t) {
-            const float total_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(curr_t -
-                                                                                     prev_t)
-                    .count();
-            const float elapsed_ms =
-                std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(render_time -
-                                                                                     prev_t)
-                    .count();
+            if (curr_t > prev_t) {
+                const float total_ms =
+                    std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(curr_t -
+                                                                                         prev_t)
+                        .count();
+                const float elapsed_ms =
+                    std::chrono::duration_cast<std::chrono::duration<float, std::milli>>(render_time -
+                                                                                         prev_t)
+                        .count();
 
-            float alpha = (total_ms > 0.0f) ? (elapsed_ms / total_ms) : 1.0f;
-            alpha = std::max(0.0f, std::min(1.0f, alpha));
+                float alpha = (total_ms > 0.0f) ? (elapsed_ms / total_ms) : 1.0f;
+                alpha = std::max(0.0f, std::min(1.0f, alpha));
 
-            draw_x = e.prev_x + (e.x - e.prev_x) * alpha;
-            draw_y = e.prev_y + (e.y - e.prev_y) * alpha;
+                draw_x = e.prev_x + (e.x - e.prev_x) * alpha;
+                draw_y = e.prev_y + (e.y - e.prev_y) * alpha;
+            }
         }
         e.sprite.setPosition(draw_x, draw_y);
 

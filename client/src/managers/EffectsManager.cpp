@@ -1,4 +1,5 @@
 #include "managers/EffectsManager.hpp"
+#include "common/Settings.hpp"
 
 #include <cmath>
 
@@ -140,6 +141,9 @@ void EffectsManager::render(sf::RenderWindow& window) {
 }
 
 void EffectsManager::trigger_screen_shake(float intensity, float duration) {
+    if (!Settings::instance().screen_shake_enabled)
+        return;
+
     shake_intensity_ = intensity;
     shake_duration_ = duration;
     shake_timer_ = duration;

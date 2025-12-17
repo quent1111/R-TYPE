@@ -82,9 +82,6 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Starting game..." << std::endl;
 
     _game_broadcaster.broadcast_start_game(server);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
     _game_phase = GamePhase::InGame;
 
     float start_x = 100.0f;
@@ -96,7 +93,6 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
     _game_broadcaster.broadcast_level_start(server, 1);
 }
 
@@ -125,6 +121,9 @@ void GameSession::process_network_events(UDPServer& server) {
             switch (opcode) {
                 case RType::OpCode::Input: {
                     if (_game_phase != GamePhase::InGame) {
+                        break;
+                    }
+                    if (_waiting_for_powerup_choice) {
                         break;
                     }
                     auto player_opt =
@@ -212,7 +211,7 @@ void GameSession::process_network_events(UDPServer& server) {
 
                             _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                                           _client_entity_ids);
-                            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                            // Removed blocking sleep - level advances immediately
                             advance_level(server);
                         }
                     } catch (...) {
@@ -272,6 +271,17 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _game_over_broadcast_accumulator = 0.0f;
         _game_broadcaster.broadcast_game_over(server);
         return;
+    }
+
+    if (_waiting_for_powerup_choice) {
+        auto& velocities = _engine.get_registry().get_components<velocity>();
+        auto& player_tags = _engine.get_registry().get_components<player_tag>();
+        for (size_t i = 0; i < velocities.size(); ++i) {
+            if (velocities[i].has_value() && player_tags[i].has_value()) {
+                velocities[i]->vx = 0.0f;
+                velocities[i]->vy = 0.0f;
+            }
+        }
     }
 
     _engine.update(dt);
@@ -373,7 +383,6 @@ void GameSession::check_level_completion(UDPServer& server) {
                 _level_manager.clear_enemies_and_projectiles(_engine.get_registry(), _boss_entity);
 
                 _game_broadcaster.broadcast_level_complete(server, _engine.get_registry());
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
                 _powerup_broadcaster.broadcast_powerup_selection(server);
                 _level_complete_waiting = true;
                 _waiting_for_powerup_choice = true;

@@ -11,17 +11,17 @@ namespace server {
 
 /**
  * @brief Dispatches incoming network packets into command objects.
- * 
+ *
  * NetworkDispatcher separates concerns:
  * - Network layer: parses bytes into commands
  * - Game layer: executes commands via GameSession
- * 
+ *
  * This makes the codebase modular and testable (can mock commands).
  */
 class NetworkDispatcher {
 public:
     NetworkDispatcher() = default;
-    
+
     /**
      * @brief Poll network packets and convert to commands.
      * @param server UDP server to read packets from.
