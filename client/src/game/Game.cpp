@@ -132,14 +132,12 @@ void Game::handle_event(const sf::Event& event) {
             }
         }
         if (event.type == sf::Event::KeyPressed) {
-            if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
-                m_settings_panel->handle_key_press(event.key.code);
-                return;
-            }
             if (event.key.code == sf::Keyboard::Escape) {
                 m_settings_panel->close();
                 return;
             }
+            m_settings_panel->handle_key_press(event.key.code);
+            return;
         }
     }
 

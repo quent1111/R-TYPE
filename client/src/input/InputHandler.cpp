@@ -1,6 +1,7 @@
 #include "input/InputHandler.hpp"
 
 #include <iostream>
+#include "common/Settings.hpp"
 
 namespace input {
 
@@ -64,20 +65,21 @@ void InputHandler::handle_input(float dt) {
 
     uint8_t input_mask = 0;
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Z)) {
+    auto& s = Settings::instance();
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_up))) {
         input_mask |= KEY_Z;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Q)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_left))) {
         input_mask |= KEY_Q;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_down))) {
         input_mask |= KEY_S;
     }
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_right))) {
         input_mask |= KEY_D;
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup1))) {
         if (!was_activating_cannon_ && powerup_activate_callback_) {
             powerup_activate_callback_(1);
             was_activating_cannon_ = true;
@@ -86,7 +88,7 @@ void InputHandler::handle_input(float dt) {
         was_activating_cannon_ = false;
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup2))) {
         if (!was_activating_shield_ && powerup_activate_callback_) {
             powerup_activate_callback_(2);
             was_activating_shield_ = true;
@@ -95,7 +97,7 @@ void InputHandler::handle_input(float dt) {
         was_activating_shield_ = false;
     }
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space)) {
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot))) {
         input_mask |= KEY_SPACE;
 
         if (!was_shooting_) {

@@ -7,6 +7,66 @@
 
 using namespace rtype::ui;
 
+static std::string key_to_string(sf::Keyboard::Key k) {
+    int ki = static_cast<int>(k);
+    int a = static_cast<int>(sf::Keyboard::A);
+    int z = static_cast<int>(sf::Keyboard::Z);
+    if (ki >= a && ki <= z) {
+        char c = 'A' + (ki - a);
+        return std::string(1, c);
+    }
+    int n0 = static_cast<int>(sf::Keyboard::Num0);
+    int n9 = static_cast<int>(sf::Keyboard::Num9);
+    if (ki >= n0 && ki <= n9) {
+        char c = '0' + (ki - n0);
+        return std::string(1, c);
+    }
+    int np0 = static_cast<int>(sf::Keyboard::Numpad0);
+    int np9 = static_cast<int>(sf::Keyboard::Numpad9);
+    if (ki >= np0 && ki <= np9) {
+        return std::string("Numpad") + std::to_string(ki - np0);
+    }
+
+    switch (k) {
+        case sf::Keyboard::Space: return "Space";
+        case sf::Keyboard::Escape: return "Escape";
+        case sf::Keyboard::Enter: return "Enter";
+        case sf::Keyboard::BackSpace: return "Backspace";
+        case sf::Keyboard::Tab: return "Tab";
+        case sf::Keyboard::PageUp: return "PageUp";
+        case sf::Keyboard::PageDown: return "PageDown";
+        case sf::Keyboard::End: return "End";
+        case sf::Keyboard::Home: return "Home";
+        case sf::Keyboard::Insert: return "Insert";
+        case sf::Keyboard::Delete: return "Delete";
+        case sf::Keyboard::Add: return "+";
+        case sf::Keyboard::Subtract: return "-";
+        case sf::Keyboard::Multiply: return "*";
+        case sf::Keyboard::Divide: return "/";
+        case sf::Keyboard::Left: return "Left";
+        case sf::Keyboard::Right: return "Right";
+        case sf::Keyboard::Up: return "Up";
+        case sf::Keyboard::Down: return "Down";
+        case sf::Keyboard::LShift: return "LShift";
+        case sf::Keyboard::RShift: return "RShift";
+        case sf::Keyboard::LControl: return "LControl";
+        case sf::Keyboard::RControl: return "RControl";
+        case sf::Keyboard::LAlt: return "LAlt";
+        case sf::Keyboard::RAlt: return "RAlt";
+        case sf::Keyboard::SemiColon: return ";";
+        case sf::Keyboard::Comma: return ",";
+        case sf::Keyboard::Period: return ".";
+        case sf::Keyboard::Quote: return "'";
+        case sf::Keyboard::Slash: return "/";
+        case sf::Keyboard::BackSlash: return "\\";
+        case sf::Keyboard::Tilde: return "~";
+        case sf::Keyboard::Equal: return "=";
+        case sf::Keyboard::Hyphen: return "-";
+        default:
+            return std::string("Key(") + std::to_string(ki) + ")";
+    }
+}
+
 SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(window_size) {
     m_overlay.setSize(
         sf::Vector2f(static_cast<float>(window_size.x), static_cast<float>(window_size.y)));
@@ -64,7 +124,8 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_controls_text.setCharacterSize(20);
     m_controls_text.setFillColor(sf::Color(200, 200, 200));
     m_controls_text.setPosition(content_x, content_y);
-    m_controls_text.setString("Fleches: Bouger\nEspace: Tirer\nEchap: Pause\nS: Settings");
+    // Help text removed as requested by user
+    m_controls_text.setString("");
 
     create_buttons();
 
@@ -232,6 +293,42 @@ void SettingsPanel::create_buttons() {
         m_resolution_text.setPosition(bx + 105.0f, by - 25.0f);
     }
 
+    else if (m_current_tab == Tab::Controls) {
+        auto& s = Settings::instance();
+        float left_x = bx;
+        float right_x = bx + 260.0f;
+        float cy_left = by;
+        float cy_right = by;
+        auto make_btn_at = [&](const std::string& label, int keycode, int action_index, float px, float py) {
+            std::string text;
+            if (m_listening_control == action_index) text = "Press a key...";
+            else text = label + ": " + key_to_string(static_cast<sf::Keyboard::Key>(keycode));
+
+            auto btn = std::make_unique<Button>(sf::Vector2f(px, py), sf::Vector2f(220.0f, 45.0f), text);
+            btn->set_callback([this, action_index]() {
+                m_listening_control = action_index;
+                create_buttons();
+            });
+            btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            btn->update(0.0f);
+            m_buttons.push_back(std::move(btn));
+        };
+
+        make_btn_at("Up", s.key_up, static_cast<int>(ControlAction::Up), left_x, cy_left);
+        cy_left += 60.0f;
+        make_btn_at("Down", s.key_down, static_cast<int>(ControlAction::Down), left_x, cy_left);
+        cy_left += 60.0f;
+        make_btn_at("Left", s.key_left, static_cast<int>(ControlAction::Left), left_x, cy_left);
+        cy_left += 60.0f;
+        make_btn_at("Right", s.key_right, static_cast<int>(ControlAction::Right), left_x, cy_left);
+
+        make_btn_at("Shoot", s.key_shoot, static_cast<int>(ControlAction::Shoot), right_x, cy_right);
+        cy_right += 60.0f;
+        make_btn_at("Power1", s.key_powerup1, static_cast<int>(ControlAction::Power1), right_x, cy_right);
+        cy_right += 60.0f;
+        make_btn_at("Power2", s.key_powerup2, static_cast<int>(ControlAction::Power2), right_x, cy_right);
+    }
+
     float bottom_y = m_panel_bg.getPosition().y + m_panel_bg.getSize().y - 70.0f;
 
     auto apply_btn = std::make_unique<Button>(
@@ -289,6 +386,36 @@ void SettingsPanel::handle_key_press(sf::Keyboard::Key key) {
         int max_index = m_in_game_mode ? 3 : 2;
         if (current < max_index) {
             switch_tab(static_cast<Tab>(current + 1));
+        }
+    } else {
+        if (m_listening_control >= 0) {
+            auto& s = Settings::instance();
+            int code = static_cast<int>(key);
+            switch (static_cast<ControlAction>(m_listening_control)) {
+                case ControlAction::Up:
+                    s.key_up = code;
+                    break;
+                case ControlAction::Down:
+                    s.key_down = code;
+                    break;
+                case ControlAction::Left:
+                    s.key_left = code;
+                    break;
+                case ControlAction::Right:
+                    s.key_right = code;
+                    break;
+                case ControlAction::Shoot:
+                    s.key_shoot = code;
+                    break;
+                case ControlAction::Power1:
+                    s.key_powerup1 = code;
+                    break;
+                case ControlAction::Power2:
+                    s.key_powerup2 = code;
+                    break;
+            }
+            m_listening_control = -1;
+            create_buttons();
         }
     }
 }
@@ -372,7 +499,7 @@ void SettingsPanel::render(sf::RenderWindow& window) {
     }
 
     if (m_current_tab == Tab::Controls) {
-        window.draw(m_controls_text);
+        // help text removed; controls remapping buttons are shown instead
     }
 
     for (auto& b : m_buttons)
