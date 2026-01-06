@@ -57,12 +57,28 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                     std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
                 }
                 std::cout << std::dec << std::endl;
-                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + bytes_received);
+                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(bytes_received));
                 NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
                 msg.raw_lobby_data = data;
                 network_to_game_queue_.push(msg);
             } else if (opcode == 0x27) {
-                std::cout << "[NetworkClient] LobbyJoined received" << std::endl;
+                try {
+                    RType::BinarySerializer deserializer(buffer);
+                    uint16_t magic_num;
+                    uint8_t op;
+                    deserializer >> magic_num >> op;
+                    uint8_t success = 0;
+                    int32_t lobby_id = -1;
+                    deserializer >> success;
+                    deserializer >> lobby_id;
+                    std::cout << "[NetworkClient] LobbyJoined received (success=" << static_cast<int>(success) << ", id=" << lobby_id << ")" << std::endl;
+                    NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyJoined);
+                    msg.lobby_join_success = (success != 0);
+                    msg.lobby_joined_id = static_cast<int>(lobby_id);
+                    network_to_game_queue_.push(msg);
+                } catch (const std::exception& e) {
+                    std::cerr << "[NetworkClient] Error decoding LobbyJoined: " << e.what() << std::endl;
+                }
             } else if (opcode == 0x28) {
                 std::cout << "[NetworkClient] LobbyLeft received" << std::endl;
             } else if (opcode == 0x30) {

@@ -33,7 +33,8 @@ struct Message {
           input_mask(input),
           ready_status(false),
           weapon_upgrade_choice(0),
-          powerup_choice_value(0) {}
+          powerup_choice_value(0),
+          powerup_activate_type(0) {}
     Message(MessageType t, bool ready)
         : type(t),
           input_mask(0),
@@ -82,7 +83,8 @@ enum class MessageType : uint8_t {
     PowerUpStatus,
     BossSpawn,
     GameOver,
-    LobbyListUpdate
+    LobbyListUpdate,
+    LobbyJoined
 };
 
 struct Message {
@@ -103,6 +105,8 @@ struct Message {
     uint16_t enemies_killed;
     uint8_t next_level;
     std::vector<uint8_t> raw_lobby_data;
+    bool lobby_join_success{false};
+    int lobby_joined_id{-1};
 
     Message(MessageType t)
         : type(t),

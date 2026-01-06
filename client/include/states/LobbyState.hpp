@@ -51,9 +51,12 @@ private:
 
     sf::Text m_info_text;
     sf::Text m_player_list_text;
+    sf::Text m_status_text;
     sf::Font m_font;
 
     int m_total_players{0};
+    int m_ready_players{0};
+    int m_max_players{4};
     std::vector<std::string> m_player_names;
 
     sf::Vector2f m_mouse_pos;

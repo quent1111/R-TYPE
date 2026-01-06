@@ -61,7 +61,6 @@ private:
     std::vector<std::unique_ptr<ui::CornerDecoration>> m_corners;
     std::vector<std::unique_ptr<ui::SidePanel>> m_side_panels;
 
-    // Lobby list
     std::vector<LobbyInfo> m_lobbies;
     std::vector<std::unique_ptr<ui::Button>> m_lobby_buttons;
 
@@ -73,6 +72,12 @@ private:
     int m_selected_lobby_id = -1;
 
     sf::Vector2f m_mouse_pos;
+
+    bool m_creating_lobby{false};
+    std::string m_new_lobby_name;
+    sf::Text m_input_text;
+    sf::RectangleShape m_input_box;
+    sf::Text m_input_label;
 };
 
 }  // namespace rtype

@@ -22,7 +22,7 @@ LobbyState::~LobbyState() {
 void LobbyState::on_enter() {
     std::cout << "[LobbyState] Entering lobby\n";
 
-    if (!m_font.loadFromFile("assets/fonts/PressStart2P-Regular.ttf")) {
+    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
         std::cerr << "[LobbyState] Warning: Could not load font\n";
     }
 
@@ -55,16 +55,18 @@ void LobbyState::setup_ui() {
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(window_size.x - 30.0f, 30.0f), true, false));
+        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(30.0f, window_size.y - 80.0f), false, true));
+        sf::Vector2f(30.0f, static_cast<float>(window_size.y) - 80.0f), false, true));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(window_size.x - 30.0f, window_size.y - 80.0f), true, true));
+        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f,
+                     static_cast<float>(window_size.y) - 80.0f),
+        true, true));
 
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(50.0f, window_size.y / 2.0f - 50.0f), true));
+        sf::Vector2f(50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(window_size.x - 50.0f, window_size.y / 2.0f - 50.0f), false));
+        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), false));
 
     m_info_text.setFont(m_font);
     m_info_text.setCharacterSize(20);
@@ -78,6 +80,13 @@ void LobbyState::setup_ui() {
     m_player_list_text.setFillColor(sf::Color(200, 200, 200));
     m_player_list_text.setString("Players: 0");
     m_player_list_text.setPosition(center.x - 200.0f, 220.0f);
+
+    m_status_text.setFont(m_font);
+    m_status_text.setCharacterSize(40);
+    m_status_text.setFillColor(sf::Color::White);
+    m_status_text.setString("Joueurs: 0/4");
+    auto status_bounds = m_status_text.getLocalBounds();
+    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 50.0f);
 
     const float button_width = 300.0f;
     const float button_height = 60.0f;
@@ -135,7 +144,10 @@ void LobbyState::process_network_messages() {
     while (m_network_to_game_queue->try_pop(msg)) {
         switch (msg.type) {
             case NetworkToGame::MessageType::LobbyStatus:
+                std::cout << "[LobbyState] Received LobbyStatus: total=" << msg.total_players 
+                          << ", ready=" << msg.ready_players << std::endl;
                 m_total_players = msg.total_players;
+                m_ready_players = msg.ready_players;
                 break;
 
             case NetworkToGame::MessageType::StartGame:
@@ -206,11 +218,15 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    std::string player_text = "Players: " + std::to_string(m_total_players) + "\n\n";
-    for (const auto& name : m_player_names) {
-        player_text += "- " + name + "\n";
-    }
-    m_player_list_text.setString(player_text);
+    // Mise à jour simple du texte au centre
+    std::string status_info = "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
+    m_status_text.setString(status_info);
+    
+    auto status_bounds = m_status_text.getLocalBounds();
+    auto window_size = m_window.getSize();
+    sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
+                        static_cast<float>(window_size.y) / 2.0f);
+    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 50.0f);
 }
 
 void LobbyState::render(sf::RenderWindow& window) {
@@ -230,8 +246,7 @@ void LobbyState::render(sf::RenderWindow& window) {
         m_title->render(window);
     }
 
-    window.draw(m_info_text);
-    window.draw(m_player_list_text);
+    window.draw(m_status_text);
 
     for (auto& button : m_buttons) {
         button->render(window);
