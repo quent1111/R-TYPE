@@ -132,20 +132,14 @@ void MenuState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
-            m_window.close();
-        }
-        if (event.key.code == sf::Keyboard::S) {
-            if (!m_settings_panel)
-                m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
-            if (m_settings_panel->is_open())
+            if (m_settings_panel && m_settings_panel->is_open()) {
                 m_settings_panel->close();
-            else
-                m_settings_panel->open();
+            } else {
+                m_window.close();
+            }
         }
         if (m_settings_panel && m_settings_panel->is_open()) {
-            if (event.key.code == sf::Keyboard::Left || event.key.code == sf::Keyboard::Right) {
-                m_settings_panel->handle_key_press(event.key.code);
-            }
+            m_settings_panel->handle_key_press(event.key.code);
         }
     }
 }

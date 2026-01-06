@@ -27,12 +27,7 @@ void GameState::on_exit() {
 }
 
 void GameState::handle_event(const sf::Event& event) {
-    if (event.type == sf::Event::KeyPressed) {
-        if (event.key.code == sf::Keyboard::Escape) {
-            std::cout << "[GameState] Escape pressed - going back to menu\n";
-            m_next_state = "menu";
-        }
-    }
+    // Escape handled by Game (open settings). Do not force state change here.
 
     if (m_game) {
         if (event.type == sf::Event::GainedFocus) {
@@ -50,6 +45,11 @@ void GameState::update(float dt) {
         m_game->handle_input(dt);
 
         if (!m_game->is_running()) {
+            m_next_state = "menu";
+        }
+
+        // If game requested to return to menu (via settings Quit), transition
+        if (m_game->should_return_to_menu()) {
             m_next_state = "menu";
         }
     }

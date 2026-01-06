@@ -12,6 +12,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include "ui/SettingsPanel.hpp"
 
 class Game {
 private:
@@ -69,11 +70,27 @@ private:
     float boss_roar_timer_ = 0.0f;
     float boss_roar_delay_ = 2.5f;
 
+    // Client-side prediction
+    float predicted_player_x_ = 0.0f;
+    float predicted_player_y_ = 0.0f;
+    uint8_t last_input_mask_ = 0;
+    bool has_server_position_ = false;
+
     void process_network_messages();
     void setup_ui();
     void setup_input_handler();
 
     void init_entity_sprite(Entity& entity);
+
+    // Settings panel for in-game and menu
+    std::unique_ptr<rtype::ui::SettingsPanel> m_settings_panel;
+    // Request to return to menu (set by SettingsPanel quit button)
+    bool m_request_return_to_menu{false};
+
+public:
+    // Called by SettingsPanel quit callback
+    void request_return_to_menu() { m_request_return_to_menu = true; }
+    bool should_return_to_menu() const { return m_request_return_to_menu; }
 
 public:
     Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
