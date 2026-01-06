@@ -94,7 +94,7 @@ void MenuState::setup_ui() {
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
-    m_next_state = "lobby";
+    m_next_state = "lobby_list";
 }
 
 void MenuState::on_quit_clicked() {

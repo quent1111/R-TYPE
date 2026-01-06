@@ -15,7 +15,8 @@ enum class MessageType : uint8_t {
     SendReady,
     SendWeaponUpgrade,
     SendPowerUpChoice,
-    SendPowerUpActivate
+    SendPowerUpActivate,
+    RawPacket
 };
 
 struct Message {
@@ -25,6 +26,7 @@ struct Message {
     uint8_t weapon_upgrade_choice;
     uint8_t powerup_choice_value;
     uint8_t powerup_activate_type;
+    std::vector<uint8_t> raw_data;
 
     Message(MessageType t, uint8_t input = 0)
         : type(t),
@@ -39,6 +41,14 @@ struct Message {
           weapon_upgrade_choice(0),
           powerup_choice_value(0),
           powerup_activate_type(0) {}
+    Message(MessageType t, std::vector<uint8_t> data)
+        : type(t),
+          input_mask(0),
+          ready_status(false),
+          weapon_upgrade_choice(0),
+          powerup_choice_value(0),
+          powerup_activate_type(0),
+          raw_data(std::move(data)) {}
 
     static Message weapon_upgrade(uint8_t choice) {
         Message msg(MessageType::SendWeaponUpgrade);
@@ -71,7 +81,8 @@ enum class MessageType : uint8_t {
     PowerUpSelection,
     PowerUpStatus,
     BossSpawn,
-    GameOver
+    GameOver,
+    LobbyListUpdate
 };
 
 struct Message {
@@ -91,6 +102,7 @@ struct Message {
     uint8_t current_level;
     uint16_t enemies_killed;
     uint8_t next_level;
+    std::vector<uint8_t> raw_lobby_data;
 
     Message(MessageType t)
         : type(t),

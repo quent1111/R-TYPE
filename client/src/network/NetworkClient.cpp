@@ -49,6 +49,22 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_lobby_status(buffer, bytes_received);
             } else if (opcode == 0x22) {
                 decode_start_game(buffer, bytes_received);
+            } else if (opcode == 0x23) {
+                std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
+                         << ", buffer.size()=" << buffer.size() << std::endl;
+                std::cout << "[NetworkClient] Packet data: ";
+                for (size_t i = 0; i < bytes_received && i < buffer.size(); ++i) {
+                    std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
+                }
+                std::cout << std::dec << std::endl;
+                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + bytes_received);
+                NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
+                msg.raw_lobby_data = data;
+                network_to_game_queue_.push(msg);
+            } else if (opcode == 0x27) {
+                std::cout << "[NetworkClient] LobbyJoined received" << std::endl;
+            } else if (opcode == 0x28) {
+                std::cout << "[NetworkClient] LobbyLeft received" << std::endl;
             } else if (opcode == 0x30) {
                 decode_level_start(buffer, bytes_received);
             } else if (opcode == 0x33) {
@@ -109,6 +125,12 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::SendPowerUpActivate:
                 send_powerup_activate(msg.powerup_activate_type);
+                break;
+
+            case GameToNetwork::MessageType::RawPacket:
+                if (!msg.raw_data.empty()) {
+                    socket_.send_to(asio::buffer(msg.raw_data), server_endpoint_);
+                }
                 break;
 
             case GameToNetwork::MessageType::Disconnect:

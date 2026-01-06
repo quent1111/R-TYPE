@@ -3,6 +3,7 @@
 #include "network/NetworkClient.hpp"
 #include "states/GameState.hpp"
 #include "states/LobbyState.hpp"
+#include "states/LobbyListState.hpp"
 #include "states/MenuState.hpp"
 #include "states/StateManager.hpp"
 
@@ -57,6 +58,12 @@ int main(int argc, char* argv[]) {
 
         state_manager.register_state(
             "menu", [&window]() { return std::make_unique<rtype::MenuState>(window); });
+
+        state_manager.register_state("lobby_list",
+                                     [&window, game_to_network_queue, network_to_game_queue]() {
+                                         return std::make_unique<rtype::LobbyListState>(
+                                             window, game_to_network_queue, network_to_game_queue);
+                                     });
 
         state_manager.register_state("lobby",
                                      [&window, game_to_network_queue, network_to_game_queue]() {

@@ -1,6 +1,8 @@
 #include "states/LobbyState.hpp"
 
 #include "managers/AudioManager.hpp"
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
 
 #include <iostream>
 
@@ -20,7 +22,7 @@ LobbyState::~LobbyState() {
 void LobbyState::on_enter() {
     std::cout << "[LobbyState] Entering lobby\n";
 
-    if (!m_font.loadFromFile("assets/fonts/arial.ttf")) {
+    if (!m_font.loadFromFile("assets/fonts/PressStart2P-Regular.ttf")) {
         std::cerr << "[LobbyState] Warning: Could not load font\n";
     }
 
@@ -46,108 +48,85 @@ void LobbyState::setup_ui() {
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
     m_title =
-        std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, center.y - 280.0f), 84);
+        std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, 50.0f), 72);
 
     m_footer = std::make_unique<ui::MenuFooter>(window_size);
 
-    m_corners.push_back(
-        std::make_unique<ui::CornerDecoration>(sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
+        sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(30.0f, static_cast<float>(window_size.y) - 80.0f), false, true));
+        sf::Vector2f(window_size.x - 30.0f, 30.0f), true, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(static_cast<float>(window_size.x) - 30.0f,
-                     static_cast<float>(window_size.y) - 80.0f),
-        true, true));
+        sf::Vector2f(30.0f, window_size.y - 80.0f), false, true));
+    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
+        sf::Vector2f(window_size.x - 30.0f, window_size.y - 80.0f), true, true));
 
-    m_side_panels.push_back(
-        std::make_unique<ui::SidePanel>(sf::Vector2f(50.0f, center.y - 50.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, center.y - 50.0f), false));
+        sf::Vector2f(50.0f, window_size.y / 2.0f - 50.0f), true));
+    m_side_panels.push_back(std::make_unique<ui::SidePanel>(
+        sf::Vector2f(window_size.x - 50.0f, window_size.y / 2.0f - 50.0f), false));
 
-    m_status_text.setFont(m_font);
-    m_status_text.setCharacterSize(28);
-    m_status_text.setFillColor(sf::Color(100, 200, 255));
-    m_status_text.setString(">> Connected to server <<");
-    m_status_text.setOutlineColor(sf::Color(0, 50, 100));
-    m_status_text.setOutlineThickness(1.5f);
-    sf::FloatRect status_bounds = m_status_text.getLocalBounds();
-    m_status_text.setOrigin(status_bounds.width / 2.0f, status_bounds.height / 2.0f);
-    m_status_text.setPosition(center.x, center.y - 160.0f);
+    m_info_text.setFont(m_font);
+    m_info_text.setCharacterSize(20);
+    m_info_text.setFillColor(sf::Color(150, 200, 255));
+    m_info_text.setString("Waiting in lobby...");
+    auto info_bounds = m_info_text.getLocalBounds();
+    m_info_text.setPosition(center.x - info_bounds.width / 2.0f, 150.0f);
 
-    m_player_count_text.setFont(m_font);
-    m_player_count_text.setCharacterSize(48);
-    m_player_count_text.setFillColor(sf::Color(255, 220, 100));
-    m_player_count_text.setString("0 / 0 READY");
-    m_player_count_text.setOutlineColor(sf::Color(100, 80, 0));
-    m_player_count_text.setOutlineThickness(2.0f);
-    sf::FloatRect count_bounds = m_player_count_text.getLocalBounds();
-    m_player_count_text.setOrigin(count_bounds.width / 2.0f, count_bounds.height / 2.0f);
-    m_player_count_text.setPosition(center.x, center.y - 80.0f);
+    m_player_list_text.setFont(m_font);
+    m_player_list_text.setCharacterSize(16);
+    m_player_list_text.setFillColor(sf::Color(200, 200, 200));
+    m_player_list_text.setString("Players: 0");
+    m_player_list_text.setPosition(center.x - 200.0f, 220.0f);
 
-    m_waiting_text.setFont(m_font);
-    m_waiting_text.setCharacterSize(22);
-    m_waiting_text.setFillColor(sf::Color(180, 180, 200));
-    m_waiting_text.setString("--- Waiting for players ---");
-    m_waiting_text.setStyle(sf::Text::Italic);
-    sf::FloatRect waiting_bounds = m_waiting_text.getLocalBounds();
-    m_waiting_text.setOrigin(waiting_bounds.width / 2.0f, waiting_bounds.height / 2.0f);
-    m_waiting_text.setPosition(center.x, center.y + 200.0f);
+    const float button_width = 300.0f;
+    const float button_height = 60.0f;
+    const float button_spacing = 80.0f;
+    const float start_y = center.y + 100.0f;
 
-    const float button_width = 380.0f;
-    const float button_height = 75.0f;
-    const float button_spacing = 95.0f;
-    const float start_y = center.y + 30.0f;
-
-    auto ready_btn =
-        std::make_unique<ui::Button>(sf::Vector2f(center.x - button_width / 2.0f, start_y),
-                                     sf::Vector2f(button_width, button_height), "READY");
-    ready_btn->set_colors(sf::Color(30, 150, 50, 220), sf::Color(50, 200, 80, 255),
+    auto start_btn = std::make_unique<ui::Button>(
+        sf::Vector2f(center.x - button_width / 2.0f, start_y),
+        sf::Vector2f(button_width, button_height), "START GAME");
+    start_btn->set_colors(sf::Color(30, 150, 50, 220), sf::Color(50, 200, 80, 255),
                           sf::Color(20, 120, 40, 255));
-    ready_btn->set_callback([this]() { on_ready_clicked(); });
-    m_buttons.push_back(std::move(ready_btn));
+    start_btn->set_callback([this]() { on_start_game_clicked(); });
+    m_buttons.push_back(std::move(start_btn));
 
     auto back_btn = std::make_unique<ui::Button>(
         sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
-        sf::Vector2f(button_width, button_height), "BACK TO MENU");
+        sf::Vector2f(button_width, button_height), "LEAVE LOBBY");
     back_btn->set_colors(sf::Color(120, 30, 40, 200), sf::Color(180, 50, 60, 255),
                          sf::Color(100, 20, 30, 255));
     back_btn->set_callback([this]() { on_back_clicked(); });
     m_buttons.push_back(std::move(back_btn));
 }
 
-void LobbyState::on_ready_clicked() {
-    std::cout << "[LobbyState] Ready button clicked\n";
+void LobbyState::on_start_game_clicked() {
+    std::cout << "[LobbyState] Start game button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
-    m_is_ready = !m_is_ready;
 
-    if (m_is_ready) {
-        m_buttons[0]->set_text("NOT READY");
-        m_buttons[0]->set_colors(sf::Color(150, 100, 30, 220), sf::Color(200, 150, 50, 255),
-                                 sf::Color(120, 80, 20, 255));
-        m_status_text.setString("You are READY!");
-        m_status_text.setFillColor(sf::Color(100, 255, 100));
-    } else {
-        m_buttons[0]->set_text("READY");
-        m_buttons[0]->set_colors(sf::Color(30, 150, 50, 220), sf::Color(50, 200, 80, 255),
-                                 sf::Color(20, 120, 40, 255));
-        m_status_text.setString("Click READY to start");
-        m_status_text.setFillColor(sf::Color::White);
-    }
+    send_start_game_request();
 
-    send_ready_status();
+    m_next_state = "game";
 }
 
 void LobbyState::on_back_clicked() {
-    std::cout << "[LobbyState] Back button clicked\n";
+    std::cout << "[LobbyState] Leave lobby button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
-    m_next_state = "menu";
+
+    m_next_state = "lobby_list";
 }
 
-void LobbyState::send_ready_status() {
-    m_game_to_network_queue->push(
-        GameToNetwork::Message(GameToNetwork::MessageType::SendReady, m_is_ready));
+void LobbyState::send_start_game_request() {
+    std::cout << "[LobbyState] Sending StartGame request to server\n";
+
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << static_cast<uint8_t>(RType::OpCode::StartGame);
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
 }
 
 void LobbyState::process_network_messages() {
@@ -157,7 +136,6 @@ void LobbyState::process_network_messages() {
         switch (msg.type) {
             case NetworkToGame::MessageType::LobbyStatus:
                 m_total_players = msg.total_players;
-                m_ready_players = msg.ready_players;
                 break;
 
             case NetworkToGame::MessageType::StartGame:
@@ -204,7 +182,7 @@ void LobbyState::handle_event(const sf::Event& event) {
 
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
-            m_next_state = "menu";
+            on_back_clicked();
         }
     }
 }
@@ -228,18 +206,11 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    std::string count_str =
-        std::to_string(m_ready_players) + " / " + std::to_string(m_total_players) + " READY";
-    m_player_count_text.setString(count_str);
-
-    if (m_ready_players == m_total_players && m_total_players > 0) {
-        m_player_count_text.setFillColor(sf::Color(100, 255, 100));
-    } else {
-        m_player_count_text.setFillColor(sf::Color(255, 220, 100));
+    std::string player_text = "Players: " + std::to_string(m_total_players) + "\n\n";
+    for (const auto& name : m_player_names) {
+        player_text += "- " + name + "\n";
     }
-
-    sf::FloatRect bounds = m_player_count_text.getLocalBounds();
-    m_player_count_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+    m_player_list_text.setString(player_text);
 }
 
 void LobbyState::render(sf::RenderWindow& window) {
@@ -259,7 +230,8 @@ void LobbyState::render(sf::RenderWindow& window) {
         m_title->render(window);
     }
 
-    window.draw(m_player_count_text);
+    window.draw(m_info_text);
+    window.draw(m_player_list_text);
 
     for (auto& button : m_buttons) {
         button->render(window);
