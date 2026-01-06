@@ -117,7 +117,7 @@ void ServerCore::periodic_cleanup(UDPServer& server, float dt) {
         auto inactive_clients = server.remove_inactive_clients(std::chrono::seconds(30));
         for (int client_id : inactive_clients) {
             std::cout << "[ServerCore] Removing inactive client " << client_id << std::endl;
-            _lobby_manager.handle_client_disconnect(client_id);
+            _lobby_manager.handle_client_disconnect(client_id, server);
         }
         _lobby_manager.cleanup_inactive_lobbies(std::chrono::seconds(300)); // 5 minutes
     }

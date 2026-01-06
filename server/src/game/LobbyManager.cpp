@@ -69,6 +69,10 @@ std::vector<LobbyInfo> LobbyManager::get_lobby_list() {
 
     std::vector<LobbyInfo> list;
     for (const auto& [id, lobby] : _lobbies) {
+        if (lobby->get_state() == LobbyState::Finished) {
+            continue;
+        }
+
         LobbyInfo info;
         info.lobby_id = lobby->get_id();
         info.name = lobby->get_name();
@@ -81,8 +85,8 @@ std::vector<LobbyInfo> LobbyManager::get_lobby_list() {
     return list;
 }
 
-bool LobbyManager::join_lobby(int lobby_id, int client_id) {
-    leave_lobby(client_id);
+bool LobbyManager::join_lobby(int lobby_id, int client_id, UDPServer& server) {
+    leave_lobby(client_id, server);
 
     Lobby* lobby = get_lobby(lobby_id);
     if (!lobby) {
@@ -91,7 +95,7 @@ bool LobbyManager::join_lobby(int lobby_id, int client_id) {
         return false;
     }
 
-    if (lobby->add_player(client_id)) {
+    if (lobby->add_player(client_id, server)) {
         std::lock_guard<std::mutex> lock(_client_mapping_mutex);
         _client_to_lobby[client_id] = lobby_id;
         return true;
@@ -100,7 +104,7 @@ bool LobbyManager::join_lobby(int lobby_id, int client_id) {
     return false;
 }
 
-bool LobbyManager::leave_lobby(int client_id) {
+bool LobbyManager::leave_lobby(int client_id, UDPServer& server) {
     int lobby_id;
     {
         std::lock_guard<std::mutex> lock(_client_mapping_mutex);
@@ -114,7 +118,7 @@ bool LobbyManager::leave_lobby(int client_id) {
 
     Lobby* lobby = get_lobby(lobby_id);
     if (lobby) {
-        lobby->remove_player(client_id);
+        lobby->remove_player(client_id, server);
     }
 
     return true;
@@ -176,9 +180,9 @@ void LobbyManager::cleanup_inactive_lobbies(std::chrono::seconds timeout) {
     }
 }
 
-void LobbyManager::handle_client_disconnect(int client_id) {
+void LobbyManager::handle_client_disconnect(int client_id, UDPServer& server) {
     std::cout << "[LobbyManager] Handling disconnect for client " << client_id << std::endl;
-    leave_lobby(client_id);
+    leave_lobby(client_id, server);
 }
 
 void LobbyManager::broadcast_lobby_list(UDPServer& server) {

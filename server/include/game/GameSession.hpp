@@ -90,6 +90,7 @@ public:
     void check_start_game(UDPServer& server);
     void start_game(UDPServer& server);
     void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
+    void broadcast_lobby_status(UDPServer& server);
     void remove_player(int client_id);
     GameSession();
     ~GameSession();

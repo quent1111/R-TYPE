@@ -20,7 +20,7 @@ bool Lobby::has_player(int client_id) const {
     return std::find(_player_ids.begin(), _player_ids.end(), client_id) != _player_ids.end();
 }
 
-bool Lobby::add_player(int client_id) {
+bool Lobby::add_player(int client_id, UDPServer& server) {
     if (is_full()) {
         std::cout << "[Lobby " << _lobby_id << "] Cannot add player " << client_id
                   << ": lobby is full" << std::endl;
@@ -42,13 +42,22 @@ bool Lobby::add_player(int client_id) {
     _player_ids.push_back(client_id);
     update_activity();
 
+    // Mettre à jour la liste des clients dans la GameSession pour les broadcasts
+    if (_game_session) {
+        _game_session->set_lobby_clients(_player_ids);
+        // Initialiser le statut du joueur à "not ready"
+        _game_session->handle_player_ready(client_id, false);
+        // Broadcaster immédiatement le nouveau statut du lobby
+        _game_session->broadcast_lobby_status(server);
+    }
+
     std::cout << "[Lobby " << _lobby_id << "] Player " << client_id << " joined ("
               << _player_ids.size() << "/" << _max_players << ")" << std::endl;
 
     return true;
 }
 
-bool Lobby::remove_player(int client_id) {
+bool Lobby::remove_player(int client_id, UDPServer& server) {
     auto it = std::find(_player_ids.begin(), _player_ids.end(), client_id);
     if (it == _player_ids.end()) {
         return false;
@@ -60,9 +69,16 @@ bool Lobby::remove_player(int client_id) {
     std::cout << "[Lobby " << _lobby_id << "] Player " << client_id << " left ("
               << _player_ids.size() << "/" << _max_players << ")" << std::endl;
 
-    if (_state == LobbyState::InGame && _game_session) {
+    // Mettre à jour la liste des clients dans la GameSession
+    if (_game_session) {
         _game_session->set_lobby_clients(_player_ids);
-        _game_session->remove_player(client_id);
+        if (_state == LobbyState::InGame) {
+            _game_session->remove_player(client_id);
+        }
+        // Broadcaster le nouveau statut aux joueurs restants
+        if (!_player_ids.empty()) {
+            _game_session->broadcast_lobby_status(server);
+        }
     }
 
     if (is_empty() && _state == LobbyState::InGame) {

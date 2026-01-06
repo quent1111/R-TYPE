@@ -49,7 +49,7 @@ void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
 
     int lobby_id = _lobby_manager.create_lobby(lobby_name, max_players);
 
-    bool joined = _lobby_manager.join_lobby(lobby_id, client_id);
+    bool joined = _lobby_manager.join_lobby(lobby_id, client_id, server);
 
     send_lobby_joined_ack(server, client_id, lobby_id, joined);
 
@@ -70,7 +70,7 @@ void LobbyCommandHandler::handle_join_lobby(UDPServer& server, int client_id,
     std::cout << "[LobbyCommandHandler] Client " << client_id << " joining lobby " 
               << lobby_id << std::endl;
 
-    bool success = _lobby_manager.join_lobby(lobby_id, client_id);
+    bool success = _lobby_manager.join_lobby(lobby_id, client_id, server);
 
     send_lobby_joined_ack(server, client_id, lobby_id, success);
 
@@ -82,7 +82,7 @@ void LobbyCommandHandler::handle_join_lobby(UDPServer& server, int client_id,
 void LobbyCommandHandler::handle_leave_lobby(UDPServer& server, int client_id) {
     std::cout << "[LobbyCommandHandler] Client " << client_id << " leaving lobby" << std::endl;
 
-    bool success = _lobby_manager.leave_lobby(client_id);
+    bool success = _lobby_manager.leave_lobby(client_id, server);
 
     send_lobby_left_ack(server, client_id, success);
 

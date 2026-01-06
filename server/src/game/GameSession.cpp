@@ -96,6 +96,10 @@ void GameSession::start_game(UDPServer& server) {
     _game_broadcaster.broadcast_level_start(server, 1, _lobby_client_ids);
 }
 
+void GameSession::broadcast_lobby_status(UDPServer& server) {
+    _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
+}
+
 void GameSession::process_network_events(UDPServer& server) {
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {

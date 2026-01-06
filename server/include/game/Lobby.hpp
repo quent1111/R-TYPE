@@ -42,8 +42,8 @@ public:
     bool is_empty() const { return _player_ids.empty(); }
     bool has_player(int client_id) const;
 
-    bool add_player(int client_id);
-    bool remove_player(int client_id);
+    bool add_player(int client_id, UDPServer& server);
+    bool remove_player(int client_id, UDPServer& server);
 
     void set_state(LobbyState state) { _state = state; }
     void update_activity();
