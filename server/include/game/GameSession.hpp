@@ -39,6 +39,7 @@ private:
     engine::GameEngine _engine;
     std::unordered_map<int, std::size_t> _client_entity_ids;
     std::unordered_map<int, bool> _client_ready_status;
+    std::vector<int> _lobby_client_ids;
 
     PlayerManager _player_manager;
     LevelManager _level_manager;
@@ -80,17 +81,22 @@ private:
     void update_game_state(UDPServer& server, float dt);
     void send_periodic_updates(UDPServer& server, float dt);
 
-    void handle_player_ready(int client_id, bool ready);
-    void check_start_game(UDPServer& server);
-    void start_game(UDPServer& server);
     void check_level_completion(UDPServer& server);
     void advance_level(UDPServer& server);
     void reset_game(UDPServer& server);
 
 public:
+    void handle_player_ready(int client_id, bool ready);
+    void check_start_game(UDPServer& server);
+    void start_game(UDPServer& server);
+    void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
+    void remove_player(int client_id);
     GameSession();
     ~GameSession();
     void runGameLoop(UDPServer& server);
+    void update(UDPServer& server, float dt);
+    void process_inputs(UDPServer& server);
+    void handle_packet(UDPServer& server, int client_id, const std::vector<uint8_t>& data);
     registry& getRegistry() { return _engine.get_registry(); }
 };
 

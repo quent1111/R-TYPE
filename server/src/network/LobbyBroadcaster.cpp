@@ -7,7 +7,8 @@ LobbyBroadcaster::LobbyBroadcaster() {
 }
 
 void LobbyBroadcaster::broadcast_lobby_status(
-    UDPServer& server, const std::unordered_map<int, bool>& client_ready_status) {
+    UDPServer& server, const std::unordered_map<int, bool>& client_ready_status,
+    const std::vector<int>& lobby_client_ids) {
     broadcast_serializer_.clear();
 
     broadcast_serializer_ << RType::MagicNumber::VALUE;
@@ -24,7 +25,7 @@ void LobbyBroadcaster::broadcast_lobby_status(
     broadcast_serializer_ << total_players;
     broadcast_serializer_ << ready_players;
 
-    server.send_to_all(broadcast_serializer_.data());
+    server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
 }  // namespace server

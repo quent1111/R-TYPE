@@ -15,9 +15,10 @@ public:
     PowerupBroadcaster() = default;
     ~PowerupBroadcaster() = default;
 
-    void broadcast_powerup_selection(UDPServer& server);
+    void broadcast_powerup_selection(UDPServer& server, const std::vector<int>& lobby_client_ids);
     void broadcast_powerup_status(UDPServer& server, registry& reg,
-                                  const std::unordered_map<int, std::size_t>& client_entity_ids);
+                                  const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                  const std::vector<int>& lobby_client_ids);
 };
 
 }  // namespace server

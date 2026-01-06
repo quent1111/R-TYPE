@@ -106,6 +106,17 @@ void UDPServer::send_to_all(const std::vector<uint8_t>& data) {
     }
 }
 
+void UDPServer::send_to_clients(const std::vector<int>& client_ids, const std::vector<uint8_t>& data) {
+    std::lock_guard<std::mutex> lock(clients_mutex_);
+    for (int client_id : client_ids) {
+        auto it = clients_.find(client_id);
+        if (it != clients_.end()) {
+            NetworkPacket packet(data, it->second.endpoint);
+            queue_output_packet(packet);
+        }
+    }
+}
+
 void UDPServer::send_to_client(int client_id, const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> lock(clients_mutex_);
     auto it = clients_.find(client_id);
