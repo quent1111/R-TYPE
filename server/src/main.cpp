@@ -1,4 +1,4 @@
-#include "game/GameSession.hpp"
+#include "game/ServerCore.hpp"
 #include "network/UDPServer.hpp"
 
 #include <csignal>
@@ -18,8 +18,8 @@ void signal_handler(int signal) {
 }
 
 void game_loop(server::UDPServer& server) {
-    server::GameSession gameInstance;
-    gameInstance.runGameLoop(server);
+    server::ServerCore serverCore;
+    serverCore.run_game_loop(server);
 }
 
 void network_loop(server::UDPServer& server) {

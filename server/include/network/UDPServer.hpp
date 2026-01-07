@@ -43,6 +43,7 @@ public:
     std::map<int, ClientEndpoint> get_clients();
 
     void send_to_all(const std::vector<uint8_t>& data);
+    void send_to_clients(const std::vector<int>& client_ids, const std::vector<uint8_t>& data);
     void send_to_client(int client_id, const std::vector<uint8_t>& data);
     void send_to_endpoint(const asio::ip::udp::endpoint& endpoint,
                           const std::vector<uint8_t>& data);

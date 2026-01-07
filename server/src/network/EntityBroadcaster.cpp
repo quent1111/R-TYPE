@@ -8,7 +8,8 @@ EntityBroadcaster::EntityBroadcaster() {
 
 void EntityBroadcaster::broadcast_entity_positions(
     UDPServer& server, registry& reg,
-    const std::unordered_map<int, std::size_t>& client_entity_ids) {
+    const std::unordered_map<int, std::size_t>& client_entity_ids,
+    const std::vector<int>& lobby_client_ids) {
     broadcast_serializer_.clear();
 
     broadcast_serializer_ << RType::MagicNumber::VALUE;
@@ -95,7 +96,7 @@ void EntityBroadcaster::broadcast_entity_positions(
         return;
 
     broadcast_serializer_.data()[count_position] = static_cast<uint8_t>(entity_count);
-    server.send_to_all(broadcast_serializer_.data());
+    server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
 }  // namespace server

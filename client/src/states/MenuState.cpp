@@ -11,6 +11,12 @@ MenuState::MenuState(sf::RenderWindow& window) : m_window(window) {}
 
 void MenuState::on_enter() {
     std::cout << "[MenuState] Entering menu\n";
+    // Ensure UI renders with the default view in case previous state left a custom view
+    try {
+        m_window.setView(m_window.getDefaultView());
+    } catch (...) {
+        // ignore if window is in an unexpected state
+    }
     m_buttons.clear();
     m_corners.clear();
     m_side_panels.clear();
@@ -94,7 +100,7 @@ void MenuState::setup_ui() {
 void MenuState::on_play_clicked() {
     std::cout << "[MenuState] Play button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
-    m_next_state = "lobby";
+    m_next_state = "lobby_list";
 }
 
 void MenuState::on_quit_clicked() {

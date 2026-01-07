@@ -23,6 +23,13 @@ void GameState::on_enter() {
 
 void GameState::on_exit() {
     std::cout << "[GameState] Exiting game\n";
+    // Ensure the window view is reset when leaving the game so subsequent
+    // menu rendering uses the default view (prevents cropped / shifted UI).
+    try {
+        m_window.setView(m_window.getDefaultView());
+    } catch (...) {
+        // defensive: ignore if window state is invalid
+    }
     m_game.reset();
 }
 

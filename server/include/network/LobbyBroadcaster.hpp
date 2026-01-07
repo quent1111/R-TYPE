@@ -14,7 +14,8 @@ public:
     ~LobbyBroadcaster() = default;
 
     void broadcast_lobby_status(UDPServer& server,
-                                const std::unordered_map<int, bool>& client_ready_status);
+                                const std::unordered_map<int, bool>& client_ready_status,
+                                const std::vector<int>& lobby_client_ids);
 
 private:
     RType::BinarySerializer broadcast_serializer_;

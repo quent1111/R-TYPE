@@ -49,6 +49,38 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_lobby_status(buffer, bytes_received);
             } else if (opcode == 0x22) {
                 decode_start_game(buffer, bytes_received);
+            } else if (opcode == 0x23) {
+                std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
+                         << ", buffer.size()=" << buffer.size() << std::endl;
+                std::cout << "[NetworkClient] Packet data: ";
+                for (size_t i = 0; i < bytes_received && i < buffer.size(); ++i) {
+                    std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
+                }
+                std::cout << std::dec << std::endl;
+                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(bytes_received));
+                NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
+                msg.raw_lobby_data = data;
+                network_to_game_queue_.push(msg);
+            } else if (opcode == 0x27) {
+                try {
+                    RType::BinarySerializer deserializer(buffer);
+                    uint16_t magic_num;
+                    uint8_t op;
+                    deserializer >> magic_num >> op;
+                    uint8_t success = 0;
+                    int32_t lobby_id = -1;
+                    deserializer >> success;
+                    deserializer >> lobby_id;
+                    std::cout << "[NetworkClient] LobbyJoined received (success=" << static_cast<int>(success) << ", id=" << lobby_id << ")" << std::endl;
+                    NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyJoined);
+                    msg.lobby_join_success = (success != 0);
+                    msg.lobby_joined_id = static_cast<int>(lobby_id);
+                    network_to_game_queue_.push(msg);
+                } catch (const std::exception& e) {
+                    std::cerr << "[NetworkClient] Error decoding LobbyJoined: " << e.what() << std::endl;
+                }
+            } else if (opcode == 0x28) {
+                std::cout << "[NetworkClient] LobbyLeft received" << std::endl;
             } else if (opcode == 0x30) {
                 decode_level_start(buffer, bytes_received);
             } else if (opcode == 0x33) {
@@ -109,6 +141,12 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::SendPowerUpActivate:
                 send_powerup_activate(msg.powerup_activate_type);
+                break;
+
+            case GameToNetwork::MessageType::RawPacket:
+                if (!msg.raw_data.empty()) {
+                    socket_.send_to(asio::buffer(msg.raw_data), server_endpoint_);
+                }
                 break;
 
             case GameToNetwork::MessageType::Disconnect:

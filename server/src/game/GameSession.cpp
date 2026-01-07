@@ -81,7 +81,7 @@ void GameSession::check_start_game(UDPServer& server) {
 void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Starting game..." << std::endl;
 
-    _game_broadcaster.broadcast_start_game(server);
+    _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
     _game_phase = GamePhase::InGame;
 
     float start_x = 100.0f;
@@ -93,7 +93,11 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
 
-    _game_broadcaster.broadcast_level_start(server, 1);
+    _game_broadcaster.broadcast_level_start(server, 1, _lobby_client_ids);
+}
+
+void GameSession::broadcast_lobby_status(UDPServer& server) {
+    _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
 }
 
 void GameSession::process_network_events(UDPServer& server) {
@@ -210,8 +214,7 @@ void GameSession::process_network_events(UDPServer& server) {
                             _players_who_chose_powerup.clear();
 
                             _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                          _client_entity_ids);
-                            // Removed blocking sleep - level advances immediately
+                                                                          _client_entity_ids, _lobby_client_ids);
                             advance_level(server);
                         }
                     } catch (...) {
@@ -225,7 +228,7 @@ void GameSession::process_network_events(UDPServer& server) {
                     _powerup_handler.handle_powerup_activate(_engine.get_registry(), _client_entity_ids,
                                                              client_id, powerup_type);
                     _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                  _client_entity_ids);
+                                                                  _client_entity_ids, _lobby_client_ids);
                     break;
                 }
                 default: {
@@ -253,7 +256,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _game_over_timer += dt;
         _game_over_broadcast_accumulator += dt;
         if (_game_over_broadcast_accumulator >= 0.1f) {
-            _game_broadcaster.broadcast_game_over(server);
+            _game_broadcaster.broadcast_game_over(server, _lobby_client_ids);
             _game_over_broadcast_accumulator = 0.0f;
         }
         if (_game_over_timer >= 2.0f) {
@@ -269,7 +272,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _waiting_for_game_over_reset = true;
         _game_over_timer = 0.0f;
         _game_over_broadcast_accumulator = 0.0f;
-        _game_broadcaster.broadcast_game_over(server);
+        _game_broadcaster.broadcast_game_over(server, _lobby_client_ids);
         return;
     }
 
@@ -336,24 +339,24 @@ void GameSession::send_periodic_updates(UDPServer& server, float dt) {
     if (_game_phase == GamePhase::Lobby) {
         _lobby_broadcast_accumulator += dt;
         if (_lobby_broadcast_accumulator >= lobby_broadcast_interval) {
-            _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status);
+            _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
             _lobby_broadcast_accumulator -= lobby_broadcast_interval;
         }
     } else {
         _pos_broadcast_accumulator += dt;
         if (_pos_broadcast_accumulator >= position_broadcast_interval) {
-            _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids);
+            _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
             _pos_broadcast_accumulator -= position_broadcast_interval;
         }
         _level_broadcast_accumulator += dt;
         if (_level_broadcast_accumulator >= level_broadcast_interval) {
-            _game_broadcaster.broadcast_level_info(server, _engine.get_registry());
+            _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), _lobby_client_ids);
             _level_broadcast_accumulator -= level_broadcast_interval;
         }
         check_level_completion(server);
         _powerup_broadcast_accumulator += dt;
         if (_powerup_broadcast_accumulator >= 0.2f) {
-            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(), _client_entity_ids);
+            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
             _powerup_broadcast_accumulator -= 0.2f;
         }
     }
@@ -382,8 +385,8 @@ void GameSession::check_level_completion(UDPServer& server) {
                 _players_who_chose_powerup.clear();
                 _level_manager.clear_enemies_and_projectiles(_engine.get_registry(), _boss_entity);
 
-                _game_broadcaster.broadcast_level_complete(server, _engine.get_registry());
-                _powerup_broadcaster.broadcast_powerup_selection(server);
+                _game_broadcaster.broadcast_level_complete(server, _engine.get_registry(), _lobby_client_ids);
+                _powerup_broadcaster.broadcast_powerup_selection(server, _lobby_client_ids);
                 _level_complete_waiting = true;
                 _waiting_for_powerup_choice = true;
                 _level_complete_timer = 0.0f;
@@ -405,10 +408,10 @@ void GameSession::advance_level(UDPServer& server) {
                                          _boss_shoot_timer, _boss_animation_complete,
                                          _boss_entrance_complete, _boss_target_x);
 
-        _game_broadcaster.broadcast_boss_spawn(server);
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
     }
 
-    _game_broadcaster.broadcast_level_start(server, current_level);
+    _game_broadcaster.broadcast_level_start(server, current_level, _lobby_client_ids);
 }
 
 void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
@@ -490,6 +493,135 @@ void GameSession::runGameLoop(UDPServer& server) {
         }
     }
     std::cout << "[Core] Game loop stopped" << std::endl;
+}
+
+void GameSession::update(UDPServer& server, float dt) {
+    if (_game_phase != GamePhase::InGame) {
+        return;
+    }
+    update_game_state(server, dt);
+    send_periodic_updates(server, dt);
+}
+
+void GameSession::process_inputs(UDPServer& server) {
+    (void)server;
+}
+
+void GameSession::remove_player(int client_id) {
+    std::cout << "[GameSession] Removing player " << client_id << " from game session" << std::endl;
+
+    _client_ready_status.erase(client_id);
+
+    _players_who_chose_powerup.erase(client_id);
+
+    auto it = _client_entity_ids.find(client_id);
+    if (it != _client_entity_ids.end()) {
+        auto entity = _engine.get_registry().entity_from_index(it->second);
+        _engine.get_registry().kill_entity(entity);
+        _client_entity_ids.erase(it);
+    }
+}
+
+void GameSession::handle_packet(UDPServer& server, int client_id, const std::vector<uint8_t>& data) {
+    if (data.empty() || data.size() < 3) {
+        return;
+    }
+
+    try {
+        RType::BinarySerializer deserializer(data);
+
+        uint16_t magic;
+        deserializer >> magic;
+
+        if (!RType::MagicNumber::is_valid(magic)) {
+            std::cerr << "[GameSession] Invalid magic number from client " << client_id << std::endl;
+            return;
+        }
+
+        RType::OpCode opcode;
+        deserializer >> opcode;
+
+        switch (opcode) {
+            case RType::OpCode::Input: {
+                if (_game_phase != GamePhase::InGame) {
+                    break;
+                }
+                if (_waiting_for_powerup_choice) {
+                    break;
+                }
+                auto player_opt =
+                    _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
+                if (!player_opt.has_value()) {
+                    float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
+                    float start_y = 300.0f;
+                    auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
+                                                                client_id, start_x, start_y);
+                    std::cout << "[GameSession] New player connected (Implicit): Client " << client_id
+                              << " (Entity " << player.id() << ")" << std::endl;
+                }
+
+                std::vector<uint8_t> payload(
+                    deserializer.data().begin() +
+                        static_cast<std::ptrdiff_t>(deserializer.read_position()),
+                    deserializer.data().end());
+                _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids, client_id,
+                                                   payload);
+                break;
+            }
+            case RType::OpCode::PlayerReady: {
+                uint8_t ready_val;
+                deserializer >> ready_val;
+                bool ready = (ready_val != 0);
+                handle_player_ready(client_id, ready);
+                _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
+                check_start_game(server);
+                break;
+            }
+            case RType::OpCode::WeaponUpgradeChoice: {
+                uint8_t choice;
+                deserializer >> choice;
+                std::cout << "[GameSession] Client " << client_id << " chose weapon upgrade: "
+                          << static_cast<int>(choice) << std::endl;
+                _weapon_handler.handle_weapon_upgrade_choice(_engine.get_registry(), _client_entity_ids,
+                                                            client_id, choice);
+                break;
+            }
+            case RType::OpCode::PowerUpChoice: {
+                uint8_t choice;
+                deserializer >> choice;
+                std::cout << "[GameSession] Client " << client_id << " chose powerup: "
+                          << static_cast<int>(choice) << std::endl;
+                _powerup_handler.handle_powerup_choice(_engine.get_registry(),
+                                                      _client_entity_ids,
+                                                      _players_who_chose_powerup, client_id, choice);
+                int alive_players = _powerup_handler.count_alive_players(_engine.get_registry(), _client_entity_ids);
+                if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
+                    std::cout << "[GameSession] All players have chosen! Advancing level..." << std::endl;
+                    _waiting_for_powerup_choice = false;
+                    _level_complete_waiting = false;
+                    _players_who_chose_powerup.clear();
+                    _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                                  _client_entity_ids, _lobby_client_ids);
+                    advance_level(server);
+                }
+                break;
+            }
+            case RType::OpCode::PowerUpActivate: {
+                uint8_t powerup_type;
+                deserializer >> powerup_type;
+                std::cout << "[GameSession] Client " << client_id << " activated powerup: "
+                          << static_cast<int>(powerup_type) << std::endl;
+                _powerup_handler.handle_powerup_activate(_engine.get_registry(),
+                                                        _client_entity_ids, client_id, powerup_type);
+                break;
+            }
+            default:
+                break;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "[GameSession] Error handling packet from client " << client_id << ": "
+                  << e.what() << std::endl;
+    }
 }
 
 }  // namespace server

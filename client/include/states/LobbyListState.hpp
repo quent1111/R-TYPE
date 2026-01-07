@@ -2,24 +2,31 @@
 
 #include "common/SafeQueue.hpp"
 #include "network/Messages.hpp"
-#include "network/NetworkClient.hpp"
 #include "states/IState.hpp"
 #include "ui/MenuComponents.hpp"
 
 #include <SFML/Graphics.hpp>
 
 #include <memory>
-#include <thread>
+#include <string>
 #include <vector>
 
 namespace rtype {
 
-class LobbyState : public IState {
+struct LobbyInfo {
+    int lobby_id;
+    std::string name;
+    int current_players;
+    int max_players;
+    std::string state_text;
+};
+
+class LobbyListState : public IState {
 public:
-    LobbyState(sf::RenderWindow& window,
-               std::shared_ptr<ThreadSafeQueue<GameToNetwork::Message>> game_to_net,
-               std::shared_ptr<ThreadSafeQueue<NetworkToGame::Message>> net_to_game);
-    ~LobbyState() override;
+    LobbyListState(sf::RenderWindow& window,
+                   std::shared_ptr<ThreadSafeQueue<GameToNetwork::Message>> game_to_net,
+                   std::shared_ptr<ThreadSafeQueue<NetworkToGame::Message>> net_to_game);
+    ~LobbyListState() override;
 
     void on_enter() override;
     void on_exit() override;
@@ -31,10 +38,15 @@ public:
 
 private:
     void setup_ui();
+    void request_lobby_list();
+    void on_refresh_clicked();
+    void on_create_clicked();
+    void on_join_clicked(int lobby_id);
     void on_back_clicked();
-    void on_start_game_clicked();
     void process_network_messages();
-    void send_start_game_request();
+    void update_lobby_list_ui();
+    void send_create_lobby_request(const std::string& lobby_name);
+    void send_join_lobby_request(int lobby_id);
 
     sf::RenderWindow& m_window;
     std::string m_next_state;
@@ -49,17 +61,23 @@ private:
     std::vector<std::unique_ptr<ui::CornerDecoration>> m_corners;
     std::vector<std::unique_ptr<ui::SidePanel>> m_side_panels;
 
+    std::vector<LobbyInfo> m_lobbies;
+    std::vector<std::unique_ptr<ui::Button>> m_lobby_buttons;
+
+    sf::Text m_title_text;
     sf::Text m_info_text;
-    sf::Text m_player_list_text;
-    sf::Text m_status_text;
     sf::Font m_font;
 
-    int m_total_players{0};
-    int m_ready_players{0};
-    int m_max_players{4};
-    std::vector<std::string> m_player_names;
+    float m_refresh_timer = 0.0f;
+    int m_selected_lobby_id = -1;
 
     sf::Vector2f m_mouse_pos;
+
+    bool m_creating_lobby{false};
+    std::string m_new_lobby_name;
+    sf::Text m_input_text;
+    sf::RectangleShape m_input_box;
+    sf::Text m_input_label;
 };
 
 }  // namespace rtype

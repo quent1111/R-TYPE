@@ -14,6 +14,7 @@ add_executable(r-type_client
     src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
+    src/states/LobbyListState.cpp
     src/states/LobbyState.cpp
     src/states/GameState.cpp
     src/ui/SettingsPanel.cpp
