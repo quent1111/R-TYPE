@@ -42,6 +42,12 @@ void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
     std::string lobby_name;
     deserializer >> lobby_name;
 
+    if (lobby_name.length() > 12) {
+        std::cerr << "[LobbyCommandHandler] Lobby name too long (" << lobby_name.length()
+                  << "), truncating to 12 characters" << std::endl;
+        lobby_name = lobby_name.substr(0, 12);
+    }
+
     uint8_t max_players = 4;
 
     std::cout << "[LobbyCommandHandler] Client " << client_id << " creating lobby: " 

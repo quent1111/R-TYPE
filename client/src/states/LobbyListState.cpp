@@ -136,24 +136,24 @@ void LobbyListState::on_create_clicked() {
     std::cout << "[LobbyListState] Create clicked" << std::endl;
     m_creating_lobby = true;
     m_new_lobby_name = "";
-    
+
     auto window_size = m_window.getSize();
     m_input_box.setSize(sf::Vector2f(600.0f, 60.0f));
     m_input_box.setFillColor(sf::Color(20, 20, 30, 240));
     m_input_box.setOutlineColor(sf::Color(100, 180, 220));
     m_input_box.setOutlineThickness(3.0f);
     m_input_box.setPosition(static_cast<float>(window_size.x) / 2.0f - 300.0f, static_cast<float>(window_size.y) / 2.0f - 30.0f);
-    
+
     m_input_text.setFont(m_font);
     m_input_text.setCharacterSize(22);
     m_input_text.setFillColor(sf::Color::White);
     m_input_text.setString(m_new_lobby_name);
     m_input_text.setPosition(m_input_box.getPosition().x + 15.0f, m_input_box.getPosition().y + 15.0f);
-    
+
     m_input_label.setFont(m_font);
     m_input_label.setCharacterSize(18);
     m_input_label.setFillColor(sf::Color(180, 180, 180));
-    m_input_label.setString("Nom du lobby (Entree pour valider, Echap pour annuler):");
+    m_input_label.setString("Nom du lobby (max 12 caracteres, Entree pour valider, Echap pour annuler):");
     auto label_bounds = m_input_label.getLocalBounds();
     m_input_label.setPosition(static_cast<float>(window_size.x) / 2.0f - label_bounds.width / 2.0f, m_input_box.getPosition().y - 40.0f);
 }
@@ -346,7 +346,7 @@ void LobbyListState::handle_event(const sf::Event& event) {
         if (event.type == sf::Event::TextEntered) {
             uint32_t c = event.text.unicode;
             // Ignorer backspace (8), enter (13) et autres caractères de contrôle
-            if (c >= 32 && c < 127 && c != 127 && m_new_lobby_name.length() < 30) {
+            if (c >= 32 && c < 127 && c != 127 && m_new_lobby_name.length() < 12) {
                 m_new_lobby_name.push_back(static_cast<char>(c));
                 m_input_text.setString(m_new_lobby_name);
             }
