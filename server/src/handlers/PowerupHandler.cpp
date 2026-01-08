@@ -38,7 +38,8 @@ void PowerupHandler::handle_powerup_choice(
 
     reg.emplace_component<power_cannon>(player);
     reg.emplace_component<shield>(player);
-    std::cout << "[Game] Client " << client_id << " received both Power Cannon and Shield"
+    reg.emplace_component<little_friend>(player);
+    std::cout << "[Game] Client " << client_id << " received Power Cannon, Shield and Little Friend"
               << std::endl;
 
     players_who_chose_powerup.insert(client_id);
@@ -69,6 +70,12 @@ void PowerupHandler::handle_powerup_activate(
         if (shield_opt.has_value() && !shield_opt->is_active()) {
             shield_opt->activate();
             std::cout << "[Game] Client " << client_id << " activated Shield" << std::endl;
+        }
+    } else if (powerup_type == 3) {
+        auto& friend_opt = reg.get_component<little_friend>(player);
+        if (friend_opt.has_value() && !friend_opt->is_active()) {
+            friend_opt->activate();
+            std::cout << "[Game] Client " << client_id << " activated Little Friend" << std::endl;
         }
     }
 }

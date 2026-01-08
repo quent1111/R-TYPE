@@ -48,6 +48,22 @@ void PowerupBroadcaster::broadcast_powerup_status(
             serializer << time_remaining;
             server.send_to_clients(lobby_client_ids, serializer.data());
         }
+
+        auto& friend_opt = reg.get_component<little_friend>(player);
+        if (friend_opt.has_value()) {
+            uint8_t powerup_type = 3;
+            float time_remaining = 0.0f;
+            if (friend_opt->is_active()) {
+                time_remaining = friend_opt->time_remaining;
+            }
+            RType::BinarySerializer serializer;
+            serializer << RType::MagicNumber::VALUE;
+            serializer << RType::OpCode::PowerUpStatus;
+            serializer << static_cast<uint32_t>(client_id);
+            serializer << powerup_type;
+            serializer << time_remaining;
+            server.send_to_clients(lobby_client_ids, serializer.data());
+        }
     }
 }
 

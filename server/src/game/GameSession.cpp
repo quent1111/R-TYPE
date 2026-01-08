@@ -35,6 +35,7 @@ GameSession::GameSession() {
     reg.register_component<animation_component>();
     reg.register_component<power_cannon>();
     reg.register_component<shield>();
+    reg.register_component<little_friend>();
     reg.register_component<damage_flash_component>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
@@ -298,6 +299,9 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
 
     auto& cannons = _engine.get_registry().get_components<power_cannon>();
     auto& shields = _engine.get_registry().get_components<shield>();
+    auto& little_friends = _engine.get_registry().get_components<little_friend>();
+    auto& positions = _engine.get_registry().get_components<position>();
+    
     for (std::size_t i = 0; i < cannons.size(); ++i) {
         if (cannons[i].has_value()) {
             cannons[i]->update(dt);
@@ -306,6 +310,178 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     for (std::size_t i = 0; i < shields.size(); ++i) {
         if (shields[i].has_value()) {
             shields[i]->update(dt);
+        }
+    }
+    
+    // Update little friends and handle spawning/despawning
+    for (std::size_t i = 0; i < little_friends.size(); ++i) {
+        if (little_friends[i].has_value() && i < positions.size() && positions[i].has_value()) {
+            auto& lf = little_friends[i].value();
+            auto& player_pos = positions[i].value();
+            lf.update(dt);
+            
+            // Spawn friend entity when activated
+            if (lf.is_active() && !lf.friend_entity.has_value()) {
+                entity friend_ent = _engine.get_registry().spawn_entity();
+                
+                // Start position: far left off-screen for entry animation
+                _engine.get_registry().add_component(friend_ent, 
+                    position{-200.0f, player_pos.y + 5.0f});
+                
+                // Add velocity component for animation and interpolation (will be updated manually)
+                _engine.get_registry().add_component(friend_ent, velocity{0.0f, 0.0f});
+                
+                // Visual components
+                sprite_component sprite;
+                sprite.texture_path = "assets/r-typesheet5.gif";
+                sprite.texture_rect_x = 0;
+                sprite.texture_rect_y = 0;
+                sprite.texture_rect_w = 33;
+                sprite.texture_rect_h = 32;
+                sprite.scale = 2.5f;
+                _engine.get_registry().add_component(friend_ent, sprite);
+                
+                // Animation frames (utiliser la bonne dimension pour chaque frame)
+                animation_component anim;
+                anim.frames.push_back(sf::IntRect(0, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(33, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(66, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(99, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(132, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(165, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(198, 0, 33, 32));
+                anim.frames.push_back(sf::IntRect(231, 0, 33, 32));
+                anim.current_frame = 0;
+                anim.frame_duration = 0.08f;
+                anim.time_accumulator = 0.0f;
+                anim.loop = true;
+                _engine.get_registry().add_component(friend_ent, anim);
+                
+                _engine.get_registry().add_component(friend_ent, 
+                    entity_tag{RType::EntityType::Ally});
+                
+                lf.friend_entity = friend_ent;
+                std::cout << "[LittleFriend] Spawned ally ship for player at index " << i << std::endl;
+            }
+            
+            // Update friend position to follow player (toujours à chaque frame)
+            if (lf.is_active() && lf.friend_entity.has_value()) {
+                auto& friend_pos_opt = _engine.get_registry().get_component<position>(lf.friend_entity.value());
+                auto& friend_vel_opt = _engine.get_registry().get_component<velocity>(lf.friend_entity.value());
+                auto& friend_anim_opt = _engine.get_registry().get_component<animation_component>(lf.friend_entity.value());
+                
+                // Calculate target position with entry/exit animations
+                float final_target_x = player_pos.x - 70.0f;
+                float final_target_y = player_pos.y + 5.0f + lf.get_vertical_offset();
+                
+                float target_x, target_y;
+                
+                if (!lf.entry_animation_complete) {
+                    // Entry animation: lerp from far left to final position
+                    float progress = lf.get_entry_progress();
+                    // Ease-out function for smooth deceleration
+                    float eased_progress = 1.0f - (1.0f - progress) * (1.0f - progress);
+                    
+                    float start_x = -200.0f;  // Start from off-screen left
+                    target_x = start_x + (final_target_x - start_x) * eased_progress;
+                    target_y = final_target_y;
+                } else if (lf.exit_animation_started) {
+                    // Exit animation: lerp from current position to off-screen left
+                    float progress = lf.get_exit_progress();
+                    // Ease-in function for smooth acceleration
+                    float eased_progress = progress * progress;
+                    
+                    float end_x = -200.0f;  // Exit to off-screen left
+                    target_x = final_target_x + (end_x - final_target_x) * eased_progress;
+                    target_y = final_target_y;
+                } else {
+                    // Normal following behavior
+                    target_x = final_target_x;
+                    target_y = final_target_y;
+                }
+                
+                // Update velocity based on movement (for animation and interpolation)
+                if (friend_pos_opt.has_value() && friend_vel_opt.has_value()) {
+                    float old_x = friend_pos_opt->x;
+                    float old_y = friend_pos_opt->y;
+                    
+                    // Set velocity to reflect the movement (clamped to reasonable values)
+                    float vx = (target_x - old_x) / dt;
+                    float vy = (target_y - old_y) / dt;
+                    
+                    // Clamp velocity to avoid visual artifacts
+                    const float max_vel = 1000.0f;
+                    if (std::abs(vx) > max_vel) vx = (vx > 0 ? max_vel : -max_vel);
+                    if (std::abs(vy) > max_vel) vy = (vy > 0 ? max_vel : -max_vel);
+                    
+                    friend_vel_opt->vx = vx;
+                    friend_vel_opt->vy = vy;
+                    
+                    // Force position to target
+                    friend_pos_opt->x = target_x;
+                    friend_pos_opt->y = target_y;
+                }
+                
+                // Update animation
+                if (friend_anim_opt.has_value()) {
+                    friend_anim_opt->update(dt);
+                }
+                
+                // Shoot at enemies
+                if (lf.can_shoot() && friend_pos_opt.has_value()) {
+                    // Find nearest enemy
+                    float nearest_dist = -1.0f;
+                    float enemy_target_x = -1.0f;
+                    float enemy_target_y = -1.0f;
+                    bool found_enemy = false;
+                    
+                    auto& enemy_tags = _engine.get_registry().get_components<enemy_tag>();
+                        auto& enemy_positions = _engine.get_registry().get_components<position>();
+                        
+                        for (std::size_t j = 0; j < enemy_tags.size(); ++j) {
+                            if (enemy_tags[j].has_value() && j < enemy_positions.size() && 
+                                enemy_positions[j].has_value()) {
+                                auto& enemy_pos = enemy_positions[j].value();
+                                float dx = enemy_pos.x - friend_pos_opt->x;
+                                float dy = enemy_pos.y - friend_pos_opt->y;
+                                float dist = std::sqrt(dx * dx + dy * dy);
+                                
+                                if (nearest_dist < 0.0f || dist < nearest_dist) {
+                                    nearest_dist = dist;
+                                    enemy_target_x = enemy_pos.x;
+                                    enemy_target_y = enemy_pos.y;
+                                    found_enemy = true;
+                                }
+                            }
+                        }
+                        
+                        // Shoot towards nearest enemy
+                        if (found_enemy) {
+                            float dx = enemy_target_x - friend_pos_opt->x;
+                            float dy = enemy_target_y - friend_pos_opt->y;
+                            float magnitude = std::sqrt(dx * dx + dy * dy);
+                            
+                            if (magnitude > 0.0f) {
+                                float projectile_speed = 500.0f;
+                                float vx = (dx / magnitude) * projectile_speed;
+                                float vy = (dy / magnitude) * projectile_speed;
+                                ::createProjectile(_engine.get_registry(), 
+                                    friend_pos_opt->x + 20.0f, friend_pos_opt->y, 
+                                    vx, vy, lf.damage, WeaponUpgradeType::AllyMissile, false);
+                            }
+                        }
+                        lf.reset_shoot_timer();
+                }
+            }
+            
+            // Despawn friend entity when powerup ends
+            if (!lf.is_active() && lf.friend_entity.has_value()) {
+                try {
+                    _engine.get_registry().kill_entity(lf.friend_entity.value());
+                    std::cout << "[LittleFriend] Despawned ally ship for player " << i << std::endl;
+                } catch (...) {}
+                lf.friend_entity = std::nullopt;
+            }
         }
     }
 
