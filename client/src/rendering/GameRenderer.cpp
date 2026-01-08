@@ -9,7 +9,12 @@
 
 namespace rendering {
 
-GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {}
+GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
+    transition_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    transition_overlay_.setFillColor(sf::Color(0, 0, 0, 0));
+    ruins_background_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+    ruins_background_.setFillColor(sf::Color(25, 20, 35));
+}
 
 void GameRenderer::init(sf::RenderWindow& window) {
     auto& texture_mgr = managers::TextureManager::instance();
@@ -26,6 +31,65 @@ void GameRenderer::init(sf::RenderWindow& window) {
     bg_sprite2_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
     bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
+    std::vector<std::string> top_files = {
+        "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
+        "assets/ruins-top4.png", "assets/ruins-top5.png"
+    };
+    std::vector<std::string> bottom_files = {
+        "assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
+        "assets/ruins-bottom3.png", "assets/ruins-bottom4.png"
+    };
+    const float RUIN_SCALE = 3.5f;
+    float x_pos = 0.0f;
+    for (const auto& file : top_files) {
+        sf::Sprite sprite;
+        sprite.setTexture(texture_mgr.load(file));
+        sprite.setScale(RUIN_SCALE, RUIN_SCALE);
+        sf::FloatRect bounds = sprite.getGlobalBounds();
+        sprite.setPosition(x_pos, 0.0f);
+        ruins_top_base_positions_.push_back(x_pos);
+        x_pos += bounds.width;
+        ruins_top_sprites_.push_back(sprite);
+    }
+    float total_top_width = x_pos;
+    ruins_top_total_width_ = total_top_width;
+    for (size_t i = 0; i < top_files.size(); ++i) {
+        sf::Sprite sprite = ruins_top_sprites_[i];
+        float base_x = ruins_top_base_positions_[i] + total_top_width;
+        sprite.setPosition(base_x, sprite.getPosition().y);
+        ruins_top_base_positions_.push_back(base_x);
+        ruins_top_sprites_.push_back(sprite);
+    }
+    x_pos = 0.0f;
+    for (const auto& file : bottom_files) {
+        sf::Sprite sprite;
+        sprite.setTexture(texture_mgr.load(file));
+        sprite.setScale(RUIN_SCALE, RUIN_SCALE);
+        sf::FloatRect bounds = sprite.getGlobalBounds();
+        sprite.setPosition(x_pos, WINDOW_HEIGHT - bounds.height);
+        ruins_bottom_base_positions_.push_back(x_pos);
+        x_pos += bounds.width;
+        ruins_bottom_sprites_.push_back(sprite);
+    }
+    float total_bottom_width = x_pos;
+    ruins_bottom_total_width_ = total_bottom_width;
+    for (size_t i = 0; i < bottom_files.size(); ++i) {
+        sf::Sprite sprite = ruins_bottom_sprites_[i];
+        sf::FloatRect bounds = sprite.getGlobalBounds();
+        float base_x = ruins_bottom_base_positions_[i] + total_bottom_width;
+        sprite.setPosition(base_x, WINDOW_HEIGHT - bounds.height);
+        ruins_bottom_base_positions_.push_back(base_x);
+        ruins_bottom_sprites_.push_back(sprite);
+    }
+    if (!transition_font_.loadFromFile("assets/fonts/arial.ttf")) {
+        std::cerr << "[GameRenderer] Failed to load transition font" << std::endl;
+    }
+    transition_text_.setFont(transition_font_);
+    transition_text_.setCharacterSize(60);
+    transition_text_.setFillColor(sf::Color::White);
+    transition_text_.setStyle(sf::Text::Bold);
+    transition_text_.setOutlineColor(sf::Color::Black);
+    transition_text_.setOutlineThickness(3.0f);
 
     game_view_.setSize(static_cast<float>(WINDOW_WIDTH), static_cast<float>(WINDOW_HEIGHT));
     game_view_.setCenter(static_cast<float>(WINDOW_WIDTH) / 2.0f,
@@ -34,17 +98,104 @@ void GameRenderer::init(sf::RenderWindow& window) {
 }
 
 void GameRenderer::update(float dt) {
-    bg_scroll_offset_ += bg_scroll_speed_ * dt;
-    if (bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
-        bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+    if (current_bg_level_ >= 6) {
+        const float RUIN_SPEED = 100.0f;
+        ruins_top_offset_ += RUIN_SPEED * dt;
+        ruins_bottom_offset_ += RUIN_SPEED * dt;
+        if (ruins_top_offset_ >= ruins_top_total_width_) {
+            ruins_top_offset_ -= ruins_top_total_width_;
+        }
+        if (ruins_bottom_offset_ >= ruins_bottom_total_width_) {
+            ruins_bottom_offset_ -= ruins_bottom_total_width_;
+        }
+        for (size_t i = 0; i < ruins_top_sprites_.size(); ++i) {
+            float x = ruins_top_base_positions_[i] - ruins_top_offset_;
+            while (x < -ruins_top_sprites_[i].getGlobalBounds().width) {
+                x += ruins_top_total_width_ * 2;
+            }
+            ruins_top_sprites_[i].setPosition(x, 0.0f);
+        }
+        for (size_t i = 0; i < ruins_bottom_sprites_.size(); ++i) {
+            sf::FloatRect bounds = ruins_bottom_sprites_[i].getGlobalBounds();
+            float x = ruins_bottom_base_positions_[i] - ruins_bottom_offset_;
+            while (x < -bounds.width) {
+                x += ruins_bottom_total_width_ * 2;
+            }
+            ruins_bottom_sprites_[i].setPosition(x, WINDOW_HEIGHT - bounds.height);
+        }
+    } else {
+        bg_scroll_offset_ += bg_scroll_speed_ * dt;
+        if (bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
+            bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+        }
+        bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
+        bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - bg_scroll_offset_, 0);
     }
-    bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
-    bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - bg_scroll_offset_, 0);
 }
 
 void GameRenderer::render_background(sf::RenderWindow& window) {
-    window.draw(bg_sprite1_);
-    window.draw(bg_sprite2_);
+    if (current_bg_level_ >= 6) {
+        window.draw(ruins_background_);
+        for (const auto& sprite : ruins_top_sprites_) {
+            window.draw(sprite);
+        }
+        for (const auto& sprite : ruins_bottom_sprites_) {
+            window.draw(sprite);
+        }
+    } else {
+        window.draw(bg_sprite1_);
+        window.draw(bg_sprite2_);
+    }
+}
+
+void GameRenderer::set_background_level(uint8_t level) {
+    if (current_bg_level_ == level) return;
+    if (level == 6 && current_bg_level_ == 5) {
+        target_bg_level_ = level;
+        transition_active_ = true;
+        transition_timer_ = 0.0f;
+    } else {
+        current_bg_level_ = level;
+    }
+    std::cout << "[GameRenderer] Starting transition to level " << static_cast<int>(level) << std::endl;
+}
+
+void GameRenderer::render_level_transition(sf::RenderWindow& window) {
+    if (!transition_active_) return;
+    transition_timer_ += 1.0f / 60.0f;
+    float progress = transition_timer_ / transition_duration_;
+    if (progress < 0.33f) {
+        float fade = progress / 0.33f;
+        transition_overlay_.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(fade * 255)));
+        window.draw(transition_overlay_);
+    } else if (progress < 0.67f) {
+        transition_overlay_.setFillColor(sf::Color(0, 0, 0, 255));
+        window.draw(transition_overlay_);
+        if (target_bg_level_ >= 6) {
+            transition_text_.setString("Entering Ancient Ruins...");
+        } else {
+            transition_text_.setString("Level " + std::to_string(target_bg_level_));
+        }
+        sf::FloatRect textBounds = transition_text_.getLocalBounds();
+        transition_text_.setOrigin(textBounds.width / 2.0f, textBounds.height / 2.0f);
+        transition_text_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
+        float pulse_progress = (progress - 0.33f) / 0.34f;
+        float pulse = 1.0f + 0.2f * std::sin(pulse_progress * 3.14159f * 4.0f);
+        transition_text_.setScale(pulse, pulse);
+        window.draw(transition_text_);
+        if (progress >= 0.5f && current_bg_level_ != target_bg_level_) {
+            current_bg_level_ = target_bg_level_;
+        }
+    } else {
+        float fade = 1.0f - ((progress - 0.67f) / 0.33f);
+        transition_overlay_.setFillColor(sf::Color(0, 0, 0, static_cast<sf::Uint8>(fade * 255)));
+        window.draw(transition_overlay_);
+    }
+    if (progress >= 1.0f) {
+        transition_active_ = false;
+        transition_timer_ = 0.0f;
+        std::cout << "[GameRenderer] Transition completed" << std::endl;
+    }
 }
 
 void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
