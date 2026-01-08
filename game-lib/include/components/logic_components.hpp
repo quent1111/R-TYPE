@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cmath>
 #include "../../../src/Common/Opcodes.hpp"
+#include "../../../engine/ecs/entity.hpp"
 
 
 struct health {
@@ -67,7 +69,8 @@ struct controllable {
 enum class WeaponUpgradeType : uint8_t {
     None = 0,
     PowerShot = 1,
-    TripleShot = 2
+    TripleShot = 2,
+    AllyMissile = 3
 };
 
 struct weapon {
@@ -165,7 +168,8 @@ struct level_manager {
 enum class PowerUpType : uint8_t {
     None = 0,
     PowerCannon = 1,
-    Shield = 2
+    Shield = 2,
+    LittleFriend = 3
 };
 
 struct power_cannon {
@@ -233,6 +237,100 @@ struct shield {
         float dy = enemy_y - player_y;
         float dist_squared = dx * dx + dy * dy;
         return dist_squared <= (radius * radius);
+    }
+};
+
+struct little_friend {
+    bool active = false;
+    float duration = 10.0f;
+    float time_remaining = 0.0f;
+    std::optional<entity> friend_entity = std::nullopt;
+    int damage = 15;
+    float fire_rate = 0.4f;
+    float shoot_timer = 0.0f;
+    float oscillation_timer = 0.0f;  // Timer pour le mouvement vertical
+    float oscillation_speed = 2.0f;   // Vitesse d'oscillation
+    float oscillation_amplitude = 15.0f;  // Amplitude du mouvement (pixels)
+    
+    // Animation d'entrée
+    bool entry_animation_complete = false;
+    float entry_animation_timer = 0.0f;
+    float entry_animation_duration = 1.0f;  // 1 seconde pour l'animation d'entrée
+    
+    // Animation de sortie
+    bool exit_animation_started = false;
+    float exit_animation_timer = 0.0f;
+    float exit_animation_duration = 1.0f;  // 1 seconde pour l'animation de sortie
+    
+    constexpr little_friend() noexcept = default;
+    
+    constexpr void activate() noexcept {
+        active = true;
+        time_remaining = duration;
+        shoot_timer = 0.0f;
+        entry_animation_complete = false;
+        entry_animation_timer = 0.0f;
+        exit_animation_started = false;
+        exit_animation_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            time_remaining -= dt;
+            shoot_timer += dt;
+            oscillation_timer += dt;
+            
+            // Update entry animation
+            if (!entry_animation_complete) {
+                entry_animation_timer += dt;
+                if (entry_animation_timer >= entry_animation_duration) {
+                    entry_animation_complete = true;
+                }
+            }
+            
+            // Start exit animation when time is almost up (1 second before end)
+            if (time_remaining <= exit_animation_duration && !exit_animation_started) {
+                exit_animation_started = true;
+                exit_animation_timer = 0.0f;
+            }
+            
+            // Update exit animation
+            if (exit_animation_started) {
+                exit_animation_timer += dt;
+            }
+            
+            if (time_remaining <= 0.0f) {
+                active = false;
+                time_remaining = 0.0f;
+            }
+        }
+    }
+    
+    [[nodiscard]] constexpr bool is_active() const noexcept { return active; }
+    [[nodiscard]] constexpr float get_remaining_percentage() const noexcept {
+        return duration > 0.0f ? (time_remaining / duration) : 0.0f;
+    }
+    
+    [[nodiscard]] float get_entry_progress() const noexcept {
+        if (entry_animation_complete) return 1.0f;
+        return entry_animation_timer / entry_animation_duration;
+    }
+    
+    [[nodiscard]] float get_exit_progress() const noexcept {
+        if (!exit_animation_started) return 0.0f;
+        return exit_animation_timer / exit_animation_duration;
+    }
+    
+    [[nodiscard]] constexpr bool can_shoot() const noexcept {
+        return active && shoot_timer >= fire_rate;
+    }
+    
+    [[nodiscard]] float get_vertical_offset() const noexcept {
+        return std::sin(oscillation_timer * oscillation_speed) * oscillation_amplitude;
+    }
+    
+    constexpr void reset_shoot_timer() noexcept {
+        shoot_timer = 0.0f;
     }
 };
 
