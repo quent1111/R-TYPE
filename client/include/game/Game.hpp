@@ -56,6 +56,7 @@ private:
 
     sf::Sprite powerup_card1_sprite_;
     sf::Sprite powerup_card2_sprite_;
+    sf::Sprite powerup_card3_sprite_;
 
     uint32_t current_score_ = 0;
     uint32_t displayed_score_ = 0;

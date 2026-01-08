@@ -42,6 +42,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet30a.gif");
         texture_mgr.load("assets/explosion.gif");
         texture_mgr.load("assets/weirdbaby.gif");
+        texture_mgr.load("assets/r-typesheet5.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
@@ -83,7 +84,12 @@ void Game::setup_ui() {
         powerup_card2_sprite_.setTextureRect(
             sf::IntRect(card_width * 1, 0, card_width, card_height));
         powerup_card2_sprite_.setScale(0.6f, 0.6f);
-        powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
+        powerup_card2_sprite_.setPosition(960.0f, 300.0f);
+        powerup_card3_sprite_.setTexture(*bonus_texture);
+        powerup_card3_sprite_.setTextureRect(
+            sf::IntRect(card_width * 0, 0, card_width, card_height));
+        powerup_card3_sprite_.setScale(0.6f, 0.6f);
+        powerup_card3_sprite_.setPosition(1360.0f, 300.0f);
     }
 
     managers::EffectsManager::instance().set_score_position(sf::Vector2f(WINDOW_WIDTH - 200, 40));
@@ -157,7 +163,8 @@ void Game::handle_event(const sf::Event& event) {
     input_handler_.set_focus(has_focus_);
     input_handler_.set_powerup_selection_active(show_powerup_selection_);
     input_handler_.set_powerup_card_bounds(powerup_card1_sprite_.getGlobalBounds(),
-                                           powerup_card2_sprite_.getGlobalBounds());
+                                           powerup_card2_sprite_.getGlobalBounds(),
+                                           powerup_card3_sprite_.getGlobalBounds());
 
     input_handler_.handle_event(event, window_);
 
@@ -457,6 +464,20 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+    } else if (entity.type == 0x0A) {
+        if (texture_mgr.has("assets/r-typesheet5.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
+
+            entity.frames = {{0, 0, 33, 32}, {33, 0, 33, 32}, {66, 0, 33, 32},
+                            {99, 0, 33, 32}, {132, 0, 33, 32}, {165, 0, 33, 32},
+                            {198, 0, 33, 32}, {231, 0, 33, 32}};
+
+            entity.current_frame_index = 3;
+            entity.frame_duration = 0.08F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[3]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
     }

@@ -42,6 +42,7 @@ public:
 
 private:
     void update_ship_tilt(Entity& entity, float dt);
+    void update_ally_tilt(Entity& entity, float dt);
 
     sf::Sprite bg_sprite1_;
     sf::Sprite bg_sprite2_;

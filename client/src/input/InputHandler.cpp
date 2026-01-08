@@ -36,6 +36,13 @@ void InputHandler::handle_event(const sf::Event& event, sf::RenderWindow& window
                 show_powerup_selection_ = false;
                 powerup_type_ = 2;
                 std::cout << "[Game] Powerup 2 selected via click" << std::endl;
+            } else if (powerup_card3_bounds_.contains(mouse_pos)) {
+                if (powerup_choice_callback_) {
+                    powerup_choice_callback_(3);
+                }
+                show_powerup_selection_ = false;
+                powerup_type_ = 3;
+                std::cout << "[Game] Powerup 3 selected via click" << std::endl;
             }
         }
     }
@@ -59,6 +66,12 @@ void InputHandler::handle_input(float dt) {
             }
             show_powerup_selection_ = false;
             powerup_type_ = 2;
+        } else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Num3)) {
+            if (powerup_choice_callback_) {
+                powerup_choice_callback_(3);
+            }
+            show_powerup_selection_ = false;
+            powerup_type_ = 3;
         }
         return;
     }
@@ -95,6 +108,15 @@ void InputHandler::handle_input(float dt) {
         }
     } else {
         was_activating_shield_ = false;
+    }
+
+    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup3))) {
+        if (!was_activating_friend_ && powerup_activate_callback_) {
+            powerup_activate_callback_(3);
+            was_activating_friend_ = true;
+        }
+    } else {
+        was_activating_friend_ = false;
     }
 
     if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot))) {

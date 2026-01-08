@@ -42,7 +42,12 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_card2_sprite_.setTexture(bonus_texture);
     powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
     powerup_card2_sprite_.setScale(0.6f, 0.6f);
-    powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
+    powerup_card2_sprite_.setPosition(960.0f, 300.0f);
+
+    powerup_card3_sprite_.setTexture(bonus_texture);
+    powerup_card3_sprite_.setTextureRect(sf::IntRect(card_width * 0, 0, card_width, card_height));
+    powerup_card3_sprite_.setScale(0.6f, 0.6f);
+    powerup_card3_sprite_.setPosition(1360.0f, 300.0f);
 
     powerup_number1_text_.setFont(font);
     powerup_number1_text_.setCharacterSize(50);
@@ -56,13 +61,20 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_number2_text_.setFillColor(sf::Color::Yellow);
     powerup_number2_text_.setStyle(sf::Text::Bold);
     powerup_number2_text_.setString("2");
-    powerup_number2_text_.setPosition(1305.0f, 720.0f);
+    powerup_number2_text_.setPosition(1080.0f, 720.0f);
+
+    powerup_number3_text_.setFont(font);
+    powerup_number3_text_.setCharacterSize(50);
+    powerup_number3_text_.setFillColor(sf::Color::Yellow);
+    powerup_number3_text_.setStyle(sf::Text::Bold);
+    powerup_number3_text_.setString("3");
+    powerup_number3_text_.setPosition(1480.0f, 720.0f);
 
     powerup_instruction_.setFont(font);
     powerup_instruction_.setCharacterSize(25);
     powerup_instruction_.setFillColor(sf::Color::Cyan);
-    powerup_instruction_.setString("Press 1 or 2 to choose (or click on a card)");
-    powerup_instruction_.setPosition(660.0f, 850.0f);
+    powerup_instruction_.setString("Press 1, 2 or 3 to choose (or click on a card)");
+    powerup_instruction_.setPosition(620.0f, 850.0f);
 
     powerup_hint_text_.setFont(font);
     powerup_hint_text_.setCharacterSize(28);
@@ -91,6 +103,17 @@ void OverlayRenderer::init(const sf::Font& font) {
     cannon_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
     cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
     cannon_hint_bg_.setOutlineThickness(2.0f);
+
+    friend_hint_text_.setFont(font);
+    friend_hint_text_.setCharacterSize(24);
+    friend_hint_text_.setFillColor(sf::Color::White);
+    friend_hint_text_.setStyle(sf::Text::Bold);
+
+    friend_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
+    friend_hint_bg_.setPosition(10, 810);
+    friend_hint_bg_.setFillColor(sf::Color(50, 50, 50, 180));
+    friend_hint_bg_.setOutlineColor(sf::Color(100, 200, 255));
+    friend_hint_bg_.setOutlineThickness(2.0f);
 
     shield_frames_ = {
         {0, 0, 27, 27}, {27, 0, 34, 34}, {61, 0, 42, 42}, {103, 0, 51, 51}, {154, 0, 55, 55}};
@@ -143,9 +166,11 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
 
     window.draw(powerup_card1_sprite_);
     window.draw(powerup_card2_sprite_);
+    window.draw(powerup_card3_sprite_);
 
     window.draw(powerup_number1_text_);
     window.draw(powerup_number2_text_);
+    window.draw(powerup_number3_text_);
 
     sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
     powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 850.0f);
@@ -158,6 +183,7 @@ void OverlayRenderer::render_powerup_active(
     uint32_t my_network_id) {
     float cannon_time = 0.0f;
     float shield_time = 0.0f;
+    float friend_time = 0.0f;
 
     auto cannon_it = player_powerups.find({my_network_id, 1});
     if (cannon_it != player_powerups.end()) {
@@ -167,6 +193,11 @@ void OverlayRenderer::render_powerup_active(
     auto shield_it = player_powerups.find({my_network_id, 2});
     if (shield_it != player_powerups.end()) {
         shield_time = shield_it->second;
+    }
+
+    auto friend_it = player_powerups.find({my_network_id, 3});
+    if (friend_it != player_powerups.end()) {
+        friend_time = friend_it->second;
     }
 
     if (cannon_time > 0.0f) {
@@ -189,6 +220,26 @@ void OverlayRenderer::render_powerup_active(
 
         window.draw(powerup_hint_bg_);
         window.draw(powerup_hint_text_);
+    }
+
+    if (friend_time > 0.0f) {
+        // Draw Little Friend timer bar with progress
+        float bar_width = 600.0f;
+        float progress = friend_time / 10.0f;  // 10 seconds max
+        
+        // Progress fill
+        sf::RectangleShape bar_fill(sf::Vector2f(bar_width * progress, 50.0f));
+        bar_fill.setPosition(10.0f, 810.0f);
+        bar_fill.setFillColor(sf::Color(100, 200, 255, 200));
+        
+        // Update text
+        int seconds = static_cast<int>(friend_time);
+        friend_hint_text_.setString("Little Friend actif: " + std::to_string(seconds) + "s");
+        friend_hint_text_.setPosition(20.0f, 820.0f);
+        
+        window.draw(friend_hint_bg_);
+        window.draw(bar_fill);
+        window.draw(friend_hint_text_);
     }
 
     auto& texture_mgr = managers::TextureManager::instance();

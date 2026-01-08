@@ -51,8 +51,10 @@ private:
     sf::Text powerup_title_;
     sf::Sprite powerup_card1_sprite_;
     sf::Sprite powerup_card2_sprite_;
+    sf::Sprite powerup_card3_sprite_;
     sf::Text powerup_number1_text_;
     sf::Text powerup_number2_text_;
+    sf::Text powerup_number3_text_;
     sf::Text powerup_instruction_;
 
     sf::Text powerup_hint_text_;
@@ -60,6 +62,9 @@ private:
 
     sf::Text cannon_hint_text_;
     sf::RectangleShape cannon_hint_bg_;
+
+    sf::Text friend_hint_text_;
+    sf::RectangleShape friend_hint_bg_;
 
     sf::Sprite shield_visual_;
     std::vector<sf::IntRect> shield_frames_;

@@ -111,6 +111,52 @@ void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
     }
 }
 
+void GameRenderer::update_ally_tilt(Entity& entity, float /*dt*/) {
+    if (entity.type != 0x0A || entity.frames.size() != 8) {
+        return;
+    }
+
+    int target_frame = 3;
+    const float velocity_threshold = 30.0f;
+
+    if (entity.vy < -velocity_threshold) {
+        if (entity.vy < -150.0f) {
+            target_frame = 0;
+        } else if (entity.vy < -80.0f) {
+            target_frame = 1;
+        } else {
+            target_frame = 2;
+        }
+    } else if (entity.vy > velocity_threshold) {
+        if (entity.vy > 150.0f) {
+            target_frame = 7;
+        } else if (entity.vy > 80.0f) {
+            target_frame = 6;
+        } else {
+            target_frame = 5;
+        }
+    } else {
+        if (entity.vy < -10.0f) {
+            target_frame = 3;
+        } else if (entity.vy > 10.0f) {
+            target_frame = 4;
+        } else {
+            target_frame = 3;
+        }
+    }
+
+    int current = static_cast<int>(entity.current_frame_index);
+    if (current != target_frame) {
+        if (current < target_frame) {
+            current = std::min(current + 1, target_frame);
+        } else {
+            current = std::max(current - 1, target_frame);
+        }
+        entity.current_frame_index = static_cast<size_t>(current);
+        entity.sprite.setTextureRect(entity.frames[entity.current_frame_index]);
+    }
+}
+
 void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
                                    uint32_t my_network_id, float dt, float predicted_x, float predicted_y) {
     const auto interp_delay = std::chrono::milliseconds(50);
@@ -122,19 +168,18 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         if (e.type == 0x01) {
             update_ship_tilt(e, dt);
+        } else if (e.type == 0x0A) {
+            update_ally_tilt(e, dt);
         } else {
             e.update_animation(dt);
         }
 
         float draw_x = e.x;
         float draw_y = e.y;
-        
-        // Use predicted position for local player
         if (entity_id == my_network_id && e.type == 0x01 && predicted_x >= 0.0f && predicted_y >= 0.0f) {
             draw_x = predicted_x;
             draw_y = predicted_y;
         } else {
-            // Standard interpolation for other entities
             auto prev_t = e.prev_time;
             auto curr_t = e.curr_time;
 
