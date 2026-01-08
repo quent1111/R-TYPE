@@ -31,6 +31,39 @@ void GameRenderer::init(sf::RenderWindow& window) {
     bg_sprite2_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH), static_cast<int>(WINDOW_HEIGHT)));
     bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
+    sf::Texture& ruins_bg_texture = texture_mgr.load("assets/ruins-background.png");
+    ruins_bg_texture.setRepeated(true);
+    
+    const float BG_SCALE = 1.5f; // Zoom in 50%
+    
+    ruins_bg_sprite1_.setTexture(ruins_bg_texture);
+    ruins_bg_sprite1_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
+    ruins_bg_sprite1_.setScale(BG_SCALE, BG_SCALE);
+    ruins_bg_sprite1_.setPosition(0, 0);
+    
+    ruins_bg_sprite2_.setTexture(ruins_bg_texture);
+    ruins_bg_sprite2_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
+    ruins_bg_sprite2_.setScale(BG_SCALE, BG_SCALE);
+    ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
+    
+    // Load second ruins background for level 15+
+    sf::Texture& ruins_bg2_texture = texture_mgr.load("assets/ruins-background2.png");
+    ruins_bg2_texture.setRepeated(true);
+    
+    ruins_bg2_sprite1_.setTexture(ruins_bg2_texture);
+    ruins_bg2_sprite1_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
+    ruins_bg2_sprite1_.setScale(BG_SCALE, BG_SCALE);
+    ruins_bg2_sprite1_.setPosition(0, 0);
+    
+    ruins_bg2_sprite2_.setTexture(ruins_bg2_texture);
+    ruins_bg2_sprite2_.setTextureRect(
+        sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
+    ruins_bg2_sprite2_.setScale(BG_SCALE, BG_SCALE);
+    ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
+    
     std::vector<std::string> top_files = {
         "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
         "assets/ruins-top4.png", "assets/ruins-top5.png"
@@ -39,46 +72,60 @@ void GameRenderer::init(sf::RenderWindow& window) {
         "assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
         "assets/ruins-bottom3.png", "assets/ruins-bottom4.png"
     };
-    const float RUIN_SCALE = 3.5f;
+    const float RUIN_SCALE = 5.0f;
     float x_pos = 0.0f;
+    int top_index = 0;
     for (const auto& file : top_files) {
         sf::Sprite sprite;
         sprite.setTexture(texture_mgr.load(file));
         sprite.setScale(RUIN_SCALE, RUIN_SCALE);
+        sprite.setOrigin(0, 0);
         sf::FloatRect bounds = sprite.getGlobalBounds();
-        sprite.setPosition(x_pos, 0.0f);
+        float y_offset = -30.0f;
+        sprite.setPosition(x_pos, y_offset);
         ruins_top_base_positions_.push_back(x_pos);
+        ruins_top_base_y_positions_.push_back(y_offset);
         x_pos += bounds.width;
         ruins_top_sprites_.push_back(sprite);
+        top_index++;
     }
     float total_top_width = x_pos;
     ruins_top_total_width_ = total_top_width;
     for (size_t i = 0; i < top_files.size(); ++i) {
         sf::Sprite sprite = ruins_top_sprites_[i];
         float base_x = ruins_top_base_positions_[i] + total_top_width;
-        sprite.setPosition(base_x, sprite.getPosition().y);
+        float y_offset = -30.0f;
+        sprite.setPosition(base_x, y_offset);
         ruins_top_base_positions_.push_back(base_x);
+        ruins_top_base_y_positions_.push_back(y_offset);
         ruins_top_sprites_.push_back(sprite);
     }
     x_pos = 0.0f;
+    int bottom_index = 0;
     for (const auto& file : bottom_files) {
         sf::Sprite sprite;
         sprite.setTexture(texture_mgr.load(file));
         sprite.setScale(RUIN_SCALE, RUIN_SCALE);
+        sprite.setOrigin(0, 0);
         sf::FloatRect bounds = sprite.getGlobalBounds();
-        sprite.setPosition(x_pos, WINDOW_HEIGHT - bounds.height);
+        float extra_offset = 40.0f;
+        float y_pos = static_cast<float>(WINDOW_HEIGHT) - (bounds.height - extra_offset);
+        sprite.setPosition(x_pos, y_pos);
         ruins_bottom_base_positions_.push_back(x_pos);
+        ruins_bottom_base_y_positions_.push_back(y_pos);
         x_pos += bounds.width;
         ruins_bottom_sprites_.push_back(sprite);
+        bottom_index++;
     }
     float total_bottom_width = x_pos;
     ruins_bottom_total_width_ = total_bottom_width;
     for (size_t i = 0; i < bottom_files.size(); ++i) {
         sf::Sprite sprite = ruins_bottom_sprites_[i];
-        sf::FloatRect bounds = sprite.getGlobalBounds();
         float base_x = ruins_bottom_base_positions_[i] + total_bottom_width;
-        sprite.setPosition(base_x, WINDOW_HEIGHT - bounds.height);
+        float y_pos = ruins_bottom_base_y_positions_[i];
+        sprite.setPosition(base_x, y_pos);
         ruins_bottom_base_positions_.push_back(base_x);
+        ruins_bottom_base_y_positions_.push_back(y_pos);
         ruins_bottom_sprites_.push_back(sprite);
     }
     if (!transition_font_.loadFromFile("assets/fonts/arial.ttf")) {
@@ -99,7 +146,25 @@ void GameRenderer::init(sf::RenderWindow& window) {
 
 void GameRenderer::update(float dt) {
     if (current_bg_level_ >= 6) {
-        const float RUIN_SPEED = 100.0f;
+        if (bg_fade_active_) {
+            bg_fade_timer_ += dt;
+            if (bg_fade_timer_ >= bg_fade_duration_) {
+                bg_fade_active_ = false;
+                bg_fade_timer_ = bg_fade_duration_;
+            }
+        }
+        ruins_bg_scroll_offset_ += bg_scroll_speed_ * dt;
+        if (ruins_bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
+            ruins_bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+        }
+        if (current_bg_level_ >= 10) {
+            ruins_bg2_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
+            ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
+        } else {
+            ruins_bg_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
+            ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
+        }
+        const float RUIN_SPEED = 300.0f;
         ruins_top_offset_ += RUIN_SPEED * dt;
         ruins_bottom_offset_ += RUIN_SPEED * dt;
         if (ruins_top_offset_ >= ruins_top_total_width_) {
@@ -110,18 +175,19 @@ void GameRenderer::update(float dt) {
         }
         for (size_t i = 0; i < ruins_top_sprites_.size(); ++i) {
             float x = ruins_top_base_positions_[i] - ruins_top_offset_;
+            float y = ruins_top_base_y_positions_[i];
             while (x < -ruins_top_sprites_[i].getGlobalBounds().width) {
                 x += ruins_top_total_width_ * 2;
             }
-            ruins_top_sprites_[i].setPosition(x, 0.0f);
+            ruins_top_sprites_[i].setPosition(x, y);
         }
         for (size_t i = 0; i < ruins_bottom_sprites_.size(); ++i) {
-            sf::FloatRect bounds = ruins_bottom_sprites_[i].getGlobalBounds();
             float x = ruins_bottom_base_positions_[i] - ruins_bottom_offset_;
-            while (x < -bounds.width) {
+            float y = ruins_bottom_base_y_positions_[i];
+            while (x < -ruins_bottom_sprites_[i].getGlobalBounds().width) {
                 x += ruins_bottom_total_width_ * 2;
             }
-            ruins_bottom_sprites_[i].setPosition(x, WINDOW_HEIGHT - bounds.height);
+            ruins_bottom_sprites_[i].setPosition(x, y);
         }
     } else {
         bg_scroll_offset_ += bg_scroll_speed_ * dt;
@@ -135,7 +201,31 @@ void GameRenderer::update(float dt) {
 
 void GameRenderer::render_background(sf::RenderWindow& window) {
     if (current_bg_level_ >= 6) {
-        window.draw(ruins_background_);
+        if (current_bg_level_ >= 10) {
+            if (bg_fade_active_) {
+                float fade_progress = bg_fade_timer_ / bg_fade_duration_;
+                sf::Uint8 old_alpha = static_cast<sf::Uint8>((1.0f - fade_progress) * 255);
+                ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, old_alpha));
+                ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, old_alpha));
+                window.draw(ruins_bg_sprite1_);
+                window.draw(ruins_bg_sprite2_);
+                sf::Uint8 new_alpha = static_cast<sf::Uint8>(fade_progress * 255);
+                ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, new_alpha));
+                ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, new_alpha));
+                window.draw(ruins_bg2_sprite1_);
+                window.draw(ruins_bg2_sprite2_);
+            } else {
+                ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, 255));
+                ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, 255));
+                window.draw(ruins_bg2_sprite1_);
+                window.draw(ruins_bg2_sprite2_);
+            }
+        } else {
+            ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, 255));
+            ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, 255));
+            window.draw(ruins_bg_sprite1_);
+            window.draw(ruins_bg_sprite2_);
+        }
         for (const auto& sprite : ruins_top_sprites_) {
             window.draw(sprite);
         }
@@ -154,6 +244,10 @@ void GameRenderer::set_background_level(uint8_t level) {
         target_bg_level_ = level;
         transition_active_ = true;
         transition_timer_ = 0.0f;
+    } else if (level == 10 && current_bg_level_ == 9) {
+        bg_fade_active_ = true;
+        bg_fade_timer_ = 0.0f;
+        current_bg_level_ = level;
     } else {
         current_bg_level_ = level;
     }
