@@ -249,6 +249,268 @@ struct PacketHeader {
 [1 byte: Opcode][2 bytes: Payload Size][N bytes: Payload]
 ```
 
+### Byte-Level Format Examples
+
+This section provides detailed byte-by-byte breakdowns of actual network packets to help understand the binary protocol format.
+
+#### Example 1: JOIN_LOBBY Packet
+
+**Description:** Client sends this packet to join the game lobby (no payload).
+
+**Byte Layout:**
+```
+Offset   0    1    2
+       ┌────┬────┬────┐
+       │ 01 │ 00 │ 00 │
+       └────┴────┴────┘
+         │    │    │
+         │    └────┴───── Payload Size (uint16_t, little-endian) = 0
+         │
+         └──────────────── Opcode = 0x01 (JOIN_LOBBY)
+
+Total Size: 3 bytes
+```
+
+**Hexadecimal:** `01 00 00`
+
+**C++ Serialization:**
+```cpp
+std::vector<uint8_t> packet(3);
+packet[0] = 0x01;  // Opcode: JOIN_LOBBY
+packet[1] = 0x00;  // Payload size low byte
+packet[2] = 0x00;  // Payload size high byte
+network_client.send(packet);
+```
+
+---
+
+#### Example 2: PLAYER_INPUT Packet
+
+**Description:** Client sends player input (movement + shoot).
+
+**Scenario:** Player pressing UP + RIGHT + SHOOT
+
+**Byte Layout:**
+```
+Offset   0    1    2    3
+       ┌────┬────┬────┬────┐
+       │ 10 │ 01 │ 00 │ 19 │
+       └────┴────┴────┴────┘
+         │    │    │    │
+         │    │    │    └──── Input Mask (uint8_t) = 0x19 = 0b00011001
+         │    │    │          Bits: SHOOT(1) | RIGHT(1) | UP(1)
+         │    └────┴───────── Payload Size (uint16_t) = 1
+         │
+         └──────────────────── Opcode = 0x10 (PLAYER_INPUT)
+
+Total Size: 4 bytes
+```
+
+**Input Mask Bit Mapping:**
+```
+Bit:    7   6   5   4   3   2   1   0
+       ┌───┬───┬───┬───┬───┬───┬───┬───┐
+       │ 0 │ 0 │ 0 │ 1 │ 1 │ 0 │ 0 │ 1 │  = 0x19
+       └───┴───┴───┴───┴───┴───┴───┴───┘
+         │   │   │   │   │   │   │   │
+         │   │   │   │   │   │   │   └──── UP    (0x01)
+         │   │   │   │   │   │   └──────── DOWN  (0x02)
+         │   │   │   │   │   └──────────── LEFT  (0x04)
+         │   │   │   │   └──────────────── RIGHT (0x08)
+         │   │   │   └──────────────────── SHOOT (0x10)
+         └───┴───┴───────────────────────── Reserved
+```
+
+**Hexadecimal:** `10 01 00 19`
+
+**C++ Serialization:**
+```cpp
+uint8_t input_mask = INPUT_UP | INPUT_RIGHT | INPUT_SHOOT;  // 0x01 | 0x08 | 0x10 = 0x19
+std::vector<uint8_t> packet = {
+    0x10,  // Opcode: PLAYER_INPUT
+    0x01,  // Payload size low byte (1 byte)
+    0x00,  // Payload size high byte
+    input_mask  // Input data
+};
+network_client.send(packet);
+```
+
+---
+
+#### Example 3: ENTITY_POSITIONS Packet (2 entities)
+
+**Description:** Server broadcasts positions of 2 entities (1 player, 1 enemy).
+
+**Scenario:**
+- **Entity 1** (Player): ID=42, Position=(100.5, 200.0), Velocity=(5.0, 0.0), Type=0x01
+- **Entity 2** (Enemy): ID=100, Position=(400.0, 150.5), Velocity=(-3.0, 1.0), Type=0x02
+
+**Byte Layout:**
+```
+Offset   0    1    2    3    4    5    6    7    8    9   10   11   12 ...
+       ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬───
+       │ 11 │ 2A │ 00 │ 02 │ 00 │ 00 │ 00 │ 2A │ 00 │ 00 │ 00 │ 00 │C8 │...
+       └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴───
+         │    │    │    │    └────┴────┴────┘
+         │    │    │    │         │
+         │    │    │    │         └──────────── Entity Count (uint32_t) = 2
+         │    └────┴────┘
+         │         │
+         │         └────────────────────────── Payload Size (uint16_t) = 42
+         │
+         └──────────────────────────────────── Opcode = 0x11 (ENTITY_POSITIONS)
+
+Entity 1 Data (bytes 7-27):
+  7-10: Network ID (uint32_t, LE) = 42        → [2A 00 00 00]
+ 11-14: Position X (float, LE) = 100.5        → [00 C8 42 42]
+ 15-18: Position Y (float, LE) = 200.0        → [00 00 48 43]
+ 19-22: Velocity X (float, LE) = 5.0          → [00 00 A0 40]
+ 23-26: Velocity Y (float, LE) = 0.0          → [00 00 00 00]
+    27: Entity Type (uint8_t) = 0x01          → [01]
+
+Entity 2 Data (bytes 28-48):
+ 28-31: Network ID (uint32_t, LE) = 100       → [64 00 00 00]
+ 32-35: Position X (float, LE) = 400.0        → [00 00 C8 43]
+ 36-39: Position Y (float, LE) = 150.5        → [00 40 16 43]
+ 40-43: Velocity X (float, LE) = -3.0         → [00 00 40 C0]
+ 44-47: Velocity Y (float, LE) = 1.0          → [00 00 80 3F]
+    48: Entity Type (uint8_t) = 0x02          → [02]
+
+Total Size: 49 bytes (3 header + 4 count + 21*2 entities)
+```
+
+**Hexadecimal (first entity only):**
+```
+11 2A 00 02 00 00 00 2A 00 00 00 00 C8 42 42 00 00 48 43 00 00 A0 40 00 00 00 00 01 ...
+```
+
+**C++ Serialization:**
+```cpp
+BinarySerializer serializer;
+serializer.write<uint8_t>(0x11);            // Opcode: ENTITY_POSITIONS
+serializer.write<uint16_t>(42);             // Payload size (calculated)
+serializer.write<uint32_t>(2);              // Entity count
+
+// Entity 1
+serializer.write<uint32_t>(42);             // Network ID
+serializer.write<float>(100.5f);            // Position X
+serializer.write<float>(200.0f);            // Position Y
+serializer.write<float>(5.0f);              // Velocity X
+serializer.write<float>(0.0f);              // Velocity Y
+serializer.write<uint8_t>(0x01);            // Type: Player
+
+// Entity 2
+serializer.write<uint32_t>(100);            // Network ID
+serializer.write<float>(400.0f);            // Position X
+serializer.write<float>(150.5f);            // Position Y
+serializer.write<float>(-3.0f);             // Velocity X
+serializer.write<float>(1.0f);              // Velocity Y
+serializer.write<uint8_t>(0x02);            // Type: Enemy
+
+server.send_to_all_clients(serializer.data());
+```
+
+---
+
+#### Example 4: POWERUP_SPAWNED Packet
+
+**Description:** Server notifies clients that a power-up has spawned.
+
+**Scenario:** Shield power-up (type 0x02) spawned at position (250.0, 180.0) with ID=55
+
+**Byte Layout:**
+```
+Offset   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14
+       ┌────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┬────┐
+       │ 30 │ 0D │ 00 │ 37 │ 00 │ 00 │ 00 │ 00 │ 80 │ 7A │ 43 │ 00 │ 00 │ 34 │ 02 │
+       └────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┴────┘
+         │    │    │    │    └────┴────┘    │    └────┴────┴────┘    └────┴────┘
+         │    │    │    │         │         │         │                    │
+         │    │    │    │         │         │         └──── Position Y (float, LE) = 180.0
+         │    │    │    │         │         └──────────── Position X (float, LE) = 250.0
+         │    │    │    │         └────────────────────── Powerup ID (uint32_t, LE) = 55
+         │    └────┴────┘
+         │         │
+         │         └──────────────────────────────────── Payload Size (uint16_t) = 13
+         │
+         └────────────────────────────────────────────── Opcode = 0x30 (POWERUP_SPAWNED)
+                                                                              │
+                                                                              └─ Type (uint8_t) = 0x02 (Shield)
+
+Total Size: 15 bytes
+```
+
+**Hexadecimal:** `30 0D 00 37 00 00 00 00 80 7A 43 00 00 34 43 02`
+
+**C++ Serialization:**
+```cpp
+BinarySerializer serializer;
+serializer.write<uint8_t>(0x30);            // Opcode: POWERUP_SPAWNED
+serializer.write<uint16_t>(13);             // Payload size
+serializer.write<uint32_t>(55);             // Powerup ID
+serializer.write<float>(250.0f);            // Position X
+serializer.write<float>(180.0f);            // Position Y
+serializer.write<uint8_t>(0x02);            // Type: Shield
+server.broadcast_to_all_clients(serializer.data());
+```
+
+---
+
+### Binary Encoding Notes
+
+#### Little-Endian Format
+
+All multi-byte integers and floats use **little-endian** byte order (least significant byte first):
+
+```
+uint16_t value = 300 (0x012C)
+Bytes: [2C 01]
+       LSB MSB
+
+uint32_t value = 1000 (0x000003E8)
+Bytes: [E8 03 00 00]
+       LSB       MSB
+
+float value = 10.5
+IEEE-754: 0x41280000
+Bytes: [00 00 28 41]
+       LSB       MSB
+```
+
+#### Float Representation (IEEE-754)
+
+All floating-point values use **IEEE-754 single precision** (32-bit):
+
+```
+Example: 100.5
+Binary: 0 10000101 10010010000000000000000
+        │     │              │
+        │     │              └── Mantissa (23 bits)
+        │     └───────────────── Exponent (8 bits)
+        └─────────────────────── Sign (1 bit)
+
+Hexadecimal: 0x42C80000
+Little-Endian Bytes: [00 C8 42 42]
+```
+
+#### Size Calculations
+
+```
+Packet Size = Header Size + Payload Size
+
+Header:
+  - Opcode: 1 byte
+  - Payload Size: 2 bytes
+  = 3 bytes total
+
+Example Payload Sizes:
+  - JOIN_LOBBY: 0 bytes
+  - PLAYER_INPUT: 1 byte (input mask)
+  - ENTITY_POSITIONS (N entities): 4 + N * 21 bytes
+    (4 bytes for count + 21 bytes per entity)
+  - POWERUP_SPAWNED: 13 bytes (4 ID + 4 X + 4 Y + 1 type)
+```
+
 ### Opcodes
 
 Defined in `src/Common/Opcodes.hpp`:
