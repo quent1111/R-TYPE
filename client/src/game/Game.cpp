@@ -614,6 +614,7 @@ void Game::process_network_messages() {
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
+                game_renderer_.set_background_level(current_level_);
                 break;
             case NetworkToGame::MessageType::LevelComplete:
                 break;
@@ -692,6 +693,7 @@ void Game::render() {
 
     game_renderer_.render_damage_flash(window_);
     game_renderer_.render_colorblind_overlay(window_);
+    game_renderer_.render_level_transition(window_);
 
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
