@@ -16,24 +16,24 @@ void PowerupRegistry::initialize() {
         def.asset_path = "assets/canon_powerup.png";
         
         def.level_effects.push_back({
-            10.0f,
+            3.0f,
             50.0f,
             0.3f,
-            "Basic power cannon"
+            "Basic power cannon - 3 seconds"
         });
         
         def.level_effects.push_back({
-            12.0f,
+            5.0f,
             75.0f,
             0.25f,
-            "Improved power cannon with faster fire rate"
+            "Improved power cannon - 5 seconds"
         });
 
         def.level_effects.push_back({
-            15.0f,
+            7.0f,
             100.0f,
             0.2f,
-            "Ultimate power cannon with devastating damage"
+            "Ultimate power cannon - 7 seconds"
         });
 
         register_powerup(def);
@@ -49,24 +49,24 @@ void PowerupRegistry::initialize() {
         def.asset_path = "assets/shield_powerup.png";
 
         def.level_effects.push_back({
-            10.0f,
+            3.0f,
             80.0f,
             0.0f,
-            "Basic energy shield"
+            "Basic energy shield - 3 seconds"
         });
         
         def.level_effects.push_back({
-            15.0f,
+            5.0f,
             100.0f,
             0.0f,
-            "Enhanced shield with larger radius"
+            "Enhanced shield - 5 seconds"
         });
         
         def.level_effects.push_back({
-            20.0f,
+            7.0f,
             120.0f,
             0.0f,
-            "Ultimate shield with massive protection area"
+            "Ultimate shield - 7 seconds"
         });
         
         register_powerup(def);

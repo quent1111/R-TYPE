@@ -144,29 +144,42 @@ void PowerupHandler::handle_powerup_activate(
         return;
     }
     
+    uint8_t level = powerups.get_level(id);
     powerups.activate(id);
     
     auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
     if (def) {
         std::cout << "[Game] Client " << client_id << " activated " << def->name 
-                  << " Level " << static_cast<int>(powerups.get_level(id)) << std::endl;
+                  << " Level " << static_cast<int>(level) << std::endl;
     }
     
     if (id == powerup::PowerupId::PowerCannon) {
-        auto& cannon_opt = reg.get_component<power_cannon>(player);
-        if (cannon_opt.has_value()) {
-            cannon_opt->activate();
-        } else {
-            reg.emplace_component<power_cannon>(player);
-            reg.get_component<power_cannon>(player)->activate();
+        if (def && level > 0 && level <= def->level_effects.size()) {
+            const auto& effect = def->level_effects[level - 1];
+            float duration = effect.duration;
+            int damage = static_cast<int>(effect.value);
+            
+            auto& cannon_opt = reg.get_component<power_cannon>(player);
+            if (cannon_opt.has_value()) {
+                cannon_opt->activate(duration, damage);
+            } else {
+                reg.emplace_component<power_cannon>(player);
+                reg.get_component<power_cannon>(player)->activate(duration, damage);
+            }
         }
     } else if (id == powerup::PowerupId::Shield) {
-        auto& shield_opt = reg.get_component<shield>(player);
-        if (shield_opt.has_value()) {
-            shield_opt->activate();
-        } else {
-            reg.emplace_component<shield>(player);
-            reg.get_component<shield>(player)->activate();
+        if (def && level > 0 && level <= def->level_effects.size()) {
+            const auto& effect = def->level_effects[level - 1];
+            float duration = effect.duration;
+            float radius = effect.value;
+            
+            auto& shield_opt = reg.get_component<shield>(player);
+            if (shield_opt.has_value()) {
+                shield_opt->activate(duration, radius);
+            } else {
+                reg.emplace_component<shield>(player);
+                reg.get_component<shield>(player)->activate(duration, radius);
+            }
         }
     }
 }
