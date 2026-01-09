@@ -25,6 +25,11 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     enemies_killed_ = 0;
     show_level_intro_ = true;
     level_intro_timer_ = 0.0f;
+    
+    my_activable_slots_.resize(2, {std::nullopt, 0});
+    my_slot_timers_.resize(2, 0.0f);
+    my_slot_cooldowns_.resize(2, 0.0f);
+    my_slot_active_.resize(2, false);
 
     auto& texture_mgr = managers::TextureManager::instance();
     try {
@@ -644,6 +649,26 @@ void Game::process_network_messages() {
                     powerup_time_remaining_ = msg.powerup_time_remaining;
                 }
                 break;
+            case NetworkToGame::MessageType::ActivableSlots:
+                if (msg.activable_slots.size() >= 2) {
+                    for (size_t i = 0; i < 2; ++i) {
+                        if (i < msg.activable_slots.size()) {
+                            const auto& slot = msg.activable_slots[i];
+                            if (slot.has_powerup) {
+                                my_activable_slots_[i] = {static_cast<powerup::PowerupId>(slot.powerup_id), slot.level};
+                                my_slot_timers_[i] = slot.time_remaining;
+                                my_slot_cooldowns_[i] = slot.cooldown_remaining;
+                                my_slot_active_[i] = slot.is_active;
+                            } else {
+                                my_activable_slots_[i] = {std::nullopt, 0};
+                                my_slot_timers_[i] = 0.0f;
+                                my_slot_cooldowns_[i] = 0.0f;
+                                my_slot_active_[i] = false;
+                            }
+                        }
+                    }
+                }
+                break;
             case NetworkToGame::MessageType::BossSpawn:
                 managers::AudioManager::instance().play_music("assets/sounds/bossfight.mp3", true);
                 boss_spawn_triggered_ = true;
@@ -689,6 +714,8 @@ void Game::render() {
     overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_,
                                          enemies_needed_);
     overlay_renderer_.render_powerup_selection(window_, show_powerup_selection_);
+    overlay_renderer_.render_activable_slots(window_, my_activable_slots_, my_slot_timers_,
+                                             my_slot_cooldowns_, my_slot_active_);
     overlay_renderer_.render_game_over(window_, show_game_over_);
 
     game_renderer_.render_damage_flash(window_);

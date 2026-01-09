@@ -94,7 +94,7 @@ void InputHandler::handle_input(float dt) {
 
     if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup1))) {
         if (!was_activating_cannon_ && powerup_activate_callback_) {
-            powerup_activate_callback_(1);
+            powerup_activate_callback_(0);
             was_activating_cannon_ = true;
         }
     } else {
@@ -103,7 +103,7 @@ void InputHandler::handle_input(float dt) {
 
     if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup2))) {
         if (!was_activating_shield_ && powerup_activate_callback_) {
-            powerup_activate_callback_(2);
+            powerup_activate_callback_(1);
             was_activating_shield_ = true;
         }
     } else {

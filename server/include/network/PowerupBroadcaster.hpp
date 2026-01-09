@@ -27,6 +27,9 @@ public:
     void broadcast_powerup_status(UDPServer& server, registry& reg,
                                   const std::unordered_map<int, std::size_t>& client_entity_ids,
                                   const std::vector<int>& lobby_client_ids);
+    
+    void broadcast_activable_slots(UDPServer& server, int client_id,
+                                   const powerup::PlayerPowerups::ActivableSlot slots[2]);
 };
 
 }  // namespace server

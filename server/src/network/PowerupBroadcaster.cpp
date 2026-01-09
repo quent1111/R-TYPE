@@ -74,4 +74,28 @@ void PowerupBroadcaster::broadcast_powerup_status(
     }
 }
 
+void PowerupBroadcaster::broadcast_activable_slots(
+    UDPServer& server, int client_id,
+    const powerup::PlayerPowerups::ActivableSlot slots[2]) {
+    
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::ActivableSlots;
+    
+    for (int i = 0; i < 2; ++i) {
+        bool has_powerup = slots[i].has_powerup();
+        serializer << has_powerup;
+        
+        if (has_powerup) {
+            serializer << static_cast<uint8_t>(slots[i].powerup_id.value());
+            serializer << slots[i].level;
+            serializer << slots[i].time_remaining;
+            serializer << slots[i].cooldown_remaining;
+            serializer << slots[i].is_active;
+        }
+    }
+    
+    server.send_to_client(client_id, serializer.data());
+}
+
 }  // namespace server

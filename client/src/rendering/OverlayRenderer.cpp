@@ -3,6 +3,7 @@
 #include "managers/TextureManager.hpp"
 
 #include <iostream>
+#include <optional>
 
 namespace rendering {
 
@@ -122,34 +123,6 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_instruction_.setString("Press 1, 2 or 3 to choose (or click on a card)");
     powerup_instruction_.setPosition(620.0f, 850.0f);
 
-    powerup_hint_text_.setFont(font);
-    powerup_hint_text_.setCharacterSize(28);
-    powerup_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
-    powerup_hint_text_.setStyle(sf::Text::Bold);
-    powerup_hint_text_.setOutlineColor(sf::Color::Black);
-    powerup_hint_text_.setOutlineThickness(3.0f);
-    powerup_hint_text_.setPosition(20, 950);
-
-    powerup_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
-    powerup_hint_bg_.setPosition(10, 940);
-    powerup_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
-    powerup_hint_bg_.setOutlineColor(sf::Color::Yellow);
-    powerup_hint_bg_.setOutlineThickness(2.0f);
-
-    cannon_hint_text_.setFont(font);
-    cannon_hint_text_.setCharacterSize(28);
-    cannon_hint_text_.setFillColor(sf::Color(255, 255, 0, 255));
-    cannon_hint_text_.setStyle(sf::Text::Bold);
-    cannon_hint_text_.setOutlineColor(sf::Color::Black);
-    cannon_hint_text_.setOutlineThickness(3.0f);
-    cannon_hint_text_.setPosition(20, 880);
-
-    cannon_hint_bg_.setSize(sf::Vector2f(600.0f, 50.0f));
-    cannon_hint_bg_.setPosition(10, 870);
-    cannon_hint_bg_.setFillColor(sf::Color(0, 0, 0, 180));
-    cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
-    cannon_hint_bg_.setOutlineThickness(2.0f);
-
     friend_hint_text_.setFont(font);
     friend_hint_text_.setCharacterSize(24);
     friend_hint_text_.setFillColor(sf::Color::White);
@@ -176,6 +149,38 @@ void OverlayRenderer::init(const sf::Font& font) {
         game_over_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
         game_over_sprite_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f);
     }
+    
+    activable_slot1_frame_.setSize(sf::Vector2f(120.0f, 120.0f));
+    activable_slot1_frame_.setFillColor(sf::Color(40, 40, 40, 200));
+    activable_slot1_frame_.setOutlineColor(sf::Color(255, 255, 255, 150));
+    activable_slot1_frame_.setOutlineThickness(3.0f);
+    activable_slot1_frame_.setPosition(50.0f, 880.0f);
+    
+    activable_slot2_frame_.setSize(sf::Vector2f(120.0f, 120.0f));
+    activable_slot2_frame_.setFillColor(sf::Color(40, 40, 40, 200));
+    activable_slot2_frame_.setOutlineColor(sf::Color(255, 255, 255, 150));
+    activable_slot2_frame_.setOutlineThickness(3.0f);
+    activable_slot2_frame_.setPosition(190.0f, 880.0f);
+    
+    activable_slot1_bar_.setSize(sf::Vector2f(120.0f, 10.0f));
+    activable_slot1_bar_.setFillColor(sf::Color(0, 255, 0, 200));
+    activable_slot1_bar_.setPosition(50.0f, 1005.0f);
+    
+    activable_slot2_bar_.setSize(sf::Vector2f(120.0f, 10.0f));
+    activable_slot2_bar_.setFillColor(sf::Color(0, 255, 0, 200));
+    activable_slot2_bar_.setPosition(190.0f, 1005.0f);
+    
+    activable_slot1_key_.setFont(font);
+    activable_slot1_key_.setCharacterSize(24);
+    activable_slot1_key_.setFillColor(sf::Color::White);
+    activable_slot1_key_.setString("Skill 1");
+    activable_slot1_key_.setPosition(60.0f, 1020.0f);
+    
+    activable_slot2_key_.setFont(font);
+    activable_slot2_key_.setCharacterSize(24);
+    activable_slot2_key_.setFillColor(sf::Color::White);
+    activable_slot2_key_.setString("Skill 2");
+    activable_slot2_key_.setPosition(200.0f, 1020.0f);
 }
 
 void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, uint8_t level,
@@ -234,45 +239,6 @@ void OverlayRenderer::render_powerup_active(
     sf::RenderWindow& window, const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
     const std::map<uint32_t, Entity>& entities, const std::map<uint32_t, int>& player_shield_frame,
     uint32_t my_network_id) {
-    float cannon_time = 0.0f;
-    float shield_time = 0.0f;
-
-    auto cannon_it = player_powerups.find({my_network_id, 1});
-    if (cannon_it != player_powerups.end()) {
-        cannon_time = cannon_it->second;
-    }
-
-    auto shield_it = player_powerups.find({my_network_id, 2});
-    if (shield_it != player_powerups.end()) {
-        shield_time = shield_it->second;
-    }
-
-    // Little Friend (type 3) is now a permanent passive, no timer needed
-
-    if (cannon_time > 0.0f) {
-        int seconds = static_cast<int>(cannon_time);
-        std::string hint_text = "Power Cannon actif: " + std::to_string(seconds) + "s";
-        cannon_hint_text_.setString(hint_text);
-        cannon_hint_text_.setFillColor(sf::Color::Yellow);
-        cannon_hint_bg_.setOutlineColor(sf::Color::Yellow);
-
-        window.draw(cannon_hint_bg_);
-        window.draw(cannon_hint_text_);
-    }
-
-    if (shield_time > 0.0f) {
-        int seconds = static_cast<int>(shield_time);
-        std::string hint_text = "Protection active: " + std::to_string(seconds) + "s";
-        powerup_hint_text_.setString(hint_text);
-        powerup_hint_text_.setFillColor(sf::Color::Cyan);
-        powerup_hint_bg_.setOutlineColor(sf::Color::Cyan);
-
-        window.draw(powerup_hint_bg_);
-        window.draw(powerup_hint_text_);
-    }
-
-    // Little Friend is now a permanent passive power-up
-    // No timer display needed (was showing "9999999s")
 
     auto& texture_mgr = managers::TextureManager::instance();
 
@@ -512,6 +478,77 @@ void OverlayRenderer::update_powerup_cards(
             powerup_desc3_text_.setOrigin(desc_bounds.width / 2.0f, desc_bounds.height / 2.0f);
             powerup_desc3_text_.setPosition(1360.0f, 755.0f);
         }
+    }
+}
+
+void OverlayRenderer::render_activable_slots(sf::RenderWindow& window,
+                                             const std::vector<std::pair<std::optional<powerup::PowerupId>, uint8_t>>& slots,
+                                             const std::vector<float>& slot_timers,
+                                             const std::vector<float>& slot_cooldowns,
+                                             const std::vector<bool>& slot_active) {
+    auto& texture_mgr = managers::TextureManager::instance();
+    
+    for (int i = 0; i < 2 && i < slots.size(); ++i) {
+        sf::RectangleShape& frame = (i == 0) ? activable_slot1_frame_ : activable_slot2_frame_;
+        sf::RectangleShape& bar = (i == 0) ? activable_slot1_bar_ : activable_slot2_bar_;
+        sf::Text& key_text = (i == 0) ? activable_slot1_key_ : activable_slot2_key_;
+        
+        window.draw(frame);
+        
+        if (slots[i].first.has_value()) {
+            auto* def = powerup::PowerupRegistry::instance().get_powerup(slots[i].first.value());
+            if (def) {
+                sf::Sprite& slot_sprite = (i == 0) ? activable_slot1_sprite_ : activable_slot2_sprite_;
+                
+                texture_mgr.load(def->asset_path);
+                if (texture_mgr.has(def->asset_path)) {
+                    slot_sprite.setTexture(*texture_mgr.get(def->asset_path));
+                    auto tex_size = texture_mgr.get(def->asset_path)->getSize();
+                    slot_sprite.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                    
+                    float scale_x = 240.0f / static_cast<float>(tex_size.x);
+                    float scale_y = 240.0f / static_cast<float>(tex_size.y);
+                    slot_sprite.setScale(scale_x, scale_y);
+                    
+                    sf::Vector2f pos = frame.getPosition();
+                    float offset_x = (120.0f - 240.0f) / 2.0f;
+                    float offset_y = (120.0f - 240.0f) / 2.0f;
+                    slot_sprite.setPosition(pos.x + offset_x, pos.y + offset_y);
+                    
+                    window.draw(slot_sprite);
+                }
+                
+                float bar_width = 120.0f;
+                float bar_height = 10.0f;
+                float percentage = 0.0f;
+                sf::Color bar_color;
+                
+                if (i < static_cast<int>(slot_active.size()) && slot_active[static_cast<size_t>(i)]) {
+                    if (i < static_cast<int>(slot_timers.size())) {
+                        auto* def_ptr = powerup::PowerupRegistry::instance().get_powerup(slots[static_cast<size_t>(i)].first.value());
+                        if (def_ptr && slots[static_cast<size_t>(i)].second > 0 && slots[static_cast<size_t>(i)].second <= def_ptr->level_effects.size()) {
+                            float max_duration = def_ptr->level_effects[slots[static_cast<size_t>(i)].second - 1].duration;
+                            percentage = (max_duration > 0.0f) ? (slot_timers[static_cast<size_t>(i)] / max_duration) : 0.0f;
+                        }
+                    }
+                    bar_color = sf::Color(0, 255, 0, 200);
+                } else if (i < static_cast<int>(slot_cooldowns.size()) && slot_cooldowns[static_cast<size_t>(i)] > 0.0f) {
+                    percentage = 1.0f - (slot_cooldowns[static_cast<size_t>(i)] / 25.0f);
+                    bar_color = sf::Color(255, 140, 0, 200);
+                } else {
+                    percentage = 1.0f;
+                    bar_color = sf::Color(0, 255, 0, 200);
+                }
+                
+                sf::Vector2f frame_pos = frame.getPosition();
+                bar.setPosition(frame_pos.x, frame_pos.y + 120.0f + 5.0f);
+                bar.setSize(sf::Vector2f(bar_width * percentage, bar_height));
+                bar.setFillColor(bar_color);
+                window.draw(bar);
+            }
+        }
+        
+        window.draw(key_text);
     }
 }
 

@@ -95,6 +95,14 @@ void PowerupHandler::handle_powerup_choice(
                       << std::endl;
         }
         
+        if (def && def->category == powerup::PowerupCategory::Activable) {
+            uint8_t level = powerups.get_level(chosen_card.id);
+            bool assigned = powerups.assign_to_slot(chosen_card.id, level);
+            if (assigned) {
+                std::cout << "[Game] Assigned " << def->name << " to activable slot" << std::endl;
+            }
+        }
+        
         if (def && def->category == powerup::PowerupCategory::Passive) {
             apply_passive_powerup(reg, player, chosen_card.id, powerups.get_level(chosen_card.id));
         }
@@ -116,7 +124,7 @@ void PowerupHandler::handle_powerup_choice(
 
 void PowerupHandler::handle_powerup_activate(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id,
-    uint8_t powerup_type) {
+    uint8_t slot_index) {
     
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
@@ -131,26 +139,26 @@ void PowerupHandler::handle_powerup_activate(
     
     auto& powerups = powerups_opt.value();
     
-    powerup::PowerupId id;
-    if (powerup_type == 1) {
-        id = powerup::PowerupId::PowerCannon;
-    } else if (powerup_type == 2) {
-        id = powerup::PowerupId::Shield;
-    } else {
+    if (slot_index < 0 || slot_index >= 2) {
         return;
     }
     
-    if (!powerups.has_powerup(id)) {
+    const auto* slot = powerups.get_slot(slot_index);
+    if (!slot || !slot->has_powerup() || !slot->is_ready()) {
         return;
     }
     
-    uint8_t level = powerups.get_level(id);
-    powerups.activate(id);
+    powerup::PowerupId id = slot->powerup_id.value();
+    uint8_t level = slot->level;
+    
+    if (!powerups.activate_slot(slot_index)) {
+        return;
+    }
     
     auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
     if (def) {
-        std::cout << "[Game] Client " << client_id << " activated " << def->name 
-                  << " Level " << static_cast<int>(level) << std::endl;
+        std::cout << "[Game] Client " << client_id << " activated slot " << static_cast<int>(slot_index)
+                  << " - " << def->name << " Level " << static_cast<int>(level) << std::endl;
     }
     
     if (id == powerup::PowerupId::PowerCannon) {

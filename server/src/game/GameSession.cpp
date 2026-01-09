@@ -301,6 +301,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     auto& shields = _engine.get_registry().get_components<shield>();
     auto& little_friends = _engine.get_registry().get_components<little_friend>();
     auto& positions = _engine.get_registry().get_components<position>();
+    auto& player_powerups = _engine.get_registry().get_components<player_powerups_component>();
     
     for (std::size_t i = 0; i < cannons.size(); ++i) {
         if (cannons[i].has_value()) {
@@ -310,6 +311,12 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     for (std::size_t i = 0; i < shields.size(); ++i) {
         if (shields[i].has_value()) {
             shields[i]->update(dt);
+        }
+    }
+    
+    for (std::size_t i = 0; i < player_powerups.size(); ++i) {
+        if (player_powerups[i].has_value()) {
+            player_powerups[i]->update(dt);
         }
     }
     
@@ -571,6 +578,15 @@ void GameSession::send_periodic_updates(UDPServer& server, float dt) {
         _powerup_broadcast_accumulator += dt;
         if (_powerup_broadcast_accumulator >= 0.2f) {
             _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
+            
+            for (const auto& [client_id, entity_id] : _client_entity_ids) {
+                auto player = _engine.get_registry().entity_from_index(entity_id);
+                auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+                if (powerups_opt.has_value()) {
+                    _powerup_broadcaster.broadcast_activable_slots(server, client_id, powerups_opt->activable_slots);
+                }
+            }
+            
             _powerup_broadcast_accumulator -= 0.2f;
         }
     }
