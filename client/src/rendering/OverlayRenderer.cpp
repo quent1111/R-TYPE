@@ -2,6 +2,8 @@
 
 #include "managers/TextureManager.hpp"
 
+#include <iostream>
+
 namespace rendering {
 
 OverlayRenderer::OverlayRenderer() {}
@@ -36,18 +38,18 @@ void OverlayRenderer::init(const sf::Font& font) {
 
     powerup_card1_sprite_.setTexture(bonus_texture);
     powerup_card1_sprite_.setTextureRect(sf::IntRect(card_width * 2, 0, card_width, card_height));
-    powerup_card1_sprite_.setScale(0.6f, 0.6f);
-    powerup_card1_sprite_.setPosition(560.0f, 300.0f);
+    powerup_card1_sprite_.setScale(1.2f, 1.2f);
+    powerup_card1_sprite_.setPosition(560.0f, 500.0f);
 
     powerup_card2_sprite_.setTexture(bonus_texture);
     powerup_card2_sprite_.setTextureRect(sf::IntRect(card_width * 1, 0, card_width, card_height));
-    powerup_card2_sprite_.setScale(0.6f, 0.6f);
-    powerup_card2_sprite_.setPosition(960.0f, 300.0f);
+    powerup_card2_sprite_.setScale(1.2f, 1.2f);
+    powerup_card2_sprite_.setPosition(960.0f, 500.0f);
 
     powerup_card3_sprite_.setTexture(bonus_texture);
     powerup_card3_sprite_.setTextureRect(sf::IntRect(card_width * 0, 0, card_width, card_height));
-    powerup_card3_sprite_.setScale(0.6f, 0.6f);
-    powerup_card3_sprite_.setPosition(1360.0f, 300.0f);
+    powerup_card3_sprite_.setScale(1.2f, 1.2f);
+    powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
 
     powerup_number1_text_.setFont(font);
     powerup_number1_text_.setCharacterSize(50);
@@ -69,6 +71,50 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_number3_text_.setStyle(sf::Text::Bold);
     powerup_number3_text_.setString("3");
     powerup_number3_text_.setPosition(1480.0f, 720.0f);
+
+    // Level indicators (Roman numerals)
+    powerup_level1_text_.setFont(font);
+    powerup_level1_text_.setCharacterSize(32);
+    powerup_level1_text_.setFillColor(sf::Color(255, 215, 0)); // Gold color
+    powerup_level1_text_.setStyle(sf::Text::Bold);
+    powerup_level1_text_.setOutlineColor(sf::Color::Black);
+    powerup_level1_text_.setOutlineThickness(2.0f);
+    
+    powerup_level2_text_.setFont(font);
+    powerup_level2_text_.setCharacterSize(32);
+    powerup_level2_text_.setFillColor(sf::Color(255, 215, 0));
+    powerup_level2_text_.setStyle(sf::Text::Bold);
+    powerup_level2_text_.setOutlineColor(sf::Color::Black);
+    powerup_level2_text_.setOutlineThickness(2.0f);
+    
+    powerup_level3_text_.setFont(font);
+    powerup_level3_text_.setCharacterSize(32);
+    powerup_level3_text_.setFillColor(sf::Color(255, 215, 0));
+    powerup_level3_text_.setStyle(sf::Text::Bold);
+    powerup_level3_text_.setOutlineColor(sf::Color::Black);
+    powerup_level3_text_.setOutlineThickness(2.0f);
+
+    // Description texts (smaller, under the level indicators)
+    powerup_desc1_text_.setFont(font);
+    powerup_desc1_text_.setCharacterSize(18);
+    powerup_desc1_text_.setFillColor(sf::Color(220, 220, 220));
+    powerup_desc1_text_.setStyle(sf::Text::Regular);
+    powerup_desc1_text_.setOutlineColor(sf::Color::Black);
+    powerup_desc1_text_.setOutlineThickness(1.0f);
+    
+    powerup_desc2_text_.setFont(font);
+    powerup_desc2_text_.setCharacterSize(18);
+    powerup_desc2_text_.setFillColor(sf::Color(220, 220, 220));
+    powerup_desc2_text_.setStyle(sf::Text::Regular);
+    powerup_desc2_text_.setOutlineColor(sf::Color::Black);
+    powerup_desc2_text_.setOutlineThickness(1.0f);
+    
+    powerup_desc3_text_.setFont(font);
+    powerup_desc3_text_.setCharacterSize(18);
+    powerup_desc3_text_.setFillColor(sf::Color(220, 220, 220));
+    powerup_desc3_text_.setStyle(sf::Text::Regular);
+    powerup_desc3_text_.setOutlineColor(sf::Color::Black);
+    powerup_desc3_text_.setOutlineThickness(1.0f);
 
     powerup_instruction_.setFont(font);
     powerup_instruction_.setCharacterSize(25);
@@ -161,16 +207,23 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
     window.draw(powerup_overlay_);
 
     sf::FloatRect title_bounds = powerup_title_.getLocalBounds();
-    powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 200.0f);
+    powerup_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2, 150.0f);
     window.draw(powerup_title_);
 
     window.draw(powerup_card1_sprite_);
     window.draw(powerup_card2_sprite_);
     window.draw(powerup_card3_sprite_);
 
-    window.draw(powerup_number1_text_);
-    window.draw(powerup_number2_text_);
-    window.draw(powerup_number3_text_);
+    // Numbers removed - level indicators shown instead
+    
+    window.draw(powerup_level1_text_);
+    window.draw(powerup_level2_text_);
+    window.draw(powerup_level3_text_);
+    
+    // Draw descriptions under level indicators
+    window.draw(powerup_desc1_text_);
+    window.draw(powerup_desc2_text_);
+    window.draw(powerup_desc3_text_);
 
     sf::FloatRect inst_bounds = powerup_instruction_.getLocalBounds();
     powerup_instruction_.setPosition(WINDOW_WIDTH / 2 - inst_bounds.width / 2, 850.0f);
@@ -183,7 +236,6 @@ void OverlayRenderer::render_powerup_active(
     uint32_t my_network_id) {
     float cannon_time = 0.0f;
     float shield_time = 0.0f;
-    float friend_time = 0.0f;
 
     auto cannon_it = player_powerups.find({my_network_id, 1});
     if (cannon_it != player_powerups.end()) {
@@ -195,10 +247,7 @@ void OverlayRenderer::render_powerup_active(
         shield_time = shield_it->second;
     }
 
-    auto friend_it = player_powerups.find({my_network_id, 3});
-    if (friend_it != player_powerups.end()) {
-        friend_time = friend_it->second;
-    }
+    // Little Friend (type 3) is now a permanent passive, no timer needed
 
     if (cannon_time > 0.0f) {
         int seconds = static_cast<int>(cannon_time);
@@ -222,25 +271,8 @@ void OverlayRenderer::render_powerup_active(
         window.draw(powerup_hint_text_);
     }
 
-    if (friend_time > 0.0f) {
-        // Draw Little Friend timer bar with progress
-        float bar_width = 600.0f;
-        float progress = friend_time / 10.0f;  // 10 seconds max
-        
-        // Progress fill
-        sf::RectangleShape bar_fill(sf::Vector2f(bar_width * progress, 50.0f));
-        bar_fill.setPosition(10.0f, 810.0f);
-        bar_fill.setFillColor(sf::Color(100, 200, 255, 200));
-        
-        // Update text
-        int seconds = static_cast<int>(friend_time);
-        friend_hint_text_.setString("Little Friend actif: " + std::to_string(seconds) + "s");
-        friend_hint_text_.setPosition(20.0f, 820.0f);
-        
-        window.draw(friend_hint_bg_);
-        window.draw(bar_fill);
-        window.draw(friend_hint_text_);
-    }
+    // Little Friend is now a permanent passive power-up
+    // No timer display needed (was showing "9999999s")
 
     auto& texture_mgr = managers::TextureManager::instance();
 
@@ -296,6 +328,196 @@ void OverlayRenderer::update_shield_animation(
                 player_shield_frame[player_id] =
                     (player_shield_frame[player_id] + 1) % static_cast<int>(shield_frames_.size());
             }
+        }
+    }
+}
+
+void OverlayRenderer::update_powerup_cards(
+    const std::vector<NetworkToGame::Message::PowerUpCard>& cards) {
+    
+    auto& texture_mgr = managers::TextureManager::instance();
+    const auto& registry = powerup::PowerupRegistry::instance();
+    
+    std::cout << "[OverlayRenderer] Updating " << cards.size() << " power-up cards" << std::endl;
+    
+    // Helper to convert level number to Roman numeral
+    auto to_roman = [](uint8_t level) -> std::string {
+        switch (level) {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            default: return "?";
+        }
+    };
+    
+    // Helper to get description based on powerup ID and level
+    auto get_description = [](powerup::PowerupId id, uint8_t level) -> std::string {
+        switch (id) {
+            case powerup::PowerupId::PowerCannon:
+                switch (level) {
+                    case 1: return "50 DMG per shot";
+                    case 2: return "75 DMG per shot";
+                    case 3: return "100 DMG per shot";
+                    default: return "";
+                }
+            case powerup::PowerupId::Shield:
+                switch (level) {
+                    case 1: return "10s protection";
+                    case 2: return "15s protection";
+                    case 3: return "20s protection";
+                    default: return "";
+                }
+            case powerup::PowerupId::LittleFriend:
+                switch (level) {
+                    case 1: return "+1 drone";
+                    case 2: return "+firerate +Damage";
+                    case 3: return "+1 drone +firerate +Damage";
+                    default: return "";
+                }
+            case powerup::PowerupId::Damage:
+                switch (level) {
+                    case 1: return "+20% damage";
+                    case 2: return "+50% damage";
+                    case 3: return "+100% damage";
+                    default: return "";
+                }
+            case powerup::PowerupId::Speed:
+                switch (level) {
+                    case 1: return "+20% speed";
+                    case 2: return "+40% speed";
+                    case 3: return "+70% speed";
+                    default: return "";
+                }
+            case powerup::PowerupId::Health:
+                switch (level) {
+                    case 1: return "+30 max HP";
+                    case 2: return "+50 max HP";
+                    case 3: return "+80 max HP";
+                    default: return "";
+                }
+            default:
+                return "";
+        }
+    };
+    
+    // Update card 1
+    if (cards.size() > 0) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[0].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            
+            std::cout << "[Card 1] ID=" << static_cast<int>(cards[0].id) 
+                      << " Level=" << static_cast<int>(cards[0].level) 
+                      << " Name=" << def.name 
+                      << " Asset=" << asset_path << std::endl;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card1_texture_ = *texture_mgr.get(asset_path);
+                powerup_card1_sprite_.setTexture(powerup_card1_texture_);
+                
+                auto tex_size = powerup_card1_texture_.getSize();
+                powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card1_sprite_.getLocalBounds();
+                powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card1_sprite_.setPosition(560.0f, 500.0f);
+                powerup_card1_sprite_.setScale(1.2f, 1.2f);
+            }
+            
+            // Set level text
+            powerup_level1_text_.setString(to_roman(cards[0].level));
+            sf::FloatRect level_bounds = powerup_level1_text_.getLocalBounds();
+            powerup_level1_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
+            powerup_level1_text_.setPosition(560.0f, 720.0f);
+            
+            // Set description text
+            std::string description = get_description(static_cast<powerup::PowerupId>(cards[0].id), cards[0].level);
+            powerup_desc1_text_.setString(description);
+            sf::FloatRect desc_bounds = powerup_desc1_text_.getLocalBounds();
+            powerup_desc1_text_.setOrigin(desc_bounds.width / 2.0f, desc_bounds.height / 2.0f);
+            powerup_desc1_text_.setPosition(560.0f, 755.0f);
+        }
+    }
+    
+    // Update card 2
+    if (cards.size() > 1) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[1].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            
+            std::cout << "[Card 2] ID=" << static_cast<int>(cards[1].id) 
+                      << " Level=" << static_cast<int>(cards[1].level) 
+                      << " Name=" << def.name 
+                      << " Asset=" << asset_path << std::endl;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card2_texture_ = *texture_mgr.get(asset_path);
+                powerup_card2_sprite_.setTexture(powerup_card2_texture_);
+                
+                auto tex_size = powerup_card2_texture_.getSize();
+                powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card2_sprite_.getLocalBounds();
+                powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card2_sprite_.setPosition(960.0f, 500.0f);
+                powerup_card2_sprite_.setScale(1.2f, 1.2f);
+            }
+            
+            powerup_level2_text_.setString(to_roman(cards[1].level));
+            sf::FloatRect level_bounds = powerup_level2_text_.getLocalBounds();
+            powerup_level2_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
+            powerup_level2_text_.setPosition(960.0f, 720.0f);
+            
+            // Set description text
+            std::string description = get_description(static_cast<powerup::PowerupId>(cards[1].id), cards[1].level);
+            powerup_desc2_text_.setString(description);
+            sf::FloatRect desc_bounds = powerup_desc2_text_.getLocalBounds();
+            powerup_desc2_text_.setOrigin(desc_bounds.width / 2.0f, desc_bounds.height / 2.0f);
+            powerup_desc2_text_.setPosition(960.0f, 755.0f);
+        }
+    }
+    
+    // Update card 3
+    if (cards.size() > 2) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[2].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            
+            std::cout << "[Card 3] ID=" << static_cast<int>(cards[2].id) 
+                      << " Level=" << static_cast<int>(cards[2].level) 
+                      << " Name=" << def.name 
+                      << " Asset=" << asset_path << std::endl;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card3_texture_ = *texture_mgr.get(asset_path);
+                powerup_card3_sprite_.setTexture(powerup_card3_texture_);
+                
+                auto tex_size = powerup_card3_texture_.getSize();
+                powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card3_sprite_.getLocalBounds();
+                powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
+                powerup_card3_sprite_.setScale(1.2f, 1.2f);
+            }
+            
+            powerup_level3_text_.setString(to_roman(cards[2].level));
+            sf::FloatRect level_bounds = powerup_level3_text_.getLocalBounds();
+            powerup_level3_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
+            powerup_level3_text_.setPosition(1360.0f, 720.0f);
+            
+            // Set description text
+            std::string description = get_description(static_cast<powerup::PowerupId>(cards[2].id), cards[2].level);
+            powerup_desc3_text_.setString(description);
+            sf::FloatRect desc_bounds = powerup_desc3_text_.getLocalBounds();
+            powerup_desc3_text_.setOrigin(desc_bounds.width / 2.0f, desc_bounds.height / 2.0f);
+            powerup_desc3_text_.setPosition(1360.0f, 755.0f);
         }
     }
 }

@@ -1,5 +1,6 @@
 #include "game/ServerCore.hpp"
 #include "network/UDPServer.hpp"
+#include "powerup/PowerupRegistry.hpp"
 
 #include <csignal>
 
@@ -56,6 +57,9 @@ int main(int argc, char** argv) {
     std::cout << "==============================" << std::endl;
     std::cout << "[Config] Bind address: " << bind_address << std::endl;
     std::cout << "[Config] Port: " << port << std::endl;
+
+    std::cout << "[Init] Initializing power-up system..." << std::endl;
+    powerup::PowerupRegistry::instance().initialize();
 
     try {
         asio::io_context io_context;

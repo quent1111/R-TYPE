@@ -10,6 +10,26 @@ void PowerupBroadcaster::broadcast_powerup_selection(UDPServer& server, const st
     server.send_to_clients(lobby_client_ids, serializer.data());
 }
 
+void PowerupBroadcaster::broadcast_powerup_cards(
+    UDPServer& server, int client_id, const std::vector<powerup::PowerupCard>& cards) {
+    
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::PowerUpCards;
+    
+    serializer << static_cast<uint8_t>(cards.size());
+    
+    for (const auto& card : cards) {
+        serializer << static_cast<uint8_t>(card.id);
+        serializer << card.level;
+    }
+    
+    server.send_to_client(client_id, serializer.data());
+    
+    std::cout << "[PowerupBroadcaster] Sent " << cards.size() << " power-up cards to client " 
+              << client_id << std::endl;
+}
+
 void PowerupBroadcaster::broadcast_powerup_status(
     UDPServer& server, registry& reg,
     const std::unordered_map<int, std::size_t>& client_entity_ids,
@@ -49,21 +69,8 @@ void PowerupBroadcaster::broadcast_powerup_status(
             server.send_to_clients(lobby_client_ids, serializer.data());
         }
 
-        auto& friend_opt = reg.get_component<little_friend>(player);
-        if (friend_opt.has_value()) {
-            uint8_t powerup_type = 3;
-            float time_remaining = 0.0f;
-            if (friend_opt->is_active()) {
-                time_remaining = friend_opt->time_remaining;
-            }
-            RType::BinarySerializer serializer;
-            serializer << RType::MagicNumber::VALUE;
-            serializer << RType::OpCode::PowerUpStatus;
-            serializer << static_cast<uint32_t>(client_id);
-            serializer << powerup_type;
-            serializer << time_remaining;
-            server.send_to_clients(lobby_client_ids, serializer.data());
-        }
+        // Little Friend is now a permanent passive power-up, no need to broadcast status
+        // (it's always active once acquired, no timer needed)
     }
 }
 

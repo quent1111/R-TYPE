@@ -28,6 +28,7 @@ enum class OpCode : uint8_t {
     PowerUpChoice = 0x34,
     PowerUpActivate = 0x35,
     PowerUpStatus = 0x36,
+    PowerUpCards = 0x37,
     BossSpawn = 0x50,
     GameOver = 0x40,
     MagicByte1 = 0x42,

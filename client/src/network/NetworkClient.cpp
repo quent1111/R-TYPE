@@ -89,6 +89,8 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_level_complete(buffer, bytes_received);
             } else if (opcode == 0x34) {
                 decode_powerup_selection(buffer, bytes_received);
+            } else if (opcode == 0x37) {
+                decode_powerup_cards(buffer, bytes_received);
             } else if (opcode == 0x36) {
                 decode_powerup_status(buffer, bytes_received);
             } else if (opcode == 0x50) {
@@ -392,6 +394,48 @@ void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<
 
     } catch (const std::exception& e) {
         std::cerr << "[NetworkClient] Error decoding power-up selection: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
+                                         std::size_t received) {
+    if (received < 4)  // Magic + OpCode + count
+        return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        
+        uint16_t magic;
+        uint8_t opcode;
+        uint8_t count;
+        
+        deserializer >> magic;
+        deserializer >> opcode;
+        deserializer >> count;
+        
+        NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpCards);
+        msg.powerup_cards.clear();
+        
+        // Read each card (ID + level)
+        for (uint8_t i = 0; i < count && i < 3; ++i) {
+            uint8_t card_id, card_level;
+            deserializer >> card_id;
+            deserializer >> card_level;
+            
+            NetworkToGame::Message::PowerUpCard card;
+            card.id = card_id;
+            card.level = card_level;
+            msg.powerup_cards.push_back(card);
+        }
+        
+        msg.show_powerup_selection = true;
+        network_to_game_queue_.push(msg);
+        
+        std::cout << "[NetworkClient] Received " << static_cast<int>(count) 
+                  << " power-up cards" << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding power-up cards: " << e.what() << std::endl;
     }
 }
 

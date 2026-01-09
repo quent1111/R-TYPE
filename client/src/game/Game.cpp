@@ -78,18 +78,18 @@ void Game::setup_ui() {
         powerup_card1_sprite_.setTexture(*bonus_texture);
         powerup_card1_sprite_.setTextureRect(
             sf::IntRect(card_width * 2, 0, card_width, card_height));
-        powerup_card1_sprite_.setScale(0.6f, 0.6f);
-        powerup_card1_sprite_.setPosition(560.0f, 300.0f);
+        powerup_card1_sprite_.setScale(1.2f, 1.2f);
+        powerup_card1_sprite_.setPosition(560.0f, 500.0f);
         powerup_card2_sprite_.setTexture(*bonus_texture);
         powerup_card2_sprite_.setTextureRect(
             sf::IntRect(card_width * 1, 0, card_width, card_height));
-        powerup_card2_sprite_.setScale(0.6f, 0.6f);
-        powerup_card2_sprite_.setPosition(960.0f, 300.0f);
+        powerup_card2_sprite_.setScale(1.2f, 1.2f);
+        powerup_card2_sprite_.setPosition(960.0f, 500.0f);
         powerup_card3_sprite_.setTexture(*bonus_texture);
         powerup_card3_sprite_.setTextureRect(
             sf::IntRect(card_width * 0, 0, card_width, card_height));
-        powerup_card3_sprite_.setScale(0.6f, 0.6f);
-        powerup_card3_sprite_.setPosition(1360.0f, 300.0f);
+        powerup_card3_sprite_.setScale(1.2f, 1.2f);
+        powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
     }
 
     managers::EffectsManager::instance().set_score_position(sf::Vector2f(WINDOW_WIDTH - 200, 40));
@@ -470,14 +470,12 @@ void Game::init_entity_sprite(Entity& entity) {
         if (texture_mgr.has("assets/r-typesheet5.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
 
-            entity.frames = {{0, 0, 33, 32}, {33, 0, 33, 32}, {66, 0, 33, 32},
-                            {99, 0, 33, 32}, {132, 0, 33, 32}, {165, 0, 33, 32},
-                            {198, 0, 33, 32}, {231, 0, 33, 32}};
+            entity.frames = {{495, 0, 33, 32}, {462, 0, 33, 32}};
 
-            entity.current_frame_index = 3;
-            entity.frame_duration = 0.08F;
+            entity.current_frame_index = 0;
+            entity.frame_duration = 0.1F;
             entity.loop = false;
-            entity.sprite.setTextureRect(entity.frames[3]);
+            entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
     }
@@ -622,6 +620,19 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::PowerUpSelection:
                 show_powerup_selection_ = true;
                 break;
+            case NetworkToGame::MessageType::PowerUpCards:
+                // Store the received cards
+                powerup_cards_ = msg.powerup_cards;
+                show_powerup_selection_ = true;
+                
+                // Update the overlay renderer with the new cards
+                overlay_renderer_.update_powerup_cards(powerup_cards_);
+                
+                // Update Game.cpp sprites for hitbox detection
+                update_powerup_card_sprites();
+                
+                std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
+                break;
             case NetworkToGame::MessageType::PowerUpStatus:
                 player_powerups_[{msg.powerup_player_id, msg.powerup_type}] =
                     msg.powerup_time_remaining;
@@ -684,6 +695,74 @@ void Game::render() {
 
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
+    }
+}
+
+void Game::update_powerup_card_sprites() {
+    auto& texture_mgr = managers::TextureManager::instance();
+    const auto& registry = powerup::PowerupRegistry::instance();
+    
+    // Update card 1
+    if (powerup_cards_.size() > 0) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card1_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card1_sprite_.getLocalBounds();
+                powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card1_sprite_.setPosition(560.0f, 500.0f);
+                powerup_card1_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
+    }
+    
+    // Update card 2
+    if (powerup_cards_.size() > 1) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card2_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card2_sprite_.getLocalBounds();
+                powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card2_sprite_.setPosition(960.0f, 500.0f);
+                powerup_card2_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
+    }
+    
+    // Update card 3
+    if (powerup_cards_.size() > 2) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card3_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card3_sprite_.getLocalBounds();
+                powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
+                powerup_card3_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
     }
 }
 

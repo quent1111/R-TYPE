@@ -2,6 +2,8 @@
 
 #include "game/Entity.hpp"
 #include "managers/TextureManager.hpp"
+#include "network/Messages.hpp"
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -24,6 +26,8 @@ public:
                             uint16_t enemies_needed);
 
     void render_powerup_selection(sf::RenderWindow& window, bool show);
+
+    void update_powerup_cards(const std::vector<NetworkToGame::Message::PowerUpCard>& cards);
 
     void render_powerup_active(sf::RenderWindow& window,
                                const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
@@ -55,7 +59,18 @@ private:
     sf::Text powerup_number1_text_;
     sf::Text powerup_number2_text_;
     sf::Text powerup_number3_text_;
+    sf::Text powerup_level1_text_;
+    sf::Text powerup_level2_text_;
+    sf::Text powerup_level3_text_;
+    sf::Text powerup_desc1_text_;
+    sf::Text powerup_desc2_text_;
+    sf::Text powerup_desc3_text_;
     sf::Text powerup_instruction_;
+
+    // Textures for powerup cards
+    sf::Texture powerup_card1_texture_;
+    sf::Texture powerup_card2_texture_;
+    sf::Texture powerup_card3_texture_;
 
     sf::Text powerup_hint_text_;
     sf::RectangleShape powerup_hint_bg_;

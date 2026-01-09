@@ -112,47 +112,21 @@ void GameRenderer::update_ship_tilt(Entity& entity, float /*dt*/) {
 }
 
 void GameRenderer::update_ally_tilt(Entity& entity, float /*dt*/) {
-    if (entity.type != 0x0A || entity.frames.size() != 8) {
+    if (entity.type != 0x0A || entity.frames.size() != 2) {
         return;
     }
 
-    int target_frame = 3;
-    const float velocity_threshold = 30.0f;
+    int target_frame = 0;
+    const float velocity_threshold = 50.0f;
 
-    if (entity.vy < -velocity_threshold) {
-        if (entity.vy < -150.0f) {
-            target_frame = 0;
-        } else if (entity.vy < -80.0f) {
-            target_frame = 1;
-        } else {
-            target_frame = 2;
-        }
-    } else if (entity.vy > velocity_threshold) {
-        if (entity.vy > 150.0f) {
-            target_frame = 7;
-        } else if (entity.vy > 80.0f) {
-            target_frame = 6;
-        } else {
-            target_frame = 5;
-        }
+    if (std::abs(entity.vy) > velocity_threshold) {
+        target_frame = 1;
     } else {
-        if (entity.vy < -10.0f) {
-            target_frame = 3;
-        } else if (entity.vy > 10.0f) {
-            target_frame = 4;
-        } else {
-            target_frame = 3;
-        }
+        target_frame = 0;
     }
 
-    int current = static_cast<int>(entity.current_frame_index);
-    if (current != target_frame) {
-        if (current < target_frame) {
-            current = std::min(current + 1, target_frame);
-        } else {
-            current = std::max(current - 1, target_frame);
-        }
-        entity.current_frame_index = static_cast<size_t>(current);
+    if (entity.current_frame_index != static_cast<size_t>(target_frame)) {
+        entity.current_frame_index = static_cast<size_t>(target_frame);
         entity.sprite.setTextureRect(entity.frames[entity.current_frame_index]);
     }
 }

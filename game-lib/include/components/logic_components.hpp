@@ -3,6 +3,8 @@
 #include <cmath>
 #include "../../../src/Common/Opcodes.hpp"
 #include "../../../engine/ecs/entity.hpp"
+#include "../powerup/PowerupRegistry.hpp"
+#include "../powerup/PlayerPowerups.hpp"
 
 
 struct health {
@@ -244,9 +246,10 @@ struct little_friend {
     bool active = false;
     float duration = 10.0f;
     float time_remaining = 0.0f;
-    std::optional<entity> friend_entity = std::nullopt;
+    std::vector<std::optional<entity>> friend_entities;  // Support multiple drones
+    int num_drones = 1;  // Number of drones (1 or 2 based on level)
     int damage = 15;
-    float fire_rate = 0.4f;
+    float fire_rate = 2.0f;  // Time between shots (was 0.4f, now 5x slower)
     float shoot_timer = 0.0f;
     float oscillation_timer = 0.0f;  // Timer pour le mouvement vertical
     float oscillation_speed = 2.0f;   // Vitesse d'oscillation
@@ -355,3 +358,6 @@ struct network_id {
     int client_id;
     constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };
+
+// Alias for the new powerup system component
+using player_powerups_component = powerup::PlayerPowerups;
