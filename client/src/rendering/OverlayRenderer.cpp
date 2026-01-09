@@ -356,15 +356,15 @@ void OverlayRenderer::update_powerup_cards(
             case powerup::PowerupId::PowerCannon:
                 switch (level) {
                     case 1: return "50 DMG per shot";
-                    case 2: return "75 DMG per shot";
-                    case 3: return "100 DMG per shot";
+                    case 2: return "+25 DMG and + 2s";
+                    case 3: return "+25 DMG and + 2s";
                     default: return "";
                 }
             case powerup::PowerupId::Shield:
                 switch (level) {
-                    case 1: return "10s protection";
-                    case 2: return "15s protection";
-                    case 3: return "20s protection";
+                    case 1: return "3s protection";
+                    case 2: return "5s protection";
+                    case 3: return "7s protection";
                     default: return "";
                 }
             case powerup::PowerupId::LittleFriend:
@@ -400,12 +400,11 @@ void OverlayRenderer::update_powerup_cards(
         }
     };
     
-    // Update card 1
     if (cards.size() > 0) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[0].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
-            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            std::string asset_path = def.asset_path;
             
             std::cout << "[Card 1] ID=" << static_cast<int>(cards[0].id) 
                       << " Level=" << static_cast<int>(cards[0].level) 
@@ -426,13 +425,11 @@ void OverlayRenderer::update_powerup_cards(
                 powerup_card1_sprite_.setScale(1.2f, 1.2f);
             }
             
-            // Set level text
             powerup_level1_text_.setString(to_roman(cards[0].level));
             sf::FloatRect level_bounds = powerup_level1_text_.getLocalBounds();
             powerup_level1_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
             powerup_level1_text_.setPosition(560.0f, 720.0f);
             
-            // Set description text
             std::string description = get_description(static_cast<powerup::PowerupId>(cards[0].id), cards[0].level);
             powerup_desc1_text_.setString(description);
             sf::FloatRect desc_bounds = powerup_desc1_text_.getLocalBounds();
@@ -441,12 +438,11 @@ void OverlayRenderer::update_powerup_cards(
         }
     }
     
-    // Update card 2
     if (cards.size() > 1) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[1].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
-            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            std::string asset_path = def.asset_path;
             
             std::cout << "[Card 2] ID=" << static_cast<int>(cards[1].id) 
                       << " Level=" << static_cast<int>(cards[1].level) 
@@ -472,7 +468,6 @@ void OverlayRenderer::update_powerup_cards(
             powerup_level2_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
             powerup_level2_text_.setPosition(960.0f, 720.0f);
             
-            // Set description text
             std::string description = get_description(static_cast<powerup::PowerupId>(cards[1].id), cards[1].level);
             powerup_desc2_text_.setString(description);
             sf::FloatRect desc_bounds = powerup_desc2_text_.getLocalBounds();
@@ -481,12 +476,11 @@ void OverlayRenderer::update_powerup_cards(
         }
     }
     
-    // Update card 3
     if (cards.size() > 2) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(cards[2].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
-            std::string asset_path = def.asset_path;  // Path already includes "assets/"
+            std::string asset_path = def.asset_path;
             
             std::cout << "[Card 3] ID=" << static_cast<int>(cards[2].id) 
                       << " Level=" << static_cast<int>(cards[2].level) 
@@ -512,7 +506,6 @@ void OverlayRenderer::update_powerup_cards(
             powerup_level3_text_.setOrigin(level_bounds.width / 2.0f, level_bounds.height / 2.0f);
             powerup_level3_text_.setPosition(1360.0f, 720.0f);
             
-            // Set description text
             std::string description = get_description(static_cast<powerup::PowerupId>(cards[2].id), cards[2].level);
             powerup_desc3_text_.setString(description);
             sf::FloatRect desc_bounds = powerup_desc3_text_.getLocalBounds();
