@@ -34,7 +34,7 @@ void GameRenderer::init(sf::RenderWindow& window) {
     sf::Texture& ruins_bg_texture = texture_mgr.load("assets/ruins-background.png");
     ruins_bg_texture.setRepeated(true);
     
-    const float BG_SCALE = 1.5f; // Zoom in 50%
+    const float BG_SCALE = 1.5f;
     
     ruins_bg_sprite1_.setTexture(ruins_bg_texture);
     ruins_bg_sprite1_.setTextureRect(
@@ -48,7 +48,6 @@ void GameRenderer::init(sf::RenderWindow& window) {
     ruins_bg_sprite2_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
     
-    // Load second ruins background for level 15+
     sf::Texture& ruins_bg2_texture = texture_mgr.load("assets/ruins-background2.png");
     ruins_bg2_texture.setRepeated(true);
     
@@ -433,6 +432,10 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
         } else {
             e.sprite.setColor(sf::Color(255, 255, 255, 255));
+        }
+
+        if (e.type == 0x01 && e.health <= 0) {
+            continue;
         }
 
         window.draw(e.sprite);

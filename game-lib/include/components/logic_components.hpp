@@ -39,10 +39,11 @@ struct collision_box {
     float height;
     float offset_x;
     float offset_y;
+    bool enabled;
 
     constexpr collision_box(float w = 50.0f, float h = 50.0f, float ox = 0.0f,
-                            float oy = 0.0f) noexcept
-        : width(w), height(h), offset_x(ox), offset_y(oy) {}
+                            float oy = 0.0f, bool is_enabled = true) noexcept
+        : width(w), height(h), offset_x(ox), offset_y(oy), enabled(is_enabled) {}
 };
 
 struct multi_hitbox {
@@ -250,25 +251,23 @@ struct little_friend {
     bool active = false;
     float duration = 10.0f;
     float time_remaining = 0.0f;
-    std::vector<std::optional<entity>> friend_entities;  // Support multiple drones
-    int num_drones = 1;  // Number of drones (1 or 2 based on level)
+    std::vector<std::optional<entity>> friend_entities;
+    int num_drones = 1;
     int damage = 15;
-    float fire_rate = 2.0f;  // Time between shots (was 0.4f, now 5x slower)
+    float fire_rate = 2.0f;
     float shoot_timer = 0.0f;
-    float oscillation_timer = 0.0f;  // Timer pour le mouvement vertical
-    float oscillation_speed = 2.0f;   // Vitesse d'oscillation
-    float oscillation_amplitude = 15.0f;  // Amplitude du mouvement (pixels)
-    
-    // Animation d'entrée
+    float oscillation_timer = 0.0f;
+    float oscillation_speed = 2.0f;
+    float oscillation_amplitude = 15.0f;
+
     bool entry_animation_complete = false;
     float entry_animation_timer = 0.0f;
-    float entry_animation_duration = 1.0f;  // 1 seconde pour l'animation d'entrée
+    float entry_animation_duration = 1.0f;
     
-    // Animation de sortie
     bool exit_animation_started = false;
     float exit_animation_timer = 0.0f;
-    float exit_animation_duration = 1.0f;  // 1 seconde pour l'animation de sortie
-    
+    float exit_animation_duration = 1.0f;
+
     constexpr little_friend() noexcept = default;
     
     constexpr void activate() noexcept {
@@ -287,7 +286,6 @@ struct little_friend {
             shoot_timer += dt;
             oscillation_timer += dt;
             
-            // Update entry animation
             if (!entry_animation_complete) {
                 entry_animation_timer += dt;
                 if (entry_animation_timer >= entry_animation_duration) {
@@ -295,13 +293,11 @@ struct little_friend {
                 }
             }
             
-            // Start exit animation when time is almost up (1 second before end)
             if (time_remaining <= exit_animation_duration && !exit_animation_started) {
                 exit_animation_started = true;
                 exit_animation_timer = 0.0f;
             }
             
-            // Update exit animation
             if (exit_animation_started) {
                 exit_animation_timer += dt;
             }
@@ -363,5 +359,4 @@ struct network_id {
     constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };
 
-// Alias for the new powerup system component
 using player_powerups_component = powerup::PlayerPowerups;

@@ -18,9 +18,14 @@ void collisionSystem(registry& reg) {
     auto& shields = reg.get_components<shield>();
     auto& damage_flashes = reg.get_components<damage_flash_component>();
     auto& homing_comps = reg.get_components<homing_component>();
+    auto& sprite_components = reg.get_components<sprite_component>();
 
     for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
         if (player_tags[p] && positions[p] && shields[p]) {
+            if (p < collision_boxes.size() && collision_boxes[p].has_value() && !collision_boxes[p]->enabled) {
+                continue;
+            }
+            
             auto& player_pos = positions[p].value();
             auto& player_shield = shields[p].value();
 
@@ -338,6 +343,10 @@ void collisionSystem(registry& reg) {
                     auto& player_pos = positions[j].value();
                     auto& player_box = collision_boxes[j].value();
                     auto& player_hp = healths[j].value();
+                    
+                    if (!player_box.enabled) {
+                        continue;
+                    }
 
                     float h_left = homing_pos.x + homing_box.offset_x;
                     float h_top = homing_pos.y + homing_box.offset_y;
@@ -366,6 +375,13 @@ void collisionSystem(registry& reg) {
                             if (player_hp.is_dead()) {
                                 std::cout << "[Collision] Player killed by homing enemy!" << std::endl;
                                 createExplosion(reg, player_pos.x, player_pos.y);
+                                
+                                if (j < sprite_components.size() && sprite_components[j].has_value()) {
+                                    sprite_components[j]->visible = false;
+                                }
+                                if (j < collision_boxes.size() && collision_boxes[j].has_value()) {
+                                    collision_boxes[j]->enabled = false;
+                                }
                             }
                         }
 
@@ -399,6 +415,10 @@ void collisionSystem(registry& reg) {
                     auto& player_pos = positions[j].value();
                     auto& player_box = collision_boxes[j].value();
                     auto& player_hp = healths[j].value();
+                    
+                    if (!player_box.enabled) {
+                        continue;
+                    }
 
                     float p_left = proj_pos.x + proj_box.offset_x;
                     float p_top = proj_pos.y + proj_box.offset_y;
@@ -427,6 +447,13 @@ void collisionSystem(registry& reg) {
                             if (player_hp.is_dead()) {
                                 std::cout << "[Collision] Player killed!" << std::endl;
                                 createExplosion(reg, player_pos.x, player_pos.y);
+                                
+                                if (j < sprite_components.size() && sprite_components[j].has_value()) {
+                                    sprite_components[j]->visible = false;
+                                }
+                                if (j < collision_boxes.size() && collision_boxes[j].has_value()) {
+                                    collision_boxes[j]->enabled = false;
+                                }
                             }
                         }
 

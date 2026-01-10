@@ -639,6 +639,8 @@ void GameSession::advance_level(UDPServer& server) {
 
     _player_manager.respawn_dead_players(_engine.get_registry(), _client_entity_ids);
 
+    _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
+
     uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
 
     if (current_level == 5) {

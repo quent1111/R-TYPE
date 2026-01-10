@@ -401,7 +401,7 @@ void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<
 
 void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
                                          std::size_t received) {
-    if (received < 4)  // Magic + OpCode + count
+    if (received < 4)
         return;
 
     try {
@@ -418,7 +418,6 @@ void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpCards);
         msg.powerup_cards.clear();
         
-        // Read each card (ID + level)
         for (uint8_t i = 0; i < count && i < 3; ++i) {
             uint8_t card_id, card_level;
             deserializer >> card_id;

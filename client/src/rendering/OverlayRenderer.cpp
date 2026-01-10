@@ -73,10 +73,9 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_number3_text_.setString("3");
     powerup_number3_text_.setPosition(1480.0f, 720.0f);
 
-    // Level indicators (Roman numerals)
     powerup_level1_text_.setFont(font);
     powerup_level1_text_.setCharacterSize(32);
-    powerup_level1_text_.setFillColor(sf::Color(255, 215, 0)); // Gold color
+    powerup_level1_text_.setFillColor(sf::Color(255, 215, 0));
     powerup_level1_text_.setStyle(sf::Text::Bold);
     powerup_level1_text_.setOutlineColor(sf::Color::Black);
     powerup_level1_text_.setOutlineThickness(2.0f);
@@ -95,7 +94,6 @@ void OverlayRenderer::init(const sf::Font& font) {
     powerup_level3_text_.setOutlineColor(sf::Color::Black);
     powerup_level3_text_.setOutlineThickness(2.0f);
 
-    // Description texts (smaller, under the level indicators)
     powerup_desc1_text_.setFont(font);
     powerup_desc1_text_.setCharacterSize(18);
     powerup_desc1_text_.setFillColor(sf::Color(220, 220, 220));
@@ -219,13 +217,11 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
     window.draw(powerup_card2_sprite_);
     window.draw(powerup_card3_sprite_);
 
-    // Numbers removed - level indicators shown instead
     
     window.draw(powerup_level1_text_);
     window.draw(powerup_level2_text_);
     window.draw(powerup_level3_text_);
     
-    // Draw descriptions under level indicators
     window.draw(powerup_desc1_text_);
     window.draw(powerup_desc2_text_);
     window.draw(powerup_desc3_text_);
@@ -306,7 +302,6 @@ void OverlayRenderer::update_powerup_cards(
     
     std::cout << "[OverlayRenderer] Updating " << cards.size() << " power-up cards" << std::endl;
     
-    // Helper to convert level number to Roman numeral
     auto to_roman = [](uint8_t level) -> std::string {
         switch (level) {
             case 1: return "I";
@@ -316,7 +311,6 @@ void OverlayRenderer::update_powerup_cards(
         }
     };
     
-    // Helper to get description based on powerup ID and level
     auto get_description = [](powerup::PowerupId id, uint8_t level) -> std::string {
         switch (id) {
             case powerup::PowerupId::PowerCannon:

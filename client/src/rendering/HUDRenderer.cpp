@@ -1,6 +1,7 @@
 #include "rendering/HUDRenderer.hpp"
 
 #include "managers/EffectsManager.hpp"
+#include <iostream>
 
 namespace rendering {
 
