@@ -234,7 +234,7 @@ void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool sh
 void OverlayRenderer::render_powerup_active(
     sf::RenderWindow& window, const std::map<std::pair<uint32_t, uint8_t>, float>& player_powerups,
     const std::map<uint32_t, Entity>& entities, const std::map<uint32_t, int>& player_shield_frame,
-    uint32_t my_network_id) {
+    uint32_t) {
 
     auto& texture_mgr = managers::TextureManager::instance();
 
@@ -482,7 +482,7 @@ void OverlayRenderer::render_activable_slots(sf::RenderWindow& window,
                                              const std::vector<bool>& slot_active) {
     auto& texture_mgr = managers::TextureManager::instance();
     
-    for (int i = 0; i < 2 && i < slots.size(); ++i) {
+    for (std::size_t i = 0; i < 2 && i < slots.size(); ++i) {
         sf::RectangleShape& frame = (i == 0) ? activable_slot1_frame_ : activable_slot2_frame_;
         sf::RectangleShape& bar = (i == 0) ? activable_slot1_bar_ : activable_slot2_bar_;
         sf::Text& key_text = (i == 0) ? activable_slot1_key_ : activable_slot2_key_;
@@ -517,17 +517,17 @@ void OverlayRenderer::render_activable_slots(sf::RenderWindow& window,
                 float percentage = 0.0f;
                 sf::Color bar_color;
                 
-                if (i < static_cast<int>(slot_active.size()) && slot_active[static_cast<size_t>(i)]) {
-                    if (i < static_cast<int>(slot_timers.size())) {
-                        auto* def_ptr = powerup::PowerupRegistry::instance().get_powerup(slots[static_cast<size_t>(i)].first.value());
-                        if (def_ptr && slots[static_cast<size_t>(i)].second > 0 && slots[static_cast<size_t>(i)].second <= def_ptr->level_effects.size()) {
-                            float max_duration = def_ptr->level_effects[slots[static_cast<size_t>(i)].second - 1].duration;
-                            percentage = (max_duration > 0.0f) ? (slot_timers[static_cast<size_t>(i)] / max_duration) : 0.0f;
+                if (i < slot_active.size() && slot_active[i]) {
+                    if (i < slot_timers.size()) {
+                        auto* def_ptr = powerup::PowerupRegistry::instance().get_powerup(slots[i].first.value());
+                        if (def_ptr && slots[i].second > 0 && slots[i].second <= def_ptr->level_effects.size()) {
+                            float max_duration = def_ptr->level_effects[slots[i].second - 1].duration;
+                            percentage = (max_duration > 0.0f) ? (slot_timers[i] / max_duration) : 0.0f;
                         }
                     }
                     bar_color = sf::Color(0, 255, 0, 200);
-                } else if (i < static_cast<int>(slot_cooldowns.size()) && slot_cooldowns[static_cast<size_t>(i)] > 0.0f) {
-                    percentage = 1.0f - (slot_cooldowns[static_cast<size_t>(i)] / 25.0f);
+                } else if (i < slot_cooldowns.size() && slot_cooldowns[i] > 0.0f) {
+                    percentage = 1.0f - (slot_cooldowns[i] / 25.0f);
                     bar_color = sf::Color(255, 140, 0, 200);
                 } else {
                     percentage = 1.0f;

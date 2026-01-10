@@ -139,11 +139,11 @@ void PowerupHandler::handle_powerup_activate(
     
     auto& powerups = powerups_opt.value();
     
-    if (slot_index < 0 || slot_index >= 2) {
+    if (slot_index >= 2) {
         return;
     }
     
-    const auto* slot = powerups.get_slot(slot_index);
+    const auto* slot = powerups.get_slot(static_cast<std::size_t>(slot_index));
     if (!slot || !slot->has_powerup() || !slot->is_ready()) {
         return;
     }
