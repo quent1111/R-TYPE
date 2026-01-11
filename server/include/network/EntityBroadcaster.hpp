@@ -3,7 +3,7 @@
 #include "../../engine/ecs/components.hpp"
 #include "../../engine/ecs/registry.hpp"
 #include "../../game-lib/include/components/game_components.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/QuantizedSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "common/GameConstants.hpp"
 #include "network/UDPServer.hpp"
@@ -22,7 +22,7 @@ public:
                                     const std::vector<int>& lobby_client_ids);
 
 private:
-    RType::BinarySerializer broadcast_serializer_;
+    RType::QuantizedSerializer broadcast_serializer_;
 };
 
 }  // namespace server

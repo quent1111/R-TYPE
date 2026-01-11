@@ -1,4 +1,5 @@
 #include "network/EntityBroadcaster.hpp"
+#include "../../src/Common/QuantizedSerializer.hpp"
 
 namespace server {
 
@@ -30,19 +31,19 @@ void EntityBroadcaster::broadcast_entity_positions(
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
+
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
-            broadcast_serializer_ << pos.x;
-            broadcast_serializer_ << pos.y;
+
+            broadcast_serializer_.write_position(pos.x, pos.y);
+
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
-            broadcast_serializer_ << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
-            broadcast_serializer_ << vy;
+            broadcast_serializer_.write_velocity(vx, vy);
 
             int current_health = health_opt.has_value() ? health_opt->current : 100;
             int max_health = health_opt.has_value() ? health_opt->maximum : 100;
-            broadcast_serializer_ << static_cast<int32_t>(current_health);
-            broadcast_serializer_ << static_cast<int32_t>(max_health);
+            broadcast_serializer_.write_quantized_health(current_health, max_health);
 
             entity_count++;
         }
@@ -73,19 +74,18 @@ void EntityBroadcaster::broadcast_entity_positions(
 
             broadcast_serializer_ << network_id;
             broadcast_serializer_ << static_cast<uint8_t>(tags[i]->type);
-            broadcast_serializer_ << pos.x;
-            broadcast_serializer_ << pos.y;
+
+            broadcast_serializer_.write_position(pos.x, pos.y);
+
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
-            broadcast_serializer_ << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
-            broadcast_serializer_ << vy;
+            broadcast_serializer_.write_velocity(vx, vy);
 
             if (tags[i]->type == RType::EntityType::Boss) {
                 auto health_opt = reg.get_component<health>(entity_obj);
                 int current_health = health_opt.has_value() ? health_opt->current : 100;
                 int max_health = health_opt.has_value() ? health_opt->maximum : 100;
-                broadcast_serializer_ << static_cast<int32_t>(current_health);
-                broadcast_serializer_ << static_cast<int32_t>(max_health);
+                broadcast_serializer_.write_quantized_health(current_health, max_health);
             }
 
             entity_count++;
@@ -96,7 +96,9 @@ void EntityBroadcaster::broadcast_entity_positions(
         return;
 
     broadcast_serializer_.data()[count_position] = static_cast<uint8_t>(entity_count);
+
+
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
-}  // namespace server
+}
