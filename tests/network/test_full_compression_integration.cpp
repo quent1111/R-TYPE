@@ -3,6 +3,7 @@
 #include "../../src/Common/Opcodes.hpp"
 #include <vector>
 #include <cstdint>
+#include <chrono>
 
 /**
  * @brief Test d'intégration complète de la compression
