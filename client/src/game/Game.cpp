@@ -48,6 +48,9 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/explosion.gif");
         texture_mgr.load("assets/weirdbaby.gif");
         texture_mgr.load("assets/r-typesheet5.gif");
+        texture_mgr.load("assets/laserbeam.png");
+        texture_mgr.load("assets/missile.png");
+        texture_mgr.load("assets/drone.png");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
@@ -391,9 +394,18 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x03) {
         bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
-        bool is_fast_projectile = (projectile_speed > 600.0f && entity.vx > 0);
+        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && entity.vx > 0);
+        bool is_fast_projectile = (projectile_speed > 650.0f && entity.vx > 0);
 
-        if (is_fast_projectile && texture_mgr.has("assets/canonpowerup.png")) {
+        if (is_missile_drone_projectile && !is_fast_projectile && texture_mgr.has("assets/missile.png")) {
+            // Projectiles des drones missiles (vitesse = 600, direction variable)
+            entity.sprite.setTexture(*texture_mgr.get("assets/missile.png"));
+            entity.frames = {{0, 0, 18, 17}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        } else if (is_fast_projectile && texture_mgr.has("assets/canonpowerup.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/canonpowerup.png"));
             entity.frames = {{0, 0, 51, 21}, {52, 0, 51, 21}};
             entity.frame_duration = 0.08F;
@@ -471,18 +483,42 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-    } else if (entity.type == 0x0A) {
+        
+    } else if (entity.type == 0x0B) {
+        // LaserBeam entity - Rendered using particle system (no sprite)
+        entity.sprite.setTexture(sf::Texture());
+        entity.frames = {{0, 0, 1, 1}};
+        entity.loop = false;
+        
+    } else if (entity.type == 0x0C) {
+        // SupportDrone entity - Animated sprite following player (orange/red color)
         if (texture_mgr.has("assets/r-typesheet5.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
-
             entity.frames = {{495, 0, 33, 32}, {462, 0, 33, 32}};
-
+            entity.current_frame_index = 0;
+            entity.frame_duration = 0.1F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+            entity.grayscale = false;
+        }
+        
+    } else if (entity.type == 0x0D) {
+        // MissileDrone entity - Static sprite positioned above player
+        if (texture_mgr.has("assets/drone.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/drone.png"));
+            entity.frames = {{0, 0, 32, 40}};  // Full sprite dimensions
             entity.current_frame_index = 0;
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);
+            entity.sprite.setScale(1.0F, 1.0F);
+            entity.grayscale = false;
         }
+        
+    } else if (entity.type == 0x0A) {
+        // Legacy Ally type - Should no longer be used (replaced by 0x0B, 0x0C, 0x0D)
+        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -530,12 +566,14 @@ void Game::process_network_messages() {
                             incoming.prev_y = it->second.y;
                             incoming.prev_time = it->second.curr_time;
 
+                            // Preserve sprite properties from existing entity
                             incoming.sprite = it->second.sprite;
                             incoming.frames = it->second.frames;
                             incoming.current_frame_index = it->second.current_frame_index;
                             incoming.frame_duration = it->second.frame_duration;
                             incoming.time_accumulator = it->second.time_accumulator;
                             incoming.loop = it->second.loop;
+                            incoming.grayscale = it->second.grayscale;
                         }
                     } else {
                         if (id == my_network_id_ && incoming.type == 0x01) {
@@ -694,6 +732,9 @@ void Game::render() {
 
     game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
                                     predicted_player_x_, predicted_player_y_);
+
+    // Rendu des particules laser par-dessus les entités
+    game_renderer_.render_laser_particles(window_, entities_, dt);
 
     game_renderer_.render_effects(window_);
 

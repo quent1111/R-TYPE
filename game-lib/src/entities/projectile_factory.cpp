@@ -39,7 +39,19 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
 
     float projectile_speed = std::sqrt(final_vx * final_vx + final_vy * final_vy);
 
-    if (projectile_speed > 600.0f) {
+    if (upgrade_type == WeaponUpgradeType::AllyMissile) {
+        texture_path = "assets/missile.png";
+        texture_x = 0;
+        texture_y = 0;
+        texture_w = 18;
+        texture_h = 17;
+        projectile_frames = {
+            {0, 0, 18, 17}
+        };
+        scale = 2.5f;
+        collision_w = 45.0f;
+        collision_h = 42.0f;
+    } else if (projectile_speed > 600.0f) {
         texture_path = "assets/canonpowerup.png";
         texture_x = 0;
         texture_y = 0;

@@ -355,6 +355,34 @@ void OverlayRenderer::update_powerup_cards(
                     case 3: return "+80 max HP";
                     default: return "";
                 }
+            case powerup::PowerupId::FireRate:
+                switch (level) {
+                    case 1: return "+30% fire rate";
+                    case 2: return "+60% fire rate";
+                    case 3: return "+100% fire rate";
+                    default: return "";
+                }
+            case powerup::PowerupId::MultiShot:
+                switch (level) {
+                    case 1: return "3 projectiles";
+                    case 2: return "4 projectiles";
+                    case 3: return "5 projectiles";
+                    default: return "";
+                }
+            case powerup::PowerupId::LaserBeam:
+                switch (level) {
+                    case 1: return "3s beam, 100 DPS";
+                    case 2: return "5s beam, 150 DPS";
+                    case 3: return "8s beam, 200 DPS";
+                    default: return "";
+                }
+            case powerup::PowerupId::MissileDrone:
+                switch (level) {
+                    case 1: return "1 drone, 5 missiles";
+                    case 2: return "2 drones, 7 missiles";
+                    case 3: return "3 drones, 10 missiles";
+                    default: return "";
+                }
             default:
                 return "";
         }
@@ -374,10 +402,10 @@ void OverlayRenderer::update_powerup_cards(
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card1_texture_ = *texture_mgr.get(asset_path);
-                powerup_card1_sprite_.setTexture(powerup_card1_texture_);
+                powerup_card1_sprite_.setTexture(powerup_card1_texture_, true);
                 
                 auto tex_size = powerup_card1_texture_.getSize();
-                powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                std::cout << "[Card 1] Texture size: " << tex_size.x << "x" << tex_size.y << std::endl;
                 
                 auto bounds = powerup_card1_sprite_.getLocalBounds();
                 powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -412,10 +440,10 @@ void OverlayRenderer::update_powerup_cards(
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card2_texture_ = *texture_mgr.get(asset_path);
-                powerup_card2_sprite_.setTexture(powerup_card2_texture_);
+                powerup_card2_sprite_.setTexture(powerup_card2_texture_, true);
                 
                 auto tex_size = powerup_card2_texture_.getSize();
-                powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                std::cout << "[Card 2] Texture size: " << tex_size.x << "x" << tex_size.y << std::endl;
                 
                 auto bounds = powerup_card2_sprite_.getLocalBounds();
                 powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -450,10 +478,10 @@ void OverlayRenderer::update_powerup_cards(
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card3_texture_ = *texture_mgr.get(asset_path);
-                powerup_card3_sprite_.setTexture(powerup_card3_texture_);
+                powerup_card3_sprite_.setTexture(powerup_card3_texture_, true);
                 
                 auto tex_size = powerup_card3_texture_.getSize();
-                powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                std::cout << "[Card 3] Texture size: " << tex_size.x << "x" << tex_size.y << std::endl;
                 
                 auto bounds = powerup_card3_sprite_.getLocalBounds();
                 powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);

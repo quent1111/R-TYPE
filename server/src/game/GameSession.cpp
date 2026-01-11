@@ -20,6 +20,8 @@ GameSession::GameSession() {
     reg.register_component<network_id>();
     reg.register_component<controllable>();
     reg.register_component<weapon>();
+    reg.register_component<multishot>();
+    reg.register_component<laser_beam>();
     reg.register_component<collision_box>();
     reg.register_component<multi_hitbox>();
     reg.register_component<damage_on_contact>();
@@ -36,6 +38,7 @@ GameSession::GameSession() {
     reg.register_component<power_cannon>();
     reg.register_component<shield>();
     reg.register_component<little_friend>();
+    reg.register_component<missile_drone>();
     reg.register_component<damage_flash_component>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
@@ -299,6 +302,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
 
     auto& cannons = _engine.get_registry().get_components<power_cannon>();
     auto& shields = _engine.get_registry().get_components<shield>();
+    auto& laser_beams = _engine.get_registry().get_components<laser_beam>();
     auto& little_friends = _engine.get_registry().get_components<little_friend>();
     auto& positions = _engine.get_registry().get_components<position>();
     auto& player_powerups = _engine.get_registry().get_components<player_powerups_component>();
@@ -311,6 +315,76 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     for (std::size_t i = 0; i < shields.size(); ++i) {
         if (shields[i].has_value()) {
             shields[i]->update(dt);
+        }
+    }
+    
+    for (std::size_t i = 0; i < laser_beams.size(); ++i) {
+        if (laser_beams[i].has_value() && i < positions.size() && positions[i].has_value()) {
+            auto& laser = laser_beams[i].value();
+            auto& player_pos = positions[i].value();
+            laser.update(dt);
+            
+            if (laser.active) {
+                if (!laser.laser_entity.has_value()) {
+                    entity laser_ent = _engine.get_registry().spawn_entity();
+                    
+                    _engine.get_registry().add_component(laser_ent, 
+                        position{player_pos.x + 50.0f, player_pos.y});
+                    
+                    _engine.get_registry().add_component(laser_ent, velocity{0.0f, 0.0f});
+                    
+                    sprite_component sprite;
+                    sprite.texture_path = "assets/laserbeam.png";
+                    sprite.texture_rect_x = 0;
+                    sprite.texture_rect_y = 0;
+                    sprite.texture_rect_w = 2000;
+                    sprite.texture_rect_h = 100;
+                    sprite.scale = 1.0f;
+                    _engine.get_registry().add_component(laser_ent, sprite);
+                    
+                    _engine.get_registry().add_component(laser_ent, 
+                        entity_tag{RType::EntityType::LaserBeam});
+                    
+                    laser.laser_entity = laser_ent;
+                }
+                
+                auto& laser_pos_opt = _engine.get_registry().get_component<position>(laser.laser_entity.value());
+                if (laser_pos_opt.has_value()) {
+                    laser_pos_opt->x = player_pos.x + 50.0f;
+                    laser_pos_opt->y = player_pos.y;
+                }
+                
+                if (laser.can_damage()) {
+                    auto& enemies = _engine.get_registry().get_components<enemy_tag>();
+                    auto& enemy_positions = _engine.get_registry().get_components<position>();
+                    auto& healths = _engine.get_registry().get_components<health>();
+                    
+                    for (std::size_t j = 0; j < enemies.size(); ++j) {
+                        if (enemies[j].has_value() && j < enemy_positions.size() && 
+                            enemy_positions[j].has_value() && j < healths.size() && healths[j].has_value()) {
+                            
+                            auto& enemy_pos = enemy_positions[j].value();
+                            
+                            if (enemy_pos.x >= player_pos.x && 
+                                enemy_pos.x <= player_pos.x + 2000.0f &&
+                                std::abs(enemy_pos.y - player_pos.y) <= 50.0f) {
+                                
+                                int damage = static_cast<int>(laser.damage_per_second * 0.1f);
+                                healths[j]->current -= damage;
+                            }
+                        }
+                    }
+                    
+                    laser.reset_damage_timer();
+                }
+            } else {
+                if (laser.laser_entity.has_value()) {
+                    try {
+                        _engine.get_registry().kill_entity(laser.laser_entity.value());
+                    } catch (...) {}
+                    laser.laser_entity = std::nullopt;
+                }
+            }
         }
     }
     
@@ -360,7 +434,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                         _engine.get_registry().add_component(friend_ent, sprite);
                         
                         _engine.get_registry().add_component(friend_ent, 
-                            entity_tag{RType::EntityType::Ally});
+                            entity_tag{RType::EntityType::SupportDrone});
                         
                         lf.friend_entities[drone_idx] = friend_ent;
                     }
@@ -526,6 +600,157 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     }
                 }
                 lf.friend_entities.clear();
+            }
+        }
+    }
+    
+    auto& missile_drones = _engine.get_registry().get_components<missile_drone>();
+    for (std::size_t i = 0; i < missile_drones.size(); ++i) {
+        if (missile_drones[i].has_value() && i < positions.size() && positions[i].has_value()) {
+            auto& md = missile_drones[i].value();
+            auto& player_pos = positions[i].value();
+            md.update(dt);
+            
+            if (md.is_active()) {
+                if (md.drone_entities.size() != static_cast<size_t>(md.num_drones)) {
+                    while (md.drone_entities.size() > static_cast<size_t>(md.num_drones)) {
+                        if (md.drone_entities.back().has_value()) {
+                            try {
+                                _engine.get_registry().kill_entity(md.drone_entities.back().value());
+                            } catch (...) {}
+                        }
+                        md.drone_entities.pop_back();
+                    }
+                    while (md.drone_entities.size() < static_cast<size_t>(md.num_drones)) {
+                        md.drone_entities.push_back(std::nullopt);
+                    }
+                }
+                
+                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(md.num_drones); ++drone_idx) {
+                    if (!md.drone_entities[drone_idx].has_value()) {
+                        entity drone_ent = _engine.get_registry().spawn_entity();
+                        
+                        _engine.get_registry().add_component(drone_ent, 
+                            position{-200.0f, player_pos.y + 5.0f});
+                        
+                        _engine.get_registry().add_component(drone_ent, velocity{0.0f, 0.0f});
+                        
+                        sprite_component sprite;
+                        sprite.texture_path = "assets/r-typesheet5.gif";
+                        sprite.texture_rect_x = 495;
+                        sprite.texture_rect_y = 0;
+                        sprite.texture_rect_w = 33;
+                        sprite.texture_rect_h = 32;
+                        sprite.scale = 2.0f;
+                        sprite.grayscale = true;
+                        _engine.get_registry().add_component(drone_ent, sprite);
+                        
+                        _engine.get_registry().add_component(drone_ent, 
+                            entity_tag{RType::EntityType::MissileDrone});
+                        
+                        md.drone_entities[drone_idx] = drone_ent;
+                    }
+                    
+                    auto& drone_pos_opt = _engine.get_registry().get_component<position>(md.drone_entities[drone_idx].value());
+                    
+                    if (drone_pos_opt.has_value()) {
+                        float vertical_offset = md.get_vertical_offset();
+                        
+                        float target_x, target_y;
+                        
+                        if (md.num_drones == 1) {
+                            target_x = player_pos.x;
+                            target_y = player_pos.y - 70.0f + vertical_offset;
+                        } else if (md.num_drones == 2) {
+                            float offset_x = (drone_idx == 0) ? -60.0f : 60.0f;
+                            target_x = player_pos.x + offset_x;
+                            target_y = player_pos.y - 70.0f + vertical_offset;
+                        } else {
+                            if (drone_idx == 0) {
+                                target_x = player_pos.x;
+                                target_y = player_pos.y - 100.0f + vertical_offset;
+                            } else if (drone_idx == 1) {
+                                target_x = player_pos.x - 60.0f;
+                                target_y = player_pos.y - 60.0f + vertical_offset;
+                            } else {
+                                target_x = player_pos.x + 60.0f;
+                                target_y = player_pos.y - 60.0f + vertical_offset;
+                            }
+                        }
+                        
+                        drone_pos_opt->x += (target_x - drone_pos_opt->x) * dt * 5.0f;
+                        drone_pos_opt->y += (target_y - drone_pos_opt->y) * dt * 5.0f;
+                    }
+                }
+                
+                if (md.can_shoot()) {
+                    for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(md.num_drones); ++drone_idx) {
+                        if (md.drone_entities[drone_idx].has_value()) {
+                            auto& drone_pos_opt = _engine.get_registry().get_component<position>(md.drone_entities[drone_idx].value());
+                            
+                            if (drone_pos_opt.has_value()) {
+                                auto& enemies = _engine.get_registry().get_components<enemy_tag>();
+                                auto& enemy_positions = _engine.get_registry().get_components<position>();
+                                
+                                std::vector<std::pair<float, float>> targets;
+                                
+                                for (std::size_t j = 0; j < enemies.size() && targets.size() < static_cast<size_t>(md.missiles_per_volley); ++j) {
+                                    if (enemies[j].has_value() && j < enemy_positions.size() && 
+                                        enemy_positions[j].has_value()) {
+                                        auto& enemy_pos = enemy_positions[j].value();
+                                        
+                                        if (enemy_pos.x > drone_pos_opt->x) {
+                                            targets.push_back({enemy_pos.x, enemy_pos.y});
+                                        }
+                                    }
+                                }
+                                
+                                auto& boss_tags = _engine.get_registry().get_components<boss_tag>();
+                                auto& boss_positions = _engine.get_registry().get_components<position>();
+                                
+                                for (std::size_t j = 0; j < boss_tags.size() && targets.size() < static_cast<size_t>(md.missiles_per_volley); ++j) {
+                                    if (boss_tags[j].has_value() && j < boss_positions.size() && 
+                                        boss_positions[j].has_value()) {
+                                        auto& boss_pos = boss_positions[j].value();
+                                        
+                                        if (boss_pos.x > drone_pos_opt->x) {
+                                            targets.push_back({boss_pos.x, boss_pos.y});
+                                        }
+                                    }
+                                }
+                                
+                                for (const auto& [target_x, target_y] : targets) {
+                                    float dx = target_x - drone_pos_opt->x;
+                                    float dy = target_y - drone_pos_opt->y;
+                                    float magnitude = std::sqrt(dx * dx + dy * dy);
+                                    
+                                    if (magnitude > 0.0f) {
+                                        float projectile_speed = 600.0f;
+                                        float vx = (dx / magnitude) * projectile_speed;
+                                        float vy = (dy / magnitude) * projectile_speed;
+                                        ::createProjectile(_engine.get_registry(), 
+                                            drone_pos_opt->x + 20.0f, drone_pos_opt->y, 
+                                            vx, vy, 20, WeaponUpgradeType::AllyMissile, false);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (drone_idx == static_cast<std::size_t>(md.num_drones) - 1) {
+                            md.reset_shoot_timer();
+                        }
+                    }
+                }
+            } else {
+                for (auto& drone_entity_opt : md.drone_entities) {
+                    if (drone_entity_opt.has_value()) {
+                        try {
+                            _engine.get_registry().kill_entity(drone_entity_opt.value());
+                        } catch (...) {}
+                        drone_entity_opt = std::nullopt;
+                    }
+                }
+                md.drone_entities.clear();
             }
         }
     }

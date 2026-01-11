@@ -3,6 +3,7 @@
 #include "game/Entity.hpp"
 #include "managers/EffectsManager.hpp"
 #include "managers/TextureManager.hpp"
+#include "rendering/LaserParticleSystem.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -30,6 +31,8 @@ public:
 
     void render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
                          uint32_t my_network_id, float dt, float predicted_x = -1.0f, float predicted_y = -1.0f);
+
+    void render_laser_particles(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities, float dt);
 
     void render_effects(sf::RenderWindow& window);
 
@@ -81,6 +84,8 @@ private:
     sf::Font transition_font_;
 
     sf::View game_view_;
+    
+    std::map<uint32_t, LaserParticleSystem> laser_particle_systems_;
 };
 
 }  // namespace rendering

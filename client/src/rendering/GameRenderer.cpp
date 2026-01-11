@@ -376,7 +376,7 @@ void GameRenderer::update_ally_tilt(Entity& entity, float /*dt*/) {
 }
 
 void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
-                                   uint32_t my_network_id, float dt, float predicted_x, float predicted_y) {
+                                    uint32_t my_network_id, float dt, float predicted_x, float predicted_y) {
     const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
@@ -386,7 +386,7 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         if (e.type == 0x01) {
             update_ship_tilt(e, dt);
-        } else if (e.type == 0x0A) {
+        } else if (e.type == 0x0A || e.type == 0x0B || e.type == 0x0C || e.type == 0x0D) {
             update_ally_tilt(e, dt);
         } else {
             e.update_animation(dt);
@@ -394,6 +394,7 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         float draw_x = e.x;
         float draw_y = e.y;
+        
         if (entity_id == my_network_id && e.type == 0x01 && predicted_x >= 0.0f && predicted_y >= 0.0f) {
             draw_x = predicted_x;
             draw_y = predicted_y;
@@ -420,6 +421,7 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
         }
         e.sprite.setPosition(draw_x, draw_y);
 
+
         if (e.type == 0x03) {
             if (e.vx != 0.0f || e.vy != 0.0f) {
                 float angle_rad = std::atan2(e.vy, e.vx);
@@ -430,6 +432,8 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
+        } else if (e.grayscale) {
+            e.sprite.setColor(sf::Color(128, 128, 128, 255));
         } else {
             e.sprite.setColor(sf::Color(255, 255, 255, 255));
         }
@@ -438,12 +442,42 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
+        if (e.type == 0x0B) {
+            continue;
+        }
+
         window.draw(e.sprite);
     }
+}void GameRenderer::render_effects(sf::RenderWindow& window) {
+    managers::EffectsManager::instance().render(window);
 }
 
-void GameRenderer::render_effects(sf::RenderWindow& window) {
-    managers::EffectsManager::instance().render(window);
+void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities, float dt) {
+    std::vector<uint32_t> to_remove;
+    for (auto& [laser_id, system] : laser_particle_systems_) {
+        if (entities.find(laser_id) == entities.end()) {
+            to_remove.push_back(laser_id);
+        }
+    }
+    for (uint32_t id : to_remove) {
+        laser_particle_systems_.erase(id);
+    }
+    
+    for (auto& [entity_id, entity] : entities) {
+        if (entity.type == 0x0B) {
+            if (laser_particle_systems_.find(entity_id) == laser_particle_systems_.end()) {
+                laser_particle_systems_[entity_id] = LaserParticleSystem();
+                laser_particle_systems_[entity_id].set_active(true);
+            }
+            
+            auto& system = laser_particle_systems_[entity_id];
+            system.set_active(true);
+            
+            float laser_length = 2000.0f;
+            system.update(dt, entity.x, entity.y, laser_length);
+            system.render(window);
+        }
+    }
 }
 
 void GameRenderer::render_damage_flash(sf::RenderWindow& window) {

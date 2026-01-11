@@ -198,7 +198,139 @@ void PowerupRegistry::initialize() {
             0.0f,
             80.0f,
             0.0f,
-            "+80 Maximum Health (Tank!)"
+            "+80 Maximum Health"
+        });
+        
+        register_powerup(def);
+    }
+    
+    {
+        PowerupDefinition def;
+        def.id = PowerupId::FireRate;
+        def.name = "Fire Rate";
+        def.description = "Permanently increases firing speed";
+        def.category = PowerupCategory::Stat;
+        def.max_level = 3;
+        def.asset_path = "assets/firerate_powerup.png";
+        
+        def.level_effects.push_back({
+            0.0f,
+            1.3f,
+            0.0f,
+            "+30% Fire Rate"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            1.6f,
+            0.0f,
+            "+60% Fire Rate"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            2.0f,
+            0.0f,
+            "+100% Fire Rate (Double Speed!)"
+        });
+        
+        register_powerup(def);
+    }
+    
+    {
+        PowerupDefinition def;
+        def.id = PowerupId::MultiShot;
+        def.name = "Multi-Shot";
+        def.description = "Fires multiple projectiles in a spread pattern";
+        def.category = PowerupCategory::Stat;
+        def.max_level = 3;
+        def.asset_path = "assets/multishot_powerup.png";
+        
+        def.level_effects.push_back({
+            0.0f,
+            3.0f,
+            0.0f,
+            "Fire 3 projectiles"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            4.0f,
+            0.0f,
+            "Fire 4 projectiles"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            5.0f,
+            0.0f,
+            "Fire 5 projectiles"
+        });
+        
+        register_powerup(def);
+    }
+    
+    {
+        PowerupDefinition def;
+        def.id = PowerupId::LaserBeam;
+        def.name = "Laser Beam";
+        def.description = "Activable laser beam that damages all enemies in its path";
+        def.category = PowerupCategory::Activable;
+        def.max_level = 3;
+        def.asset_path = "assets/laser_powerup.png";
+        
+        def.level_effects.push_back({
+            3.0f,
+            100.0f,
+            0.0f,
+            "Laser Beam (3s duration, 100 DPS)"
+        });
+        
+        def.level_effects.push_back({
+            5.0f,
+            150.0f,
+            0.0f,
+            "Laser Beam (5s duration, 150 DPS)"
+        });
+        
+        def.level_effects.push_back({
+            8.0f,
+            200.0f,
+            0.0f,
+            "Laser Beam (8s duration, 200 DPS)"
+        });
+        
+        register_powerup(def);
+    }
+    
+    {
+        PowerupDefinition def;
+        def.id = PowerupId::MissileDrone;
+        def.name = "Missile Drone";
+        def.description = "Deploys a drone that fires homing missiles at enemies";
+        def.category = PowerupCategory::Passive;
+        def.max_level = 3;
+        def.asset_path = "assets/missile_drone_powerup.png";
+        
+        def.level_effects.push_back({
+            0.0f,
+            5.0f,
+            0.0f,
+            "1 Missile Drone (5 missiles every 3s)"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            7.0f,
+            0.0f,
+            "2 Missile Drones (7 missiles every 3s)"
+        });
+        
+        def.level_effects.push_back({
+            0.0f,
+            10.0f,
+            0.0f,
+            "3 Missile Drones (10 missiles every 3s)"
         });
         
         register_powerup(def);

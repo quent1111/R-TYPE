@@ -20,7 +20,11 @@ enum class PowerupId : uint8_t {
     LittleFriend = 10,
     Damage = 20,
     Speed = 21,
-    Health = 22
+    Health = 22,
+    FireRate = 23,
+    MultiShot = 24,
+    LaserBeam = 3,
+    MissileDrone = 11
 };
 
 struct PowerupDefinition {

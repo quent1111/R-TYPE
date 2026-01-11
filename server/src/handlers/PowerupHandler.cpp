@@ -189,6 +189,25 @@ void PowerupHandler::handle_powerup_activate(
                 reg.get_component<shield>(player)->activate(duration, radius);
             }
         }
+    } else if (id == powerup::PowerupId::LaserBeam) {
+        if (def && level > 0 && level <= def->level_effects.size()) {
+            const auto& effect = def->level_effects[level - 1];
+            float duration = effect.duration;
+            float dps = effect.value;
+            
+            auto& laser_opt = reg.get_component<laser_beam>(player);
+            if (laser_opt.has_value()) {
+                laser_opt->max_duration = duration;
+                laser_opt->damage_per_second = dps;
+                laser_opt->level = level;
+                laser_opt->activate();
+            } else {
+                reg.emplace_component<laser_beam>(player, duration, dps, level);
+                reg.get_component<laser_beam>(player)->activate();
+            }
+            std::cout << "[Game] Laser beam activated: " << duration << "s duration, " 
+                      << dps << " DPS" << std::endl;
+        }
     }
 }
 
@@ -216,6 +235,27 @@ void PowerupHandler::apply_passive_powerup(registry& reg, entity player,
 
         std::cout << "[Game] Little Friend passive activated at level " << static_cast<int>(level)
                   << " with " << lf.num_drones << " drone(s)" << std::endl;
+    }
+    else if (id == powerup::PowerupId::MissileDrone) {
+        auto& drone_opt = reg.get_component<missile_drone>(player);
+        if (!drone_opt.has_value()) {
+            reg.emplace_component<missile_drone>(player);
+        }
+        
+        auto& md = reg.get_component<missile_drone>(player).value();
+        
+        auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
+        if (def && level > 0 && level <= def->level_effects.size()) {
+            const auto& effect = def->level_effects[level - 1];
+            md.missiles_per_volley = static_cast<int>(effect.value);
+            md.num_drones = level;
+        }
+
+        md.activate(md.num_drones, md.missiles_per_volley);
+
+        std::cout << "[Game] Missile Drone passive activated at level " << static_cast<int>(level)
+                  << " with " << md.num_drones << " drone(s), " << md.missiles_per_volley 
+                  << " missiles per volley" << std::endl;
     }
 }
 
@@ -253,6 +293,24 @@ void PowerupHandler::apply_stat_powerup(registry& reg, entity player,
             std::cout << "[Game] Max health increased by " << bonus << " to " << health_opt->maximum << std::endl;
         }
     }
+    else if (id == powerup::PowerupId::FireRate) {
+        auto& weapon_opt = reg.get_component<weapon>(player);
+        if (weapon_opt.has_value()) {
+            float base_fire_rate = 5.0f;
+            weapon_opt->fire_rate = base_fire_rate * effect.value;
+            std::cout << "[Game] Fire rate increased by " << ((effect.value - 1.0f) * 100.0f) << "% (new rate: " << weapon_opt->fire_rate << " shots/s)" << std::endl;
+        }
+    }
+    else if (id == powerup::PowerupId::MultiShot) {
+        auto& multishot_opt = reg.get_component<multishot>(player);
+        if (!multishot_opt.has_value()) {
+            reg.emplace_component<multishot>(player, static_cast<int>(effect.value));
+        } else {
+            multishot_opt->extra_projectiles = static_cast<int>(effect.value);
+        }
+        std::cout << "[Game] Multi-shot activated: " << static_cast<int>(effect.value) << " extra projectiles" << std::endl;
+    }
 }
 
 }  // namespace server
+

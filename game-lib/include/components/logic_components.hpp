@@ -106,6 +106,53 @@ struct weapon {
     }
 };
 
+struct multishot {
+    int extra_projectiles = 0;
+    
+    constexpr multishot(int extra = 0) noexcept : extra_projectiles(extra) {}
+};
+
+struct laser_beam {
+    bool active = false;
+    float duration = 0.0f;
+    float max_duration = 0.0f;
+    float damage_per_second = 0.0f;
+    float damage_timer = 0.0f;
+    int level = 0;
+    std::optional<entity> laser_entity;
+    
+    constexpr laser_beam() noexcept = default;
+    
+    constexpr laser_beam(float max_dur, float dps, int lvl) noexcept
+        : active(false), duration(0.0f), max_duration(max_dur), 
+          damage_per_second(dps), damage_timer(0.0f), level(lvl), laser_entity(std::nullopt) {}
+    
+    constexpr void activate() noexcept {
+        active = true;
+        duration = max_duration;
+        damage_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            duration -= dt;
+            damage_timer += dt;
+            if (duration <= 0.0f) {
+                active = false;
+                duration = 0.0f;
+            }
+        }
+    }
+    
+    [[nodiscard]] constexpr bool can_damage() const noexcept {
+        return active && damage_timer >= 0.1f;
+    }
+    
+    constexpr void reset_damage_timer() noexcept {
+        damage_timer = 0.0f;
+    }
+};
+
 struct bounded_movement {
     float min_x, max_x;
     float min_y, max_y;
@@ -323,6 +370,48 @@ struct little_friend {
         if (!exit_animation_started) return 0.0f;
         return exit_animation_timer / exit_animation_duration;
     }
+    
+    [[nodiscard]] constexpr bool can_shoot() const noexcept {
+        return active && shoot_timer >= fire_rate;
+    }
+    
+    [[nodiscard]] float get_vertical_offset() const noexcept {
+        return std::sin(oscillation_timer * oscillation_speed) * oscillation_amplitude;
+    }
+    
+    constexpr void reset_shoot_timer() noexcept {
+        shoot_timer = 0.0f;
+    }
+};
+
+struct missile_drone {
+    bool active = false;
+    std::vector<std::optional<entity>> drone_entities;
+    int num_drones = 1;
+    int missiles_per_volley = 5;
+    float fire_rate = 3.0f;
+    float shoot_timer = 0.0f;
+    float oscillation_timer = 0.0f;
+    float oscillation_speed = 2.0f;
+    float oscillation_amplitude = 15.0f;
+    
+    constexpr missile_drone() noexcept = default;
+    
+    constexpr void activate(int drones, int missiles) noexcept {
+        active = true;
+        num_drones = drones;
+        missiles_per_volley = missiles;
+        shoot_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            shoot_timer += dt;
+            oscillation_timer += dt;
+        }
+    }
+    
+    [[nodiscard]] constexpr bool is_active() const noexcept { return active; }
     
     [[nodiscard]] constexpr bool can_shoot() const noexcept {
         return active && shoot_timer >= fire_rate;
