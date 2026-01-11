@@ -30,6 +30,7 @@ if(NOT SFML_FOUND)
 endif()
 find_package(asio REQUIRED)
 find_package(GTest REQUIRED)
+find_package(lz4 REQUIRED)
 
 if(TARGET sfml::sfml)
     message(STATUS "Using Conan SFML targets (sfml::sfml)")
