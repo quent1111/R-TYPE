@@ -1,5 +1,5 @@
 #include "network/NetworkClient.hpp"
-#include "../../src/Common/QuantizedSerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
                              ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
@@ -34,22 +34,38 @@ void NetworkClient::start_receive() {
 
 void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received >= 4) {
+        std::vector<uint8_t> buffer(recv_buffer_.begin(),
+                                    recv_buffer_.begin() + bytes_received);
+
+        try {
+            RType::CompressionSerializer decompressor(buffer);
+            decompressor.decompress();
+            buffer = decompressor.data();
+        } catch (const RType::CompressionException& e) {
+            std::cerr << "[NetworkClient] Decompression error: " << e.what() << std::endl;
+            start_receive();
+            return;
+        }
+
+        if (buffer.size() < 3) {
+            start_receive();
+            return;
+        }
+
         uint16_t magic =
-            static_cast<uint16_t>(recv_buffer_[0]) | (static_cast<uint16_t>(recv_buffer_[1]) << 8);
+            static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
 
         if (magic == MAGIC_NUMBER) {
-            uint8_t opcode = recv_buffer_[2];
-            std::vector<uint8_t> buffer(recv_buffer_.begin(),
-                                        recv_buffer_.begin() + bytes_received);
+            uint8_t opcode = buffer[2];
 
             if (opcode == 0x02) {
-                decode_login_ack(buffer, bytes_received);
+                decode_login_ack(buffer, buffer.size());
             } else if (opcode == 0x13) {
-                decode_entities(buffer, bytes_received);
+                decode_entities(buffer, buffer.size());
             } else if (opcode == 0x21) {
-                decode_lobby_status(buffer, bytes_received);
+                decode_lobby_status(buffer, buffer.size());
             } else if (opcode == 0x22) {
-                decode_start_game(buffer, bytes_received);
+                decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
                 std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
                          << ", buffer.size()=" << buffer.size() << std::endl;
@@ -217,14 +233,14 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vx = vx;
             entity.vy = vy;
 
-            if (type_val == 0x01) {  // Player
+            if (type_val == 0x01) {
                 int current_health, max_health;
-                deserializer.read_quantized_health(current_health, max_health);  // 2 bytes au lieu de 8
+                deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08) {  // Boss
+            } else if (type_val == 0x08) {
                 int current_health, max_health;
-                deserializer.read_quantized_health(current_health, max_health);  // 2 bytes au lieu de 8
+                deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
             }
@@ -242,10 +258,11 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
 }
 
 void NetworkClient::send_login() {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Login;
     serializer << std::string("Player");
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -258,11 +275,12 @@ void NetworkClient::send_login() {
 }
 
 void NetworkClient::send_input(uint8_t input_mask) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Input;
     serializer << input_mask;
     serializer << static_cast<uint32_t>(0);
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -274,10 +292,11 @@ void NetworkClient::send_input(uint8_t input_mask) {
 }
 
 void NetworkClient::send_ready(bool ready) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PlayerReady;
     serializer << static_cast<uint8_t>(ready ? 1 : 0);
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -523,10 +542,11 @@ void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
 }
 
 void NetworkClient::send_powerup_choice(uint8_t choice) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpChoice;
     serializer << choice;
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -539,10 +559,11 @@ void NetworkClient::send_powerup_choice(uint8_t choice) {
 }
 
 void NetworkClient::send_powerup_activate(uint8_t powerup_type) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpActivate;
     serializer << powerup_type;
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
