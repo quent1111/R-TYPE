@@ -1,4 +1,5 @@
 #include "network/NetworkClient.hpp"
+#include "../../src/Common/QuantizedSerializer.hpp"
 
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
                              ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
@@ -187,7 +188,7 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
         return;
 
     try {
-        RType::BinarySerializer deserializer(buffer);
+        RType::QuantizedSerializer deserializer(buffer);
 
         uint16_t magic;
         uint8_t opcode;
@@ -203,7 +204,10 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             uint8_t type_val;
             float x, y, vx, vy;
 
-            deserializer >> entity_id >> type_val >> x >> y >> vx >> vy;
+            deserializer >> entity_id >> type_val;
+
+            deserializer.read_position(x, y);
+            deserializer.read_velocity(vx, vy);
 
             Entity entity;
             entity.id = entity_id;
@@ -213,14 +217,14 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vx = vx;
             entity.vy = vy;
 
-            if (type_val == 0x01) {
-                int32_t current_health, max_health;
-                deserializer >> current_health >> max_health;
+            if (type_val == 0x01) {  // Player
+                int current_health, max_health;
+                deserializer.read_quantized_health(current_health, max_health);  // 2 bytes au lieu de 8
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08) {
-                int32_t current_health, max_health;
-                deserializer >> current_health >> max_health;
+            } else if (type_val == 0x08) {  // Boss
+                int current_health, max_health;
+                deserializer.read_quantized_health(current_health, max_health);  // 2 bytes au lieu de 8
                 entity.health = current_health;
                 entity.max_health = max_health;
             }
@@ -406,32 +410,32 @@ void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
 
     try {
         RType::BinarySerializer deserializer(buffer);
-        
+
         uint16_t magic;
         uint8_t opcode;
         uint8_t count;
-        
+
         deserializer >> magic;
         deserializer >> opcode;
         deserializer >> count;
-        
+
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpCards);
         msg.powerup_cards.clear();
-        
+
         for (uint8_t i = 0; i < count && i < 3; ++i) {
             uint8_t card_id, card_level;
             deserializer >> card_id;
             deserializer >> card_level;
-            
+
             NetworkToGame::Message::PowerUpCard card;
             card.id = card_id;
             card.level = card_level;
             msg.powerup_cards.push_back(card);
         }
-        
+
         msg.show_powerup_selection = true;
         network_to_game_queue_.push(msg);
-        
+
         std::cout << "[NetworkClient] Received " << static_cast<int>(count) 
                   << " power-up cards" << std::endl;
 
@@ -449,41 +453,41 @@ void NetworkClient::decode_activable_slots(const std::vector<uint8_t>& buffer,
         RType::BinarySerializer deserializer(buffer);
         uint16_t magic;
         uint8_t opcode;
-        
+
         deserializer >> magic;
         deserializer >> opcode;
-        
+
         NetworkToGame::Message msg(NetworkToGame::MessageType::ActivableSlots);
         msg.activable_slots.clear();
-        
+
         for (int slot_idx = 0; slot_idx < 2; ++slot_idx) {
             NetworkToGame::Message::ActivableSlotData slot_data;
-            
+
             bool has_powerup;
             deserializer >> has_powerup;
             slot_data.has_powerup = has_powerup;
-            
+
             if (has_powerup) {
                 uint8_t powerup_id, level;
                 float time_remaining, cooldown_remaining;
                 bool is_active;
-                
+
                 deserializer >> powerup_id;
                 deserializer >> level;
                 deserializer >> time_remaining;
                 deserializer >> cooldown_remaining;
                 deserializer >> is_active;
-                
+
                 slot_data.powerup_id = powerup_id;
                 slot_data.level = level;
                 slot_data.time_remaining = time_remaining;
                 slot_data.cooldown_remaining = cooldown_remaining;
                 slot_data.is_active = is_active;
             }
-            
+
             msg.activable_slots.push_back(slot_data);
         }
-        
+
         network_to_game_queue_.push(msg);
 
     } catch (const std::exception& e) {
