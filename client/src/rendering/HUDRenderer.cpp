@@ -156,18 +156,39 @@ void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_int
         return;
     }
 
-    level_text_.setString("Level " + std::to_string(current_level_));
+    bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
+
+    if (is_boss_wave) {
+        level_text_.setFillColor(sf::Color(255, 50, 50));
+        level_text_.setString("BOSS WAVE " + std::to_string(current_level_));
+    } else {
+        level_text_.setFillColor(sf::Color::Yellow);
+        level_text_.setString("Level " + std::to_string(current_level_));
+    }
     window.draw(level_text_);
 
-    progress_text_.setString("Enemies: " + std::to_string(enemies_killed_) + " / " +
-                             std::to_string(enemies_needed_));
+    if (is_boss_wave) {
+        uint16_t boss_killed = (enemies_killed_ >= 1) ? 1 : 0;
+        progress_text_.setFillColor(sf::Color(255, 100, 100));
+        progress_text_.setString("Boss: " + std::to_string(boss_killed) + " / 1");
+    } else {
+        progress_text_.setFillColor(sf::Color::White);
+        progress_text_.setString("Enemies: " + std::to_string(enemies_killed_) + " / " +
+                                 std::to_string(enemies_needed_));
+    }
     window.draw(progress_text_);
 
     window.draw(progress_bar_bg_);
 
     float progress = 0.0f;
-    if (enemies_needed_ > 0) {
-        progress = static_cast<float>(enemies_killed_) / static_cast<float>(enemies_needed_);
+    if (is_boss_wave) {
+        progress = (enemies_killed_ >= 1) ? 1.0f : 0.0f;
+        progress_bar_fill_.setFillColor(sf::Color(255, 50, 50));
+    } else {
+        if (enemies_needed_ > 0) {
+            progress = static_cast<float>(enemies_killed_) / static_cast<float>(enemies_needed_);
+        }
+        progress_bar_fill_.setFillColor(sf::Color(0, 200, 0));
     }
     progress_bar_fill_.setSize(sf::Vector2f(296.0f * progress, 21.0f));
     window.draw(progress_bar_fill_);

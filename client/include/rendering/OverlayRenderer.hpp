@@ -57,6 +57,12 @@ private:
     sf::Text level_intro_subtitle_;
     sf::RectangleShape level_intro_overlay_;
 
+    // Boss wave warning elements
+    sf::Text boss_warning_text_;
+    sf::Text boss_wave_text_;
+    sf::RectangleShape boss_warning_stripe1_;
+    sf::RectangleShape boss_warning_stripe2_;
+
     sf::RectangleShape powerup_overlay_;
     sf::Text powerup_title_;
     sf::Sprite powerup_card1_sprite_;
