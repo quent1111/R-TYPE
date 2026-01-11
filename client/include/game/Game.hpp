@@ -12,7 +12,9 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <optional>
 #include "ui/SettingsPanel.hpp"
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 
 class Game {
 private:
@@ -53,9 +55,16 @@ private:
     std::map<std::pair<uint32_t, uint8_t>, float> player_powerups_;
     std::map<uint32_t, int> player_shield_frame_;
     std::map<uint32_t, float> player_shield_anim_timer_;
+    std::vector<NetworkToGame::Message::PowerUpCard> powerup_cards_;
+    
+    std::vector<std::pair<std::optional<powerup::PowerupId>, uint8_t>> my_activable_slots_;
+    std::vector<float> my_slot_timers_;
+    std::vector<float> my_slot_cooldowns_;
+    std::vector<bool> my_slot_active_;
 
     sf::Sprite powerup_card1_sprite_;
     sf::Sprite powerup_card2_sprite_;
+    sf::Sprite powerup_card3_sprite_;
 
     uint32_t current_score_ = 0;
     uint32_t displayed_score_ = 0;
@@ -105,6 +114,10 @@ public:
     bool is_running() const { return is_running_; }
     void set_focus(bool focus) { has_focus_ = focus; }
 
+private:
+    void update_powerup_card_sprites();
+
+public:
     Game(const Game&) = delete;
     Game& operator=(const Game&) = delete;
 };

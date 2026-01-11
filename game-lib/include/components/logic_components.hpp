@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cmath>
 #include "../../../src/Common/Opcodes.hpp"
+#include "../../../engine/ecs/entity.hpp"
+#include "../powerup/PowerupRegistry.hpp"
+#include "../powerup/PlayerPowerups.hpp"
 
 
 struct health {
@@ -35,10 +39,11 @@ struct collision_box {
     float height;
     float offset_x;
     float offset_y;
+    bool enabled;
 
     constexpr collision_box(float w = 50.0f, float h = 50.0f, float ox = 0.0f,
-                            float oy = 0.0f) noexcept
-        : width(w), height(h), offset_x(ox), offset_y(oy) {}
+                            float oy = 0.0f, bool is_enabled = true) noexcept
+        : width(w), height(h), offset_x(ox), offset_y(oy), enabled(is_enabled) {}
 };
 
 struct multi_hitbox {
@@ -67,7 +72,8 @@ struct controllable {
 enum class WeaponUpgradeType : uint8_t {
     None = 0,
     PowerShot = 1,
-    TripleShot = 2
+    TripleShot = 2,
+    AllyMissile = 3
 };
 
 struct weapon {
@@ -97,6 +103,53 @@ struct weapon {
         } else if (new_upgrade == WeaponUpgradeType::TripleShot) {
             fire_rate = 4.0f;
         }
+    }
+};
+
+struct multishot {
+    int extra_projectiles = 0;
+    
+    constexpr multishot(int extra = 0) noexcept : extra_projectiles(extra) {}
+};
+
+struct laser_beam {
+    bool active = false;
+    float duration = 0.0f;
+    float max_duration = 0.0f;
+    float damage_per_second = 0.0f;
+    float damage_timer = 0.0f;
+    int level = 0;
+    std::optional<entity> laser_entity;
+    
+    constexpr laser_beam() noexcept = default;
+    
+    constexpr laser_beam(float max_dur, float dps, int lvl) noexcept
+        : active(false), duration(0.0f), max_duration(max_dur), 
+          damage_per_second(dps), damage_timer(0.0f), level(lvl), laser_entity(std::nullopt) {}
+    
+    constexpr void activate() noexcept {
+        active = true;
+        duration = max_duration;
+        damage_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            duration -= dt;
+            damage_timer += dt;
+            if (duration <= 0.0f) {
+                active = false;
+                duration = 0.0f;
+            }
+        }
+    }
+    
+    [[nodiscard]] constexpr bool can_damage() const noexcept {
+        return active && damage_timer >= 0.1f;
+    }
+    
+    constexpr void reset_damage_timer() noexcept {
+        damage_timer = 0.0f;
     }
 };
 
@@ -165,7 +218,8 @@ struct level_manager {
 enum class PowerUpType : uint8_t {
     None = 0,
     PowerCannon = 1,
-    Shield = 2
+    Shield = 2,
+    LittleFriend = 3
 };
 
 struct power_cannon {
@@ -177,9 +231,11 @@ struct power_cannon {
 
     constexpr power_cannon() noexcept = default;
 
-    constexpr void activate() noexcept {
+    constexpr void activate(float custom_duration = 10.0f, int custom_damage = 50) noexcept {
         active = true;
-        time_remaining = duration;
+        duration = custom_duration;
+        time_remaining = custom_duration;
+        damage = custom_damage;
     }
     
     constexpr void update(float dt) noexcept {
@@ -206,9 +262,11 @@ struct shield {
     
     constexpr shield() noexcept = default;
     
-    constexpr void activate() noexcept {
+    constexpr void activate(float custom_duration = 10.0f, float custom_radius = 80.0f) noexcept {
         active = true;
-        time_remaining = duration;
+        duration = custom_duration;
+        time_remaining = custom_duration;
+        radius = custom_radius;
     }
     
     constexpr void update(float dt) noexcept {
@@ -236,6 +294,138 @@ struct shield {
     }
 };
 
+struct little_friend {
+    bool active = false;
+    float duration = 10.0f;
+    float time_remaining = 0.0f;
+    std::vector<std::optional<entity>> friend_entities;
+    int num_drones = 1;
+    int damage = 15;
+    float fire_rate = 2.0f;
+    float shoot_timer = 0.0f;
+    float oscillation_timer = 0.0f;
+    float oscillation_speed = 2.0f;
+    float oscillation_amplitude = 15.0f;
+
+    bool entry_animation_complete = false;
+    float entry_animation_timer = 0.0f;
+    float entry_animation_duration = 1.0f;
+    
+    bool exit_animation_started = false;
+    float exit_animation_timer = 0.0f;
+    float exit_animation_duration = 1.0f;
+
+    constexpr little_friend() noexcept = default;
+    
+    constexpr void activate() noexcept {
+        active = true;
+        time_remaining = duration;
+        shoot_timer = 0.0f;
+        entry_animation_complete = false;
+        entry_animation_timer = 0.0f;
+        exit_animation_started = false;
+        exit_animation_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            time_remaining -= dt;
+            shoot_timer += dt;
+            oscillation_timer += dt;
+            
+            if (!entry_animation_complete) {
+                entry_animation_timer += dt;
+                if (entry_animation_timer >= entry_animation_duration) {
+                    entry_animation_complete = true;
+                }
+            }
+            
+            if (time_remaining <= exit_animation_duration && !exit_animation_started) {
+                exit_animation_started = true;
+                exit_animation_timer = 0.0f;
+            }
+            
+            if (exit_animation_started) {
+                exit_animation_timer += dt;
+            }
+            
+            if (time_remaining <= 0.0f) {
+                active = false;
+                time_remaining = 0.0f;
+            }
+        }
+    }
+    
+    [[nodiscard]] constexpr bool is_active() const noexcept { return active; }
+    [[nodiscard]] constexpr float get_remaining_percentage() const noexcept {
+        return duration > 0.0f ? (time_remaining / duration) : 0.0f;
+    }
+    
+    [[nodiscard]] float get_entry_progress() const noexcept {
+        if (entry_animation_complete) return 1.0f;
+        return entry_animation_timer / entry_animation_duration;
+    }
+    
+    [[nodiscard]] float get_exit_progress() const noexcept {
+        if (!exit_animation_started) return 0.0f;
+        return exit_animation_timer / exit_animation_duration;
+    }
+    
+    [[nodiscard]] constexpr bool can_shoot() const noexcept {
+        return active && shoot_timer >= fire_rate;
+    }
+    
+    [[nodiscard]] float get_vertical_offset() const noexcept {
+        return std::sin(oscillation_timer * oscillation_speed) * oscillation_amplitude;
+    }
+    
+    constexpr void reset_shoot_timer() noexcept {
+        shoot_timer = 0.0f;
+    }
+};
+
+struct missile_drone {
+    bool active = false;
+    std::vector<std::optional<entity>> drone_entities;
+    int num_drones = 1;
+    int missiles_per_volley = 5;
+    float fire_rate = 3.0f;
+    float shoot_timer = 0.0f;
+    float oscillation_timer = 0.0f;
+    float oscillation_speed = 2.0f;
+    float oscillation_amplitude = 15.0f;
+    
+    constexpr missile_drone() noexcept = default;
+    
+    constexpr void activate(int drones, int missiles) noexcept {
+        active = true;
+        num_drones = drones;
+        missiles_per_volley = missiles;
+        shoot_timer = 0.0f;
+    }
+    
+    constexpr void update(float dt) noexcept {
+        if (active) {
+            shoot_timer += dt;
+            oscillation_timer += dt;
+        }
+    }
+    
+    [[nodiscard]] constexpr bool is_active() const noexcept { return active; }
+    
+    [[nodiscard]] constexpr bool can_shoot() const noexcept {
+        return active && shoot_timer >= fire_rate;
+    }
+    
+    [[nodiscard]] float get_vertical_offset() const noexcept {
+        return std::sin(oscillation_timer * oscillation_speed) * oscillation_amplitude;
+    }
+    
+    constexpr void reset_shoot_timer() noexcept {
+        shoot_timer = 0.0f;
+    }
+};
+
 struct player_tag {};
 struct enemy_tag {};
 struct boss_tag {};
@@ -257,3 +447,5 @@ struct network_id {
     int client_id;
     constexpr explicit network_id(int c_id = -1) noexcept : client_id(c_id) {}
 };
+
+using player_powerups_component = powerup::PlayerPowerups;

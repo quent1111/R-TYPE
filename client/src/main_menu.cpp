@@ -6,6 +6,7 @@
 #include "states/LobbyListState.hpp"
 #include "states/MenuState.hpp"
 #include "states/StateManager.hpp"
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -14,6 +15,10 @@
 #include <thread>
 
 int main(int argc, char* argv[]) {
+    // Initialize power-up registry
+    std::cout << "[Client] Initializing power-up system..." << std::endl;
+    powerup::PowerupRegistry::instance().initialize();
+    
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-TYPE - Multiplayer");
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(60);

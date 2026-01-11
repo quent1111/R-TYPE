@@ -18,6 +18,7 @@ struct Settings {
     int key_shoot = static_cast<int>(sf::Keyboard::Space);
     int key_powerup1 = static_cast<int>(sf::Keyboard::A);
     int key_powerup2 = static_cast<int>(sf::Keyboard::E);
+    int key_powerup3 = static_cast<int>(sf::Keyboard::R);
 
     static Settings& instance() {
         static Settings s;

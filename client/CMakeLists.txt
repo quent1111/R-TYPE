@@ -11,6 +11,7 @@ add_executable(r-type_client
     src/rendering/GameRenderer.cpp
     src/rendering/HUDRenderer.cpp
     src/rendering/OverlayRenderer.cpp
+    src/rendering/LaserParticleSystem.cpp
     src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
@@ -24,6 +25,7 @@ add_executable(r-type_client
 target_include_directories(r-type_client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/game-lib/include
 )
 
 target_link_libraries(r-type_client PRIVATE
@@ -31,6 +33,7 @@ target_link_libraries(r-type_client PRIVATE
     project_warnings
     sfml::sfml
     asio::asio
+    game_logic
 )
 
 link_platform_libraries(r-type_client)

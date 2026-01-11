@@ -51,6 +51,8 @@ public:
     void decode_level_progress(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_level_complete(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_powerup_selection(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_powerup_cards(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_activable_slots(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_powerup_status(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_boss_spawn(const std::vector<uint8_t>& buffer, std::size_t received);
     void decode_game_over(const std::vector<uint8_t>& buffer, std::size_t received);

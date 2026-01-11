@@ -89,6 +89,10 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_level_complete(buffer, bytes_received);
             } else if (opcode == 0x34) {
                 decode_powerup_selection(buffer, bytes_received);
+            } else if (opcode == 0x37) {
+                decode_powerup_cards(buffer, bytes_received);
+            } else if (opcode == 0x38) {
+                decode_activable_slots(buffer, bytes_received);
             } else if (opcode == 0x36) {
                 decode_powerup_status(buffer, bytes_received);
             } else if (opcode == 0x50) {
@@ -392,6 +396,98 @@ void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<
 
     } catch (const std::exception& e) {
         std::cerr << "[NetworkClient] Error decoding power-up selection: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
+                                         std::size_t received) {
+    if (received < 4)
+        return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        
+        uint16_t magic;
+        uint8_t opcode;
+        uint8_t count;
+        
+        deserializer >> magic;
+        deserializer >> opcode;
+        deserializer >> count;
+        
+        NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpCards);
+        msg.powerup_cards.clear();
+        
+        for (uint8_t i = 0; i < count && i < 3; ++i) {
+            uint8_t card_id, card_level;
+            deserializer >> card_id;
+            deserializer >> card_level;
+            
+            NetworkToGame::Message::PowerUpCard card;
+            card.id = card_id;
+            card.level = card_level;
+            msg.powerup_cards.push_back(card);
+        }
+        
+        msg.show_powerup_selection = true;
+        network_to_game_queue_.push(msg);
+        
+        std::cout << "[NetworkClient] Received " << static_cast<int>(count) 
+                  << " power-up cards" << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding power-up cards: " << e.what() << std::endl;
+    }
+}
+
+void NetworkClient::decode_activable_slots(const std::vector<uint8_t>& buffer,
+                                           std::size_t received) {
+    if (received < 5)
+        return;
+
+    try {
+        RType::BinarySerializer deserializer(buffer);
+        uint16_t magic;
+        uint8_t opcode;
+        
+        deserializer >> magic;
+        deserializer >> opcode;
+        
+        NetworkToGame::Message msg(NetworkToGame::MessageType::ActivableSlots);
+        msg.activable_slots.clear();
+        
+        for (int slot_idx = 0; slot_idx < 2; ++slot_idx) {
+            NetworkToGame::Message::ActivableSlotData slot_data;
+            
+            bool has_powerup;
+            deserializer >> has_powerup;
+            slot_data.has_powerup = has_powerup;
+            
+            if (has_powerup) {
+                uint8_t powerup_id, level;
+                float time_remaining, cooldown_remaining;
+                bool is_active;
+                
+                deserializer >> powerup_id;
+                deserializer >> level;
+                deserializer >> time_remaining;
+                deserializer >> cooldown_remaining;
+                deserializer >> is_active;
+                
+                slot_data.powerup_id = powerup_id;
+                slot_data.level = level;
+                slot_data.time_remaining = time_remaining;
+                slot_data.cooldown_remaining = cooldown_remaining;
+                slot_data.is_active = is_active;
+            }
+            
+            msg.activable_slots.push_back(slot_data);
+        }
+        
+        network_to_game_queue_.push(msg);
+
+    } catch (const std::exception& e) {
+        std::cerr << "[NetworkClient] Error decoding activable slots: " << e.what() << std::endl;
     }
 }
 

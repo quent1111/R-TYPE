@@ -38,9 +38,10 @@ public:
         powerup_time_remaining_ = time_remaining;
     }
 
-    void set_powerup_card_bounds(const sf::FloatRect& card1, const sf::FloatRect& card2) {
+    void set_powerup_card_bounds(const sf::FloatRect& card1, const sf::FloatRect& card2, const sf::FloatRect& card3) {
         powerup_card1_bounds_ = card1;
         powerup_card2_bounds_ = card2;
+        powerup_card3_bounds_ = card3;
     }
 
     void handle_event(const sf::Event& event, sf::RenderWindow& window);
@@ -66,12 +67,14 @@ private:
     bool was_shooting_ = false;
     bool was_activating_cannon_ = false;
     bool was_activating_shield_ = false;
+    bool was_activating_friend_ = false;
 
     float shoot_sound_timer_ = 0.0f;
     const float shoot_sound_interval_ = 0.2f;
 
     sf::FloatRect powerup_card1_bounds_;
     sf::FloatRect powerup_card2_bounds_;
+    sf::FloatRect powerup_card3_bounds_;
 };
 
 }  // namespace input

@@ -1,4 +1,5 @@
 #include "handlers/InputHandler.hpp"
+#include <cmath>
 
 namespace server {
 
@@ -66,13 +67,41 @@ void InputHandler::handle_player_input(
                         damage = power_cannon_opt->damage;
                         visual_type = WeaponUpgradeType::PowerShot;
                     }
-                    if (wpn.upgrade_type == WeaponUpgradeType::TripleShot) {
+                    
+                    auto& multishot_opt = reg.get_component<multishot>(player);
+                    int total_projectiles = multishot_opt.has_value() ? multishot_opt->extra_projectiles : 1;
+                    
+                    if (wpn.upgrade_type == WeaponUpgradeType::TripleShot && total_projectiles == 1) {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            0.0f, damage, visual_type, power_cannon_active);
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            -100.0f, damage, visual_type, power_cannon_active);
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            100.0f, damage, visual_type, power_cannon_active);
+                    } else if (total_projectiles > 1) {
+                        float angle_step = 15.0f;
+                        if (total_projectiles == 4) {
+                            angle_step = 10.0f;
+                        }
+                        
+                        int half_count = total_projectiles / 2;
+                        bool has_center = (total_projectiles % 2 == 1);
+                        
+                        if (has_center) {
+                            ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
+                                               0.0f, damage, visual_type, power_cannon_active);
+                        }
+                        
+                        for (int i = 1; i <= half_count; ++i) {
+                            float angle_deg = angle_step * static_cast<float>(i);
+                            float angle_rad = angle_deg * 3.14159265f / 180.0f;
+                            float vy = 500.0f * std::sin(angle_rad);
+                            
+                            ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
+                                               vy, damage, visual_type, power_cannon_active);
+                            ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
+                                               -vy, damage, visual_type, power_cannon_active);
+                        }
                     } else {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            0.0f, damage, visual_type, power_cannon_active);

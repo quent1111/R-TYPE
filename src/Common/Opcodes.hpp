@@ -28,6 +28,8 @@ enum class OpCode : uint8_t {
     PowerUpChoice = 0x34,
     PowerUpActivate = 0x35,
     PowerUpStatus = 0x36,
+    PowerUpCards = 0x37,
+    ActivableSlots = 0x38,
     BossSpawn = 0x50,
     GameOver = 0x40,
     MagicByte1 = 0x42,
@@ -35,14 +37,18 @@ enum class OpCode : uint8_t {
 };
 
 enum class EntityType : uint8_t {
-    Player      = 0x01,
-    Enemy       = 0x02,
-    Projectile  = 0x03,
-    Powerup     = 0x04,
-    Obstacle    = 0x05,
-    Enemy2      = 0x06,
-    Boss        = 0x08,
-    HomingEnemy = 0x09
+    Player       = 0x01,
+    Enemy        = 0x02,
+    Projectile   = 0x03,
+    Powerup      = 0x04,
+    Obstacle     = 0x05,
+    Enemy2       = 0x06,
+    Boss         = 0x08,
+    HomingEnemy  = 0x09,
+    Ally         = 0x0A,
+    LaserBeam    = 0x0B,
+    SupportDrone = 0x0C,
+    MissileDrone = 0x0D
 };
 
 struct MagicNumber {

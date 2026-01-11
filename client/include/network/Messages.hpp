@@ -80,7 +80,9 @@ enum class MessageType : uint8_t {
     LevelComplete,
     LevelStart,
     PowerUpSelection,
+    PowerUpCards,
     PowerUpStatus,
+    ActivableSlots,
     BossSpawn,
     GameOver,
     LobbyListUpdate,
@@ -107,6 +109,22 @@ struct Message {
     std::vector<uint8_t> raw_lobby_data;
     bool lobby_join_success{false};
     int lobby_joined_id{-1};
+    
+    struct PowerUpCard {
+        uint8_t id;
+        uint8_t level;
+    };
+    std::vector<PowerUpCard> powerup_cards;
+    
+    struct ActivableSlotData {
+        bool has_powerup;
+        uint8_t powerup_id;
+        uint8_t level;
+        float time_remaining;
+        float cooldown_remaining;
+        bool is_active;
+    };
+    std::vector<ActivableSlotData> activable_slots;
 
     Message(MessageType t)
         : type(t),

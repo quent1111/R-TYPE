@@ -11,6 +11,8 @@ add_library(game_logic STATIC
     src/entities/boss_factory.cpp
     src/entities/projectile_factory.cpp
     src/entities/explosion_factory.cpp
+    src/powerup/PowerupRegistry.cpp
+    src/powerup/PowerupCardPool.cpp
 )
 
 target_include_directories(game_logic

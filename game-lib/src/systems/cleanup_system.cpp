@@ -8,6 +8,7 @@ void cleanupSystem(registry& reg) {
     auto& positions = reg.get_components<position>();
     auto& healths = reg.get_components<health>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
+    auto& player_tags = reg.get_components<player_tag>();
 
     std::vector<entity> entities_to_kill;
 
@@ -15,6 +16,11 @@ void cleanupSystem(registry& reg) {
         auto& health_opt = healths[i];
 
         if (health_opt && health_opt.value().is_dead()) {
+            bool is_player = (i < player_tags.size() && player_tags[i]);
+            if (is_player) {
+                continue;
+            }
+            
             bool is_enemy = (i < enemy_tags.size() && enemy_tags[i]);
             if (is_enemy && i < positions.size() && positions[i]) {
                 auto& pos = positions[i].value();

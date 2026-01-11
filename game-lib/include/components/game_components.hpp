@@ -17,16 +17,21 @@ struct sprite_component {
     int texture_rect_h;
     float scale;
     bool flip_horizontal;
+    bool visible;
+    bool grayscale;
 
     sprite_component(std::string path = "", int rect_x = 0, int rect_y = 0, int rect_w = 32,
-                     int rect_h = 16, float sprite_scale = 2.0f, bool flip_h = false)
+                     int rect_h = 16, float sprite_scale = 2.0f, bool flip_h = false, bool is_visible = true,
+                     bool is_grayscale = false)
         : texture_path(std::move(path)),
           texture_rect_x(rect_x),
           texture_rect_y(rect_y),
           texture_rect_w(rect_w),
           texture_rect_h(rect_h),
           scale(sprite_scale),
-          flip_horizontal(flip_h) {}
+          flip_horizontal(flip_h),
+          visible(is_visible),
+          grayscale(is_grayscale) {}
 };
 
 struct animation_component {

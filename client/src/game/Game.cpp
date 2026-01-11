@@ -25,6 +25,11 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     enemies_killed_ = 0;
     show_level_intro_ = true;
     level_intro_timer_ = 0.0f;
+    
+    my_activable_slots_.resize(2, {std::nullopt, 0});
+    my_slot_timers_.resize(2, 0.0f);
+    my_slot_cooldowns_.resize(2, 0.0f);
+    my_slot_active_.resize(2, false);
 
     auto& texture_mgr = managers::TextureManager::instance();
     try {
@@ -42,6 +47,10 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet30a.gif");
         texture_mgr.load("assets/explosion.gif");
         texture_mgr.load("assets/weirdbaby.gif");
+        texture_mgr.load("assets/r-typesheet5.gif");
+        texture_mgr.load("assets/laserbeam.png");
+        texture_mgr.load("assets/missile.png");
+        texture_mgr.load("assets/drone.png");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
     } catch (const std::exception& e) {
@@ -77,13 +86,18 @@ void Game::setup_ui() {
         powerup_card1_sprite_.setTexture(*bonus_texture);
         powerup_card1_sprite_.setTextureRect(
             sf::IntRect(card_width * 2, 0, card_width, card_height));
-        powerup_card1_sprite_.setScale(0.6f, 0.6f);
-        powerup_card1_sprite_.setPosition(560.0f, 300.0f);
+        powerup_card1_sprite_.setScale(1.2f, 1.2f);
+        powerup_card1_sprite_.setPosition(560.0f, 500.0f);
         powerup_card2_sprite_.setTexture(*bonus_texture);
         powerup_card2_sprite_.setTextureRect(
             sf::IntRect(card_width * 1, 0, card_width, card_height));
-        powerup_card2_sprite_.setScale(0.6f, 0.6f);
-        powerup_card2_sprite_.setPosition(1180.0f, 300.0f);
+        powerup_card2_sprite_.setScale(1.2f, 1.2f);
+        powerup_card2_sprite_.setPosition(960.0f, 500.0f);
+        powerup_card3_sprite_.setTexture(*bonus_texture);
+        powerup_card3_sprite_.setTextureRect(
+            sf::IntRect(card_width * 0, 0, card_width, card_height));
+        powerup_card3_sprite_.setScale(1.2f, 1.2f);
+        powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
     }
 
     managers::EffectsManager::instance().set_score_position(sf::Vector2f(WINDOW_WIDTH - 200, 40));
@@ -157,7 +171,8 @@ void Game::handle_event(const sf::Event& event) {
     input_handler_.set_focus(has_focus_);
     input_handler_.set_powerup_selection_active(show_powerup_selection_);
     input_handler_.set_powerup_card_bounds(powerup_card1_sprite_.getGlobalBounds(),
-                                           powerup_card2_sprite_.getGlobalBounds());
+                                           powerup_card2_sprite_.getGlobalBounds(),
+                                           powerup_card3_sprite_.getGlobalBounds());
 
     input_handler_.handle_event(event, window_);
 
@@ -379,9 +394,18 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x03) {
         bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
-        bool is_fast_projectile = (projectile_speed > 600.0f && entity.vx > 0);
+        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && entity.vx > 0);
+        bool is_fast_projectile = (projectile_speed > 650.0f && entity.vx > 0);
 
-        if (is_fast_projectile && texture_mgr.has("assets/canonpowerup.png")) {
+        if (is_missile_drone_projectile && !is_fast_projectile && texture_mgr.has("assets/missile.png")) {
+            // Projectiles des drones missiles (vitesse = 600, direction variable)
+            entity.sprite.setTexture(*texture_mgr.get("assets/missile.png"));
+            entity.frames = {{0, 0, 18, 17}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        } else if (is_fast_projectile && texture_mgr.has("assets/canonpowerup.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/canonpowerup.png"));
             entity.frames = {{0, 0, 51, 21}, {52, 0, 51, 21}};
             entity.frame_duration = 0.08F;
@@ -459,6 +483,42 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
+        
+    } else if (entity.type == 0x0B) {
+        // LaserBeam entity - Rendered using particle system (no sprite)
+        entity.sprite.setTexture(sf::Texture());
+        entity.frames = {{0, 0, 1, 1}};
+        entity.loop = false;
+        
+    } else if (entity.type == 0x0C) {
+        // SupportDrone entity - Animated sprite following player (orange/red color)
+        if (texture_mgr.has("assets/r-typesheet5.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
+            entity.frames = {{495, 0, 33, 32}, {462, 0, 33, 32}};
+            entity.current_frame_index = 0;
+            entity.frame_duration = 0.1F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+            entity.grayscale = false;
+        }
+        
+    } else if (entity.type == 0x0D) {
+        // MissileDrone entity - Static sprite positioned above player
+        if (texture_mgr.has("assets/drone.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/drone.png"));
+            entity.frames = {{0, 0, 32, 40}};  // Full sprite dimensions
+            entity.current_frame_index = 0;
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(1.0F, 1.0F);
+            entity.grayscale = false;
+        }
+        
+    } else if (entity.type == 0x0A) {
+        // Legacy Ally type - Should no longer be used (replaced by 0x0B, 0x0C, 0x0D)
+        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -506,12 +566,14 @@ void Game::process_network_messages() {
                             incoming.prev_y = it->second.y;
                             incoming.prev_time = it->second.curr_time;
 
+                            // Preserve sprite properties from existing entity
                             incoming.sprite = it->second.sprite;
                             incoming.frames = it->second.frames;
                             incoming.current_frame_index = it->second.current_frame_index;
                             incoming.frame_duration = it->second.frame_duration;
                             incoming.time_accumulator = it->second.time_accumulator;
                             incoming.loop = it->second.loop;
+                            incoming.grayscale = it->second.grayscale;
                         }
                     } else {
                         if (id == my_network_id_ && incoming.type == 0x01) {
@@ -595,11 +657,25 @@ void Game::process_network_messages() {
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
+                game_renderer_.set_background_level(current_level_);
                 break;
             case NetworkToGame::MessageType::LevelComplete:
                 break;
             case NetworkToGame::MessageType::PowerUpSelection:
                 show_powerup_selection_ = true;
+                break;
+            case NetworkToGame::MessageType::PowerUpCards:
+                // Store the received cards
+                powerup_cards_ = msg.powerup_cards;
+                show_powerup_selection_ = true;
+                
+                // Update the overlay renderer with the new cards
+                overlay_renderer_.update_powerup_cards(powerup_cards_);
+                
+                // Update Game.cpp sprites for hitbox detection
+                update_powerup_card_sprites();
+                
+                std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
                 player_powerups_[{msg.powerup_player_id, msg.powerup_type}] =
@@ -609,6 +685,26 @@ void Game::process_network_messages() {
                         powerup_type_ = msg.powerup_type;
                     }
                     powerup_time_remaining_ = msg.powerup_time_remaining;
+                }
+                break;
+            case NetworkToGame::MessageType::ActivableSlots:
+                if (msg.activable_slots.size() >= 2) {
+                    for (size_t i = 0; i < 2; ++i) {
+                        if (i < msg.activable_slots.size()) {
+                            const auto& slot = msg.activable_slots[i];
+                            if (slot.has_powerup) {
+                                my_activable_slots_[i] = {static_cast<powerup::PowerupId>(slot.powerup_id), slot.level};
+                                my_slot_timers_[i] = slot.time_remaining;
+                                my_slot_cooldowns_[i] = slot.cooldown_remaining;
+                                my_slot_active_[i] = slot.is_active;
+                            } else {
+                                my_activable_slots_[i] = {std::nullopt, 0};
+                                my_slot_timers_[i] = 0.0f;
+                                my_slot_cooldowns_[i] = 0.0f;
+                                my_slot_active_[i] = false;
+                            }
+                        }
+                    }
                 }
                 break;
             case NetworkToGame::MessageType::BossSpawn:
@@ -637,6 +733,9 @@ void Game::render() {
     game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
                                     predicted_player_x_, predicted_player_y_);
 
+    // Rendu des particules laser par-dessus les entités
+    game_renderer_.render_laser_particles(window_, entities_, dt);
+
     game_renderer_.render_effects(window_);
 
     game_renderer_.restore_view(window_);
@@ -656,13 +755,84 @@ void Game::render() {
     overlay_renderer_.render_level_intro(window_, show_level_intro_, current_level_,
                                          enemies_needed_);
     overlay_renderer_.render_powerup_selection(window_, show_powerup_selection_);
+    overlay_renderer_.render_activable_slots(window_, my_activable_slots_, my_slot_timers_,
+                                             my_slot_cooldowns_, my_slot_active_);
     overlay_renderer_.render_game_over(window_, show_game_over_);
 
     game_renderer_.render_damage_flash(window_);
     game_renderer_.render_colorblind_overlay(window_);
+    game_renderer_.render_level_transition(window_);
 
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
+    }
+}
+
+void Game::update_powerup_card_sprites() {
+    auto& texture_mgr = managers::TextureManager::instance();
+    const auto& registry = powerup::PowerupRegistry::instance();
+    
+    // Update card 1
+    if (powerup_cards_.size() > 0) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card1_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card1_sprite_.getLocalBounds();
+                powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card1_sprite_.setPosition(560.0f, 500.0f);
+                powerup_card1_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
+    }
+    
+    // Update card 2
+    if (powerup_cards_.size() > 1) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card2_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card2_sprite_.getLocalBounds();
+                powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card2_sprite_.setPosition(960.0f, 500.0f);
+                powerup_card2_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
+    }
+    
+    // Update card 3
+    if (powerup_cards_.size() > 2) {
+        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
+        if (powerup_def) {
+            const auto& def = *powerup_def;
+            std::string asset_path = def.asset_path;
+            
+            texture_mgr.load(asset_path);
+            if (texture_mgr.has(asset_path)) {
+                powerup_card3_sprite_.setTexture(*texture_mgr.get(asset_path));
+                auto tex_size = texture_mgr.get(asset_path)->getSize();
+                powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                
+                auto bounds = powerup_card3_sprite_.getLocalBounds();
+                powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
+                powerup_card3_sprite_.setPosition(1360.0f, 500.0f);
+                powerup_card3_sprite_.setScale(1.2f, 1.2f);
+            }
+        }
     }
 }
 
