@@ -2,7 +2,7 @@
 
 #include "INetworkCommand.hpp"
 #include "UDPServer.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include <queue>
 #include <memory>

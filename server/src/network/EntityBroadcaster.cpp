@@ -1,10 +1,18 @@
 #include "network/EntityBroadcaster.hpp"
-#include "../../src/Common/QuantizedSerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
+#include <iostream>
 
 namespace server {
 
 EntityBroadcaster::EntityBroadcaster() {
     broadcast_serializer_.reserve(65536);
+    
+    // Configure compression
+    RType::CompressionConfig config;
+    config.min_compress_size = 128;      // Compress packets >= 128 bytes
+    config.acceleration = 10;            // Balance between speed and ratio
+    config.use_high_compression = false; // Fast mode for real-time
+    broadcast_serializer_.set_config(config);
 }
 
 void EntityBroadcaster::broadcast_entity_positions(
@@ -97,8 +105,22 @@ void EntityBroadcaster::broadcast_entity_positions(
 
     broadcast_serializer_.data()[count_position] = static_cast<uint8_t>(entity_count);
 
-
+    // 🗜️ COMPRESS before sending (LZ4)
+    broadcast_serializer_.compress();
+    
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
+}
+
+void EntityBroadcaster::print_compression_stats() const {
+    const auto& stats = broadcast_serializer_.get_stats();
+    std::cout << "\n=== EntityBroadcaster Compression Stats ===" << std::endl;
+    std::cout << "  Compressed packets   : " << stats.total_compressed << std::endl;
+    std::cout << "  Uncompressed packets : " << stats.total_uncompressed << std::endl;
+    std::cout << "  Total bytes in       : " << stats.total_bytes_in << " bytes" << std::endl;
+    std::cout << "  Total bytes out      : " << stats.total_bytes_out << " bytes" << std::endl;
+    std::cout << "  Compression ratio    : " << (stats.get_compression_ratio() * 100.0) << "%" << std::endl;
+    std::cout << "  Bandwidth savings    : " << stats.get_savings_percent() << "%" << std::endl;
+    std::cout << "==========================================\n" << std::endl;
 }
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "network/UDPServer.hpp"
 
@@ -18,7 +18,7 @@ public:
                                 const std::vector<int>& lobby_client_ids);
 
 private:
-    RType::BinarySerializer broadcast_serializer_;
+    RType::CompressionSerializer broadcast_serializer_;
 };
 
 }  // namespace server
