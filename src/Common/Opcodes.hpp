@@ -30,8 +30,14 @@ enum class OpCode : uint8_t {
     PowerUpStatus = 0x36,
     PowerUpCards = 0x37,
     ActivableSlots = 0x38,
+    RequestGameState = 0x39,
     BossSpawn = 0x50,
     GameOver = 0x40,
+    AdminLogin = 0xA0,
+    AdminLoginAck = 0xA1,
+    AdminCommand = 0xA2,
+    AdminResponse = 0xA3,
+    AdminLogout = 0xA4,
     MagicByte1 = 0x42,
     MagicByte2 = 0xB5
 };

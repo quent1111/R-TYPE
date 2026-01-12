@@ -59,6 +59,7 @@ add_subdirectory(game-lib)
 add_subdirectory(engine)
 add_subdirectory(server)
 add_subdirectory(client)
+add_subdirectory(admin-client)
 
 enable_testing()
 add_subdirectory(tests)
