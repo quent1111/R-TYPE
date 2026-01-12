@@ -9,6 +9,11 @@
 #include <iostream>
 #include <thread>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib")
+#endif
+
 std::atomic<bool> server_running{true};
 
 void signal_handler(int signal) {
@@ -30,6 +35,16 @@ void network_loop(server::UDPServer& server) {
 }
 
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    WSADATA wsaData;
+    int result = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (result != 0) {
+        std::cerr << "[Fatal] WSAStartup failed: " << result << std::endl;
+        return 1;
+    }
+    std::cout << "[Init] Windows Sockets initialized" << std::endl;
+#endif
+
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
@@ -62,19 +77,12 @@ int main(int argc, char** argv) {
     powerup::PowerupRegistry::instance().initialize();
 
     try {
-        std::cout << "[Debug] Creating io_context..." << std::endl;
         asio::io_context io_context;
-        
-        std::cout << "[Debug] Creating UDPServer..." << std::endl;
         server::UDPServer server(io_context, bind_address, port);
 
-        std::cout << "[Debug] Starting network thread..." << std::endl;
         std::thread network_thread(network_loop, std::ref(server));
-        
-        std::cout << "[Debug] Starting game thread..." << std::endl;
         std::thread game_thread(game_loop, std::ref(server));
 
-        std::cout << "[Debug] Waiting for threads..." << std::endl;
         game_thread.join();
         server.stop();
         network_thread.join();
@@ -83,8 +91,16 @@ int main(int argc, char** argv) {
 
     } catch (const std::exception& e) {
         std::cerr << "[Fatal] " << e.what() << std::endl;
+#ifdef _WIN32
+        WSACleanup();
+#endif
         return 1;
     }
+
+#ifdef _WIN32
+    WSACleanup();
+    std::cout << "[Init] Windows Sockets cleaned up" << std::endl;
+#endif
 
     return 0;
 }

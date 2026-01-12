@@ -1,11 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM ============================================================================
-REM R-TYPE - All-in-One Script (Windows)
-REM ============================================================================
-
-REM Add MSYS2 UCRT64 to PATH (for GCC/MinGW)
 if exist "C:\msys64\ucrt64\bin" (
     set "PATH=C:\msys64\ucrt64\bin;%PATH%"
 )
@@ -21,9 +16,7 @@ set "EXTRA_ARGS="
 if not defined NUMBER_OF_PROCESSORS set NUMBER_OF_PROCESSORS=4
 set "JOBS=%NUMBER_OF_PROCESSORS%"
 
-REM ============================================================================
-REM Parse Arguments First
-REM ============================================================================
+
 
 :parse_loop
 if "%~1"=="" goto parse_done
@@ -51,7 +44,6 @@ echo [WARNING] Unknown argument: %~1
 shift
 goto parse_loop
 
-REM Collect remaining arguments for client/server
 :collect_extra_args
 if "%~1"=="" goto parse_done
 set "EXTRA_ARGS=!EXTRA_ARGS! %~1"
@@ -61,9 +53,7 @@ goto collect_extra_args
 :parse_done
 if "%COMMAND%"=="" set "COMMAND=build"
 
-REM ============================================================================
-REM Print Banner
-REM ============================================================================
+
 
 echo.
 echo ========================================================
@@ -72,9 +62,6 @@ echo            Build * Run * Test * Analyze
 echo ========================================================
 echo.
 
-REM ============================================================================
-REM Execute Command
-REM ============================================================================
 
 if /i "%COMMAND%"=="clean" goto cmd_clean
 if /i "%COMMAND%"=="install" goto cmd_install
@@ -88,9 +75,6 @@ if /i "%COMMAND%"=="all" goto cmd_all
 echo [ERROR] Unknown command: %COMMAND%
 goto show_help
 
-REM ============================================================================
-REM Command Implementations
-REM ============================================================================
 
 :cmd_clean
 echo.
@@ -136,10 +120,6 @@ goto end_success
 call :do_full_build "all" || exit /b 1
 goto end_success
 
-REM ============================================================================
-REM Helper Functions
-REM ============================================================================
-
 :check_conan
 echo.
 echo [STEP] Checking Conan installation...
@@ -147,21 +127,18 @@ where conan >nul 2>&1
 if errorlevel 1 (
     echo [WARNING] Conan not found in PATH. Checking if installed via pip...
     
-    REM Check if conan module is available via Python
     python -c "import conans" >nul 2>&1
     if not errorlevel 1 (
         echo [OK] Conan is installed via pip but not in PATH
         echo [INFO] Will use 'python -m conans.cli' instead of 'conan'
         set "CONAN_CMD=python -m conans.cli"
         
-        REM Detect profile
         python -m conans.cli profile detect --force >nul 2>&1
         exit /b 0
     )
     
     echo [WARNING] Conan not found. Installing...
     
-    REM Try different Python/pip commands
     where python >nul 2>&1
     if not errorlevel 1 (
         echo Installing with python -m pip...
@@ -257,7 +234,6 @@ echo.
 echo [STEP] Installing dependencies with Conan...
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
-REM Use CONAN_CMD if set, otherwise use 'conan'
 if not defined CONAN_CMD set "CONAN_CMD=conan"
 
 if "%VERBOSE%"=="1" (
@@ -343,6 +319,15 @@ if errorlevel 1 (
 )
 
 echo [OK] Build completed
+
+if exist "C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll" (
+    echo [STEP] Copying MinGW runtime DLLs...
+    copy /Y "C:\msys64\ucrt64\bin\libgcc_s_seh-1.dll" "%BUILD_DIR%\build\%BUILD_TYPE%\bin\" >nul 2>&1
+    copy /Y "C:\msys64\ucrt64\bin\libwinpthread-1.dll" "%BUILD_DIR%\build\%BUILD_TYPE%\bin\" >nul 2>&1
+    copy /Y "C:\msys64\ucrt64\bin\libstdc++-6.dll" "%BUILD_DIR%\build\%BUILD_TYPE%\bin\" >nul 2>&1
+    echo [OK] Runtime DLLs copied
+)
+
 exit /b 0
 
 :do_full_build
