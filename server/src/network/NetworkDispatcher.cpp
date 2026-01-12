@@ -27,7 +27,7 @@ std::unique_ptr<INetworkCommand> NetworkDispatcher::parse_packet(
     }
 
     try {
-        RType::BinarySerializer deserializer(packet.data);
+        RType::BinarySerializer deserializer(decompressor.data());
 
         uint16_t magic;
         deserializer >> magic;

@@ -1,4 +1,5 @@
 #include "network/NetworkClient.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
                              ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
@@ -33,22 +34,38 @@ void NetworkClient::start_receive() {
 
 void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received >= 4) {
+        std::vector<uint8_t> buffer(recv_buffer_.begin(),
+                                    recv_buffer_.begin() + bytes_received);
+
+        try {
+            RType::CompressionSerializer decompressor(buffer);
+            decompressor.decompress();
+            buffer = decompressor.data();
+        } catch (const RType::CompressionException& e) {
+            std::cerr << "[NetworkClient] Decompression error: " << e.what() << std::endl;
+            start_receive();
+            return;
+        }
+
+        if (buffer.size() < 3) {
+            start_receive();
+            return;
+        }
+
         uint16_t magic =
-            static_cast<uint16_t>(recv_buffer_[0]) | (static_cast<uint16_t>(recv_buffer_[1]) << 8);
+            static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
 
         if (magic == MAGIC_NUMBER) {
-            uint8_t opcode = recv_buffer_[2];
-            std::vector<uint8_t> buffer(recv_buffer_.begin(),
-                                        recv_buffer_.begin() + bytes_received);
+            uint8_t opcode = buffer[2];
 
             if (opcode == 0x02) {
-                decode_login_ack(buffer, bytes_received);
+                decode_login_ack(buffer, buffer.size());
             } else if (opcode == 0x13) {
-                decode_entities(buffer, bytes_received);
+                decode_entities(buffer, buffer.size());
             } else if (opcode == 0x21) {
-                decode_lobby_status(buffer, bytes_received);
+                decode_lobby_status(buffer, buffer.size());
             } else if (opcode == 0x22) {
-                decode_start_game(buffer, bytes_received);
+                decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
                 std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
                          << ", buffer.size()=" << buffer.size() << std::endl;
@@ -187,7 +204,7 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
         return;
 
     try {
-        RType::BinarySerializer deserializer(buffer);
+        RType::QuantizedSerializer deserializer(buffer);
 
         uint16_t magic;
         uint8_t opcode;
@@ -203,7 +220,10 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             uint8_t type_val;
             float x, y, vx, vy;
 
-            deserializer >> entity_id >> type_val >> x >> y >> vx >> vy;
+            deserializer >> entity_id >> type_val;
+
+            deserializer.read_position(x, y);
+            deserializer.read_velocity(vx, vy);
 
             Entity entity;
             entity.id = entity_id;
@@ -214,8 +234,8 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vy = vy;
 
             if (type_val == 0x01) {
-                int32_t current_health, max_health;
-                deserializer >> current_health >> max_health;
+                int current_health, max_health;
+                deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
             } else if (type_val == 0x08 ||
@@ -223,8 +243,8 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                        type_val == 0x12 ||
                        type_val == 0x13 ||
                        type_val == 0x14) {
-                int32_t current_health, max_health;
-                deserializer >> current_health >> max_health;
+                int current_health, max_health;
+                deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
                 
@@ -258,10 +278,11 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
 }
 
 void NetworkClient::send_login() {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Login;
     serializer << std::string("Player");
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -274,11 +295,12 @@ void NetworkClient::send_login() {
 }
 
 void NetworkClient::send_input(uint8_t input_mask) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Input;
     serializer << input_mask;
     serializer << static_cast<uint32_t>(0);
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -290,10 +312,11 @@ void NetworkClient::send_input(uint8_t input_mask) {
 }
 
 void NetworkClient::send_ready(bool ready) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PlayerReady;
     serializer << static_cast<uint8_t>(ready ? 1 : 0);
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -426,32 +449,32 @@ void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
 
     try {
         RType::BinarySerializer deserializer(buffer);
-        
+
         uint16_t magic;
         uint8_t opcode;
         uint8_t count;
-        
+
         deserializer >> magic;
         deserializer >> opcode;
         deserializer >> count;
-        
+
         NetworkToGame::Message msg(NetworkToGame::MessageType::PowerUpCards);
         msg.powerup_cards.clear();
-        
+
         for (uint8_t i = 0; i < count && i < 3; ++i) {
             uint8_t card_id, card_level;
             deserializer >> card_id;
             deserializer >> card_level;
-            
+
             NetworkToGame::Message::PowerUpCard card;
             card.id = card_id;
             card.level = card_level;
             msg.powerup_cards.push_back(card);
         }
-        
+
         msg.show_powerup_selection = true;
         network_to_game_queue_.push(msg);
-        
+
         std::cout << "[NetworkClient] Received " << static_cast<int>(count) 
                   << " power-up cards" << std::endl;
 
@@ -469,41 +492,41 @@ void NetworkClient::decode_activable_slots(const std::vector<uint8_t>& buffer,
         RType::BinarySerializer deserializer(buffer);
         uint16_t magic;
         uint8_t opcode;
-        
+
         deserializer >> magic;
         deserializer >> opcode;
-        
+
         NetworkToGame::Message msg(NetworkToGame::MessageType::ActivableSlots);
         msg.activable_slots.clear();
-        
+
         for (int slot_idx = 0; slot_idx < 2; ++slot_idx) {
             NetworkToGame::Message::ActivableSlotData slot_data;
-            
+
             bool has_powerup;
             deserializer >> has_powerup;
             slot_data.has_powerup = has_powerup;
-            
+
             if (has_powerup) {
                 uint8_t powerup_id, level;
                 float time_remaining, cooldown_remaining;
                 bool is_active;
-                
+
                 deserializer >> powerup_id;
                 deserializer >> level;
                 deserializer >> time_remaining;
                 deserializer >> cooldown_remaining;
                 deserializer >> is_active;
-                
+
                 slot_data.powerup_id = powerup_id;
                 slot_data.level = level;
                 slot_data.time_remaining = time_remaining;
                 slot_data.cooldown_remaining = cooldown_remaining;
                 slot_data.is_active = is_active;
             }
-            
+
             msg.activable_slots.push_back(slot_data);
         }
-        
+
         network_to_game_queue_.push(msg);
 
     } catch (const std::exception& e) {
@@ -539,10 +562,11 @@ void NetworkClient::decode_powerup_status(const std::vector<uint8_t>& buffer,
 }
 
 void NetworkClient::send_powerup_choice(uint8_t choice) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpChoice;
     serializer << choice;
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {
@@ -555,10 +579,11 @@ void NetworkClient::send_powerup_choice(uint8_t choice) {
 }
 
 void NetworkClient::send_powerup_activate(uint8_t powerup_type) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpActivate;
     serializer << powerup_type;
+    serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
                           [](std::error_code ec, std::size_t) {

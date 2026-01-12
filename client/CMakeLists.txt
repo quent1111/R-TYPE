@@ -36,6 +36,7 @@ target_link_libraries(r-type_client PRIVATE
     sfml::sfml
     asio::asio
     game_logic
+    LZ4::lz4_static
 )
 
 link_platform_libraries(r-type_client)

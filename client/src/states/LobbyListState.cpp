@@ -1,6 +1,6 @@
 #include "states/LobbyListState.hpp"
 
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
 #include <iostream>
@@ -92,9 +92,10 @@ void LobbyListState::setup_ui() {
 
 void LobbyListState::request_lobby_list() {
     std::cout << "[LobbyListState] Requesting lobby list from server" << std::endl;
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::ListLobbies;
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
     m_game_to_network_queue->push(msg);
@@ -102,10 +103,11 @@ void LobbyListState::request_lobby_list() {
 
 void LobbyListState::send_create_lobby_request(const std::string& lobby_name) {
     std::cout << "[LobbyListState] Creating lobby: " << lobby_name << std::endl;
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::CreateLobby;
     serializer << lobby_name;
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
     m_game_to_network_queue->push(msg);
@@ -115,10 +117,11 @@ void LobbyListState::send_create_lobby_request(const std::string& lobby_name) {
 
 void LobbyListState::send_join_lobby_request(int lobby_id) {
     std::cout << "[LobbyListState] Joining lobby ID: " << lobby_id << std::endl;
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::JoinLobby;
     serializer << static_cast<int32_t>(lobby_id);
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
     m_game_to_network_queue->push(msg);
@@ -404,7 +407,7 @@ void LobbyListState::render(sf::RenderWindow& window) {
         btn->render(window);
     }
     window.draw(m_info_text);
-    
+
     if (m_creating_lobby) {
         sf::RectangleShape overlay(sf::Vector2f(static_cast<float>(m_window.getSize().x), static_cast<float>(m_window.getSize().y)));
         overlay.setFillColor(sf::Color(0, 0, 0, 120));
@@ -413,7 +416,7 @@ void LobbyListState::render(sf::RenderWindow& window) {
         window.draw(m_input_label);
         window.draw(m_input_text);
     }
-    
+
     if (m_footer) m_footer->render(window);
 }
 

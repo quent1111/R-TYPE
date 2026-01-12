@@ -4,7 +4,7 @@
 #include "../../game-lib/include/components/logic_components.hpp"
 #include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 #include "../../game-lib/include/powerup/PowerupCardPool.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "network/UDPServer.hpp"
 

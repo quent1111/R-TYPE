@@ -32,6 +32,7 @@ target_link_libraries(r-type_server PRIVATE
     project_options
     project_warnings
     asio::asio
+    LZ4::lz4_static
 )
 
 link_platform_libraries(r-type_server)
