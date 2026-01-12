@@ -83,8 +83,10 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
             }
 
             if (data.size() >= 2) {
-                uint16_t magic_number = static_cast<uint16_t>(data[0]) |
-                                        (static_cast<uint16_t>(data[1]) << 8);
+                uint16_t magic_number = static_cast<uint16_t>(
+                    static_cast<uint16_t>(data[0]) |
+                    (static_cast<uint16_t>(data[1]) << 8)
+                );
                 if (magic_number == 0xB542) {
                     NetworkPacket packet(std::move(data), remote_endpoint_);
 
