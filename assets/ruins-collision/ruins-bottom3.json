@@ -1,0 +1,63 @@
+{
+  "image": "ruins-bottom3.png",
+  "image_size": {
+    "width": 274,
+    "height": 79
+  },
+  "rects": [
+    {
+      "x": 82,
+      "y": 3,
+      "width": 189,
+      "height": 8
+    },
+    {
+      "x": 83,
+      "y": 11,
+      "width": 188,
+      "height": 64
+    },
+    {
+      "x": 82,
+      "y": 15,
+      "width": 2,
+      "height": 3
+    },
+    {
+      "x": 82,
+      "y": 22,
+      "width": 2,
+      "height": 50
+    },
+    {
+      "x": 2,
+      "y": 67,
+      "width": 19,
+      "height": 8
+    },
+    {
+      "x": 22,
+      "y": 67,
+      "width": 47,
+      "height": 8
+    },
+    {
+      "x": 70,
+      "y": 67,
+      "width": 12,
+      "height": 8
+    },
+    {
+      "x": 18,
+      "y": 71,
+      "width": 1,
+      "height": 4
+    },
+    {
+      "x": 66,
+      "y": 71,
+      "width": 1,
+      "height": 4
+    }
+  ]
+}

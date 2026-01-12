@@ -1,0 +1,15 @@
+{
+  "image": "ruins-background.png",
+  "image_size": {
+    "width": 290,
+    "height": 224
+  },
+  "rects": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 290,
+      "height": 224
+    }
+  ]
+}
