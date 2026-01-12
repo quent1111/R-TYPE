@@ -3,6 +3,7 @@
 #include "common/ClientEndpoint.hpp"
 #include "common/NetworkPacket.hpp"
 #include "common/SafeQueue.hpp"
+#include "network/PacketReliability.hpp"
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
@@ -15,6 +16,7 @@ namespace asio = boost::asio;
 #include <optional>
 #include <queue>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace server {
@@ -31,6 +33,10 @@ private:
     std::unique_ptr<std::vector<uint8_t>> recv_buffer_;
     int next_client_id_;
     bool running_;
+
+    std::map<int, RType::ClientReliabilityState> client_reliability_;
+    std::mutex reliability_mutex_;
+    std::thread retry_thread_;
 
 public:
     UDPServer(asio::io_context& io_context, const std::string& bind_address, unsigned short port);
@@ -51,6 +57,13 @@ public:
     void send_to_client(int client_id, const std::vector<uint8_t>& data);
     void send_to_endpoint(const asio::ip::udp::endpoint& endpoint,
                           const std::vector<uint8_t>& data);
+
+    void send_reliable(int client_id, uint8_t opcode, const std::vector<uint8_t>& payload);
+    void send_ack(int client_id, uint32_t sequence_id);
+    void handle_ack(int client_id, uint32_t sequence_id);
+    void retry_unacked_packets();
+    void retry_thread_loop();
+    void cleanup_client_reliability(int client_id);
 
     bool get_input_packet(NetworkPacket& packet);
     void queue_output_packet(NetworkPacket packet);
