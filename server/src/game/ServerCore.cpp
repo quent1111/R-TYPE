@@ -3,6 +3,7 @@
 #include "../../src/Common/BinarySerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "common/NetworkPacket.hpp"
+#include "common/EnvLoader.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -15,9 +16,14 @@ namespace server {
 ServerCore::ServerCore()
     : _lobby_manager(4),
       _lobby_command_handler(_lobby_manager),
-      _admin_manager(std::make_unique<AdminManager>("admin123")) {
+      _admin_manager(nullptr) {
+    auto env_vars = EnvLoader::load(".env");
+    std::string admin_password = EnvLoader::get(env_vars, "ADMIN_PASSWORD", "admin123");
+
+    _admin_manager = std::make_unique<AdminManager>(admin_password);
+
     std::cout << "[ServerCore] Initialized" << std::endl;
-    std::cout << "[ServerCore] Admin system enabled (default password: admin123)" << std::endl;
+    std::cout << "[ServerCore] Admin system enabled" << std::endl;
 }
 
 void ServerCore::process_network_events(UDPServer& server) {

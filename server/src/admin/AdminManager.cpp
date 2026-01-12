@@ -13,7 +13,6 @@ AdminManager::AdminManager(const std::string& password_hash)
     : _password_hash(password_hash),
       _server_start_time(std::chrono::steady_clock::now()) {
     std::cout << "[AdminManager] Initialized with authentication" << std::endl;
-    std::cout << "[AdminManager] Expected password for login: " << password_hash << std::endl;
 }
 
 std::string AdminManager::hash_password(const std::string& password) {
