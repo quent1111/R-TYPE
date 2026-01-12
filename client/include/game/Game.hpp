@@ -56,7 +56,7 @@ private:
     std::map<uint32_t, int> player_shield_frame_;
     std::map<uint32_t, float> player_shield_anim_timer_;
     std::vector<NetworkToGame::Message::PowerUpCard> powerup_cards_;
-    
+
     std::vector<std::pair<std::optional<powerup::PowerupId>, uint8_t>> my_activable_slots_;
     std::vector<float> my_slot_timers_;
     std::vector<float> my_slot_cooldowns_;

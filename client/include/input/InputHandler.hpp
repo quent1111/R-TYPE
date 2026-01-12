@@ -69,6 +69,10 @@ private:
     bool was_activating_shield_ = false;
     bool was_activating_friend_ = false;
 
+    bool num1_was_pressed_ = false;
+    bool num2_was_pressed_ = false;
+    bool num3_was_pressed_ = false;
+
     float shoot_sound_timer_ = 0.0f;
     const float shoot_sound_interval_ = 0.2f;
 
