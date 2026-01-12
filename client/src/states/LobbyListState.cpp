@@ -135,7 +135,6 @@ void LobbyListState::send_join_lobby_request(int lobby_id) {
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
     m_game_to_network_queue->push(msg);
 
-    m_next_state = "lobby";
 }
 
 void LobbyListState::on_refresh_clicked() {

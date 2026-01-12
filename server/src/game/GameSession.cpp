@@ -212,6 +212,7 @@ void GameSession::process_network_events(UDPServer& server) {
                         deserializer >> ready_byte;
                         bool ready = (ready_byte != 0);
                         handle_player_ready(client_id, ready);
+                        broadcast_lobby_status(server);
                         check_start_game(server);
                     } catch (...) {
                         std::cerr << "[Game] Failed to parse PlayerReady payload" << std::endl;

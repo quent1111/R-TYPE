@@ -37,6 +37,8 @@ void LobbyState::on_enter() {
     m_ready_players = 0;
 
     setup_ui();
+
+    request_lobby_status();
 }
 
 void LobbyState::on_exit() {
@@ -154,6 +156,17 @@ void LobbyState::send_keepalive() {
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::Keepalive);
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+}
+
+void LobbyState::request_lobby_status() {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << static_cast<uint8_t>(RType::OpCode::PlayerReady);
+    serializer << static_cast<uint8_t>(0);
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
     msg.raw_data = serializer.data();

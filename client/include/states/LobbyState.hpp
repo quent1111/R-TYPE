@@ -36,6 +36,7 @@ private:
     void process_network_messages();
     void send_start_game_request();
     void send_keepalive();
+    void request_lobby_status();
 
     sf::RenderWindow& m_window;
     std::string m_next_state;

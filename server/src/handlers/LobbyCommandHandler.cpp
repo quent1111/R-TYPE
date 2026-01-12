@@ -81,6 +81,10 @@ void LobbyCommandHandler::handle_join_lobby(UDPServer& server, int client_id,
     send_lobby_joined_ack(server, client_id, lobby_id, success);
 
     if (success) {
+        Lobby* lobby = _lobby_manager.get_lobby(lobby_id);
+        if (lobby && lobby->get_game_session()) {
+            lobby->get_game_session()->broadcast_lobby_status(server);
+        }
         _lobby_manager.broadcast_lobby_list(server);
     }
 }
