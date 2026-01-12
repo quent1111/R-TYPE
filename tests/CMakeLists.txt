@@ -45,11 +45,15 @@ add_executable(test_network
     # Compression tests
     network/test_compression.cpp
     network/test_full_compression_integration.cpp
+    # New networking system tests
+    network/test_input_buffer.cpp
+    network/test_packet_reliability.cpp
 )
 
 target_include_directories(test_network PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/game-lib/include
+    ${CMAKE_SOURCE_DIR}/server/include
 )
 
 target_link_libraries(test_network PRIVATE
@@ -83,10 +87,14 @@ add_executable(test_game
     game/test_health_advanced.cpp
     game/test_tags.cpp
     game/test_edge_cases.cpp
+    # New game system tests
+    game/test_client_prediction.cpp
+    game/test_position_history.cpp
 )
 
 target_include_directories(test_game PRIVATE
     ${CMAKE_SOURCE_DIR}/game-lib/include
+    ${CMAKE_SOURCE_DIR}/client/include
 )
 
 target_link_libraries(test_game PRIVATE
@@ -95,7 +103,7 @@ target_link_libraries(test_game PRIVATE
     project_options
     project_warnings
 )
-# add_test(NAME GameTests COMMAND test_game)
+add_test(NAME GameTests COMMAND test_game)
 
 # ----------------------------------------------------------------------------
 # Rendering Tests
