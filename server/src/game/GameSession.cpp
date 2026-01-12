@@ -988,6 +988,8 @@ void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
     _boss_shoot_counter = 0;
 
     std::cout << "[Game] Game reset. Back to lobby." << std::endl;
+
+    _game_reset_callback();
 }
 
 void GameSession::runGameLoop(UDPServer& server) {

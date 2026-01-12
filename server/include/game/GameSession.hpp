@@ -85,7 +85,13 @@ private:
     void advance_level(UDPServer& server);
     void reset_game(UDPServer& server);
 
+    std::function<void()> _game_reset_callback = [](){};
+
 public:
+    void set_game_reset_callback(std::function<void()> callback) {
+        _game_reset_callback = callback;
+    }
+
     void handle_player_ready(int client_id, bool ready);
     void check_start_game(UDPServer& server);
     void start_game(UDPServer& server);

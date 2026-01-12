@@ -14,6 +14,10 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players)
       _last_activity(std::chrono::steady_clock::now()) {
     std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name
               << " (max " << _max_players << " players)" << std::endl;
+
+    _game_session->set_game_reset_callback([this]() {
+        this->reset_after_game_over();
+    });
 }
 
 bool Lobby::has_player(int client_id) const {
@@ -100,6 +104,12 @@ bool Lobby::is_inactive(std::chrono::seconds timeout) const {
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - _last_activity);
     return elapsed >= timeout;
+}
+
+void Lobby::reset_after_game_over() {
+    std::cout << "[Lobby " << _lobby_id << "] Game over - marking lobby as finished" << std::endl;
+    _state = LobbyState::Finished;
+    update_activity();
 }
 
 void Lobby::start_game(UDPServer& server) {
