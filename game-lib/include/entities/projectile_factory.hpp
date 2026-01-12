@@ -11,3 +11,9 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
 entity createEnemyProjectile(registry& reg, float x, float y, float vx, float vy, int damage = 15);
 
 entity createEnemy2Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 20);
+
+entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 25, int projectile_type = 0);
+
+entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 20);
+
+entity createEnemy5Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 30);
