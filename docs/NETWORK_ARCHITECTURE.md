@@ -258,6 +258,8 @@ struct ClientReliabilityState {
 | **Packet Reliability** | ✅ Implémenté | 45+ tests | `RELIABLE_UDP_IMPLEMENTATION.md` |
 | **Client Prediction** | ✅ Implémenté | 50+ tests | `ROLLBACK_REPLAY_SYSTEM.md` |
 | **Position History** | ✅ Implémenté | 55+ tests | `ROLLBACK_REPLAY_SYSTEM.md` |
+| **Entity Interpolation** | ✅ Implémenté | - | `ENTITY_INTERPOLATION_EXTRAPOLATION.md` |
+| **Entity Extrapolation** | ✅ Implémenté | - | `ENTITY_INTERPOLATION_EXTRAPOLATION.md` |
 | **Bounded Movement** | ✅ Implémenté | - | Ce doc |
 
 **Total Tests Réseau/Jeu : 170+ tests**
@@ -287,6 +289,8 @@ struct ClientReliabilityState {
    - Prédiction instantanée (0ms lag ressenti)
    - Correction smooth (< 50px erreur)
    - Snap pour grandes divergences (>= 50px)
+   - Interpolation temporelle pour entités distantes
+   - Extrapolation (dead reckoning) si packet loss
 
 5. **Serpent Boss Mechanics**
    - Historique 60 frames (1 sec à 60 FPS)
@@ -301,10 +305,18 @@ struct ClientReliabilityState {
 - **Reorder Window :** 64 paquets, 500ms buffer
 - **Client Prediction :** 0ms lag ressenti
 - **Correction Speed :** 10.0 units/frame (smooth)
+- **Interpolation :** Alpha-based (0.0 → 1.0)
+- **Extrapolation Max :** 200ms (12 frames à 60 FPS)
 
 ---
 
 ## 📚 Documentation Associée
+
+- **`ENTITY_INTERPOLATION_EXTRAPOLATION.md`** (800+ lignes) ⭐ **NOUVEAU**
+  - Interpolation temporelle entre états serveur
+  - Extrapolation (dead reckoning) pour packet loss
+  - Client-side prediction détaillée
+  - Configuration et tuning complets
 
 - **`INPUT_DELAYING_IMPLEMENTATION.md`** (600+ lignes)
   - Architecture complète du système de buffering
@@ -330,5 +342,5 @@ struct ClientReliabilityState {
 
 **Document créé le :** 12 janvier 2026  
 **Auteur :** Documentation Architecture R-TYPE  
-**Version :** 2.0 - Implémentation Actuelle  
+**Version :** 2.1 - Interpolation & Extrapolation Ajoutées  
 **Statut :** ✅ Systèmes Opérationnels
