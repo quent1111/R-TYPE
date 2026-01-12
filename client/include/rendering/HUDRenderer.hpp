@@ -29,6 +29,7 @@ public:
                            uint32_t my_network_id);
     void render_level_hud(sf::RenderWindow& window, bool show_level_intro);
     void render_combo_bar(sf::RenderWindow& window);
+    void render_boss_health_bar(sf::RenderWindow& window, const std::map<uint32_t, Entity>& entities);
 
     HUDRenderer(const HUDRenderer&) = delete;
     HUDRenderer& operator=(const HUDRenderer&) = delete;
@@ -50,6 +51,12 @@ private:
     sf::RectangleShape combo_bar_bg_;
     sf::RectangleShape combo_bar_fill_;
     sf::RectangleShape combo_timer_bar_;
+
+    // Boss health bar
+    sf::RectangleShape boss_health_bar_bg_;
+    sf::RectangleShape boss_health_bar_fill_;
+    sf::RectangleShape boss_health_bar_border_;
+    sf::Text boss_name_text_;
 
     uint8_t current_level_ = 1;
     uint16_t enemies_killed_ = 0;

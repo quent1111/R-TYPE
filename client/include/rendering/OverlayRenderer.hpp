@@ -57,7 +57,6 @@ private:
     sf::Text level_intro_subtitle_;
     sf::RectangleShape level_intro_overlay_;
 
-    // Boss wave warning elements
     sf::Text boss_warning_text_;
     sf::Text boss_wave_text_;
     sf::RectangleShape boss_warning_stripe1_;
