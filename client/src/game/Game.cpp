@@ -48,13 +48,27 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/explosion.gif");
         texture_mgr.load("assets/weirdbaby.gif");
         texture_mgr.load("assets/r-typesheet5.gif");
-        texture_mgr.load("assets/laserbeam.png");
         texture_mgr.load("assets/missile.png");
         texture_mgr.load("assets/drone.png");
+        // Serpent boss textures
+        texture_mgr.load("assets/serpent_head.png");
+        texture_mgr.load("assets/serpent_body.png");
+        texture_mgr.load("assets/serpent_scale.png");
+        texture_mgr.load("assets/serpent_tail.png");
+        texture_mgr.load("assets/serpent_nest.png");
+        texture_mgr.load("assets/serpent_homing.png");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
+        std::cout << "[Game] Serpent boss textures loaded" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
+    }
+    
+    // Load optional textures (may not exist)
+    try {
+        texture_mgr.load("assets/laserbeam.png");
+    } catch (...) {
+        // Laser beam texture is optional
     }
 
     game_renderer_.init(window_);
@@ -491,7 +505,6 @@ void Game::init_entity_sprite(Entity& entity) {
         entity.loop = false;
         
     } else if (entity.type == 0x0C) {
-        // SupportDrone entity - Animated sprite following player (orange/red color)
         if (texture_mgr.has("assets/r-typesheet5.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
             entity.frames = {{495, 0, 33, 32}, {462, 0, 33, 32}};
@@ -504,10 +517,9 @@ void Game::init_entity_sprite(Entity& entity) {
         }
         
     } else if (entity.type == 0x0D) {
-        // MissileDrone entity - Static sprite positioned above player
         if (texture_mgr.has("assets/drone.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/drone.png"));
-            entity.frames = {{0, 0, 32, 40}};  // Full sprite dimensions
+            entity.frames = {{0, 0, 32, 40}};
             entity.current_frame_index = 0;
             entity.frame_duration = 0.1F;
             entity.loop = false;
@@ -517,8 +529,89 @@ void Game::init_entity_sprite(Entity& entity) {
         }
         
     } else if (entity.type == 0x0A) {
-        // Legacy Ally type - Should no longer be used (replaced by 0x0B, 0x0C, 0x0D)
         std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
+        
+    } else if (entity.type == 0x10) {
+        if (texture_mgr.has("assets/serpent_nest.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_nest.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_nest.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(4.0F, 4.0F);
+        }
+        
+    } else if (entity.type == 0x11) {
+        if (texture_mgr.has("assets/serpent_head.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_head.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_head.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+        
+    } else if (entity.type == 0x12) {
+        if (texture_mgr.has("assets/serpent_body.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_body.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_body.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+        
+    } else if (entity.type == 0x13) {
+        if (texture_mgr.has("assets/serpent_scale.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_scale.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_scale.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+        
+    } else if (entity.type == 0x14) {
+        if (texture_mgr.has("assets/serpent_tail.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_tail.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_tail.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
+        
+    } else if (entity.type == 0x15) {
+        if (texture_mgr.has("assets/serpent_homing.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_homing.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_homing.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
+        
+    } else if (entity.type == 0x16) {
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x17) {
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x18) {
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x19) {
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -566,7 +659,6 @@ void Game::process_network_messages() {
                             incoming.prev_y = it->second.y;
                             incoming.prev_time = it->second.curr_time;
 
-                            // Preserve sprite properties from existing entity
                             incoming.sprite = it->second.sprite;
                             incoming.frames = it->second.frames;
                             incoming.current_frame_index = it->second.current_frame_index;
@@ -665,14 +757,11 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpCards:
-                // Store the received cards
                 powerup_cards_ = msg.powerup_cards;
                 show_powerup_selection_ = true;
                 
-                // Update the overlay renderer with the new cards
                 overlay_renderer_.update_powerup_cards(powerup_cards_);
                 
-                // Update Game.cpp sprites for hitbox detection
                 update_powerup_card_sprites();
                 
                 std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
@@ -733,7 +822,6 @@ void Game::render() {
     game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
                                     predicted_player_x_, predicted_player_y_);
 
-    // Rendu des particules laser par-dessus les entités
     game_renderer_.render_laser_particles(window_, entities_, dt);
 
     game_renderer_.render_effects(window_);
@@ -749,6 +837,7 @@ void Game::render() {
     hud_renderer_.render_health_bar(window_, entities_, my_network_id_);
     hud_renderer_.render_level_hud(window_, show_level_intro_);
     hud_renderer_.render_combo_bar(window_);
+    hud_renderer_.render_boss_health_bar(window_, entities_);
 
     overlay_renderer_.render_powerup_active(window_, player_powerups_, entities_,
                                             player_shield_frame_, my_network_id_);
@@ -772,7 +861,6 @@ void Game::update_powerup_card_sprites() {
     auto& texture_mgr = managers::TextureManager::instance();
     const auto& registry = powerup::PowerupRegistry::instance();
     
-    // Update card 1
     if (powerup_cards_.size() > 0) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
         if (powerup_def) {
@@ -793,7 +881,6 @@ void Game::update_powerup_card_sprites() {
         }
     }
     
-    // Update card 2
     if (powerup_cards_.size() > 1) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
         if (powerup_def) {
@@ -814,7 +901,6 @@ void Game::update_powerup_card_sprites() {
         }
     }
     
-    // Update card 3
     if (powerup_cards_.size() > 2) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
         if (powerup_def) {

@@ -19,7 +19,6 @@ public:
     PowerupHandler() = default;
     ~PowerupHandler() = default;
 
-    // Generate 3 power-up cards for selection
     std::vector<powerup::PowerupCard> generate_card_choices(
         registry& reg,
         const std::unordered_map<int, std::size_t>& client_entity_ids,
@@ -47,7 +46,6 @@ private:
     
     powerup::PowerupCardPool card_pool_;
     
-    // Store card choices per client to ensure consistency between generation and selection
     std::unordered_map<int, std::vector<powerup::PowerupCard>> player_card_choices_;
 };
 

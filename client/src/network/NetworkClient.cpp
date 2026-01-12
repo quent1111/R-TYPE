@@ -238,11 +238,31 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08) {
+            } else if (type_val == 0x08 ||
+                       type_val == 0x11 || 
+                       type_val == 0x12 ||
+                       type_val == 0x13 ||
+                       type_val == 0x14) {
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
+                
+                uint8_t grayscale_flag;
+                deserializer >> grayscale_flag;
+                entity.grayscale = (grayscale_flag != 0);
+                
+                if (type_val == 0x11 || type_val == 0x12 || type_val == 0x13 || type_val == 0x14) {
+                    float rotation;
+                    deserializer >> rotation;
+                    entity.rotation = rotation;
+                    
+                    if (type_val == 0x13) {
+                        uint32_t attached_id;
+                        deserializer >> attached_id;
+                        entity.attached_to = attached_id;
+                    }
+                }
             }
 
             new_entities[entity_id] = entity;

@@ -48,7 +48,17 @@ enum class EntityType : uint8_t {
     Ally         = 0x0A,
     LaserBeam    = 0x0B,
     SupportDrone = 0x0C,
-    MissileDrone = 0x0D
+    MissileDrone = 0x0D,
+    SerpentNest  = 0x10,
+    SerpentHead  = 0x11,
+    SerpentBody  = 0x12,
+    SerpentScale = 0x13,
+    SerpentTail  = 0x14,
+    SerpentHoming = 0x15,
+    SerpentLaser  = 0x16,
+    SerpentLaserSegment = 0x17,
+    SerpentScream = 0x18,
+    SerpentLaserCharge = 0x19
 };
 
 struct MagicNumber {

@@ -4,6 +4,8 @@
 #include "managers/EffectsManager.hpp"
 #include "managers/TextureManager.hpp"
 #include "rendering/LaserParticleSystem.hpp"
+#include "rendering/SerpentLaserSystem.hpp"
+#include "rendering/SerpentEffectsSystem.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -59,6 +61,7 @@ private:
     sf::Sprite ruins_bg_sprite2_;
     sf::Sprite ruins_bg2_sprite1_;
     sf::Sprite ruins_bg2_sprite2_;
+    sf::Sprite boss_fight_bg_sprite_;
     float ruins_bg_scroll_offset_ = 0.0f;
     bool bg_fade_active_ = false;
     float bg_fade_timer_ = 0.0f;
@@ -86,6 +89,8 @@ private:
     sf::View game_view_;
     
     std::map<uint32_t, LaserParticleSystem> laser_particle_systems_;
+    std::map<uint32_t, SerpentLaserSystem> serpent_laser_systems_;
+    SerpentEffectsSystem serpent_effects_;
 };
 
 }  // namespace rendering
