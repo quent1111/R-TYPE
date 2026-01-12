@@ -6,6 +6,7 @@ std::string opcode_to_string(OpCode opcode) {
     switch (opcode) {
         case OpCode::Login:         return "Login";
         case OpCode::LoginAck:      return "LoginAck";
+        case OpCode::Keepalive:     return "Keepalive";
         case OpCode::Input:         return "Input";
         case OpCode::EntitySpawn:   return "EntitySpawn";
         case OpCode::EntityDestroy: return "EntityDestroy";

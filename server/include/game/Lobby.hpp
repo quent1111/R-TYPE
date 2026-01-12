@@ -48,6 +48,7 @@ public:
     void set_state(LobbyState state) { _state = state; }
     void update_activity();
     bool is_inactive(std::chrono::seconds timeout) const;
+    void reset_after_game_over();
 
     void start_game(UDPServer& server);
     void run_game_tick(UDPServer& server, float dt);

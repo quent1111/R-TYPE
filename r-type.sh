@@ -56,6 +56,7 @@ ${YELLOW}COMMANDS:${NC}
     ${GREEN}build${NC}               Build the project (default: Release)
     ${GREEN}client${NC}              Build and run the client
     ${GREEN}server${NC}              Build and run the server
+    ${GREEN}admin${NC}               Build and run the admin panel
     ${GREEN}test${NC}                Build and run tests
     ${GREEN}tests${NC}               Build and run game unit tests only
     ${GREEN}coverage${NC}            Generate code coverage report
@@ -400,6 +401,21 @@ run_server() {
     ./r-type_server "$@"
 }
 
+run_admin() {
+    print_step "Launching R-TYPE Admin Panel..."
+    local BIN_DIR=$(get_bin_dir)
+    if [ ! -f "$BIN_DIR/r-type_admin" ]; then
+        print_error "Admin client not found. Building..."
+        do_build "r-type_admin"
+        BIN_DIR=$(get_bin_dir)
+    fi
+    cd "$BIN_DIR"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${YELLOW}Default admin password: admin123${NC}"
+    echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    ./r-type_admin "$@"
+}
+
 run_tests() {
     print_step "Running tests..."
     if [ ! -d "$BUILD_DIR" ]; then
@@ -633,6 +649,11 @@ main() {
             print_banner
             do_build "r-type_server"
             run_server "$@"
+            ;;
+        admin)
+            print_banner
+            do_build "r-type_admin"
+            run_admin "$@"
             ;;
         test)
             print_banner

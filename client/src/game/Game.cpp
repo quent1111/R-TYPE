@@ -2,6 +2,8 @@
 
 #include "common/Settings.hpp"
 #include "input/InputKey.hpp"
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -80,10 +82,31 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     auto& audio = managers::AudioManager::instance();
     audio.load_sounds();
     audio.play_music("assets/sounds/game-loop.ogg", true);
+    
+    // Nettoyer les anciennes entités en cas de reconnexion
+    entities_.clear();
+    has_server_position_ = false;
+    boss_spawn_triggered_ = false;
+    show_game_over_ = false;
+    game_over_timer_ = 0.0f;
+    
+    // Demander l'état complet du jeu au serveur
+    request_game_state();
 }
 
 Game::~Game() {
     std::cout << "[Game] Closing of the client..." << std::endl;
+}
+
+void Game::request_game_state() {
+    std::cout << "[Game] Requesting full game state from server..." << std::endl;
+    
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::RequestGameState;
+    
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
+    game_to_network_queue_.push(msg);
 }
 
 void Game::setup_ui() {
@@ -353,14 +376,23 @@ void Game::init_entity_sprite(Entity& entity) {
 
     if (entity.type == 0x01) {
         std::string sprite_sheet;
-        if (entity.id == 2) {
-            sprite_sheet = "assets/r-typesheet1.3.png";
-        } else if (entity.id == 3) {
-            sprite_sheet = "assets/r-typesheet1.4.png";
-        } else if (entity.id == 4) {
-            sprite_sheet = "assets/r-typesheet1.5.png";
-        } else {
-            sprite_sheet = "assets/r-typesheet1.png";
+
+        switch (entity.player_index) {
+            case 1:
+                sprite_sheet = "assets/r-typesheet1.png";
+                break;
+            case 2:
+                sprite_sheet = "assets/r-typesheet1.3.png";
+                break;
+            case 3:
+                sprite_sheet = "assets/r-typesheet1.4.png";
+                break;
+            case 4:
+                sprite_sheet = "assets/r-typesheet1.5.png";
+                break;
+            default:
+                sprite_sheet = "assets/r-typesheet1.png";
+                break;
         }
 
         if (!texture_mgr.has(sprite_sheet)) {
@@ -655,17 +687,34 @@ void Game::process_network_messages() {
                             incoming.prev_time = now;
                             init_entity_sprite(incoming);
                         } else {
-                            incoming.prev_x = it->second.x;
-                            incoming.prev_y = it->second.y;
-                            incoming.prev_time = it->second.curr_time;
+                            bool needs_sprite_reset = false;
 
-                            incoming.sprite = it->second.sprite;
-                            incoming.frames = it->second.frames;
-                            incoming.current_frame_index = it->second.current_frame_index;
-                            incoming.frame_duration = it->second.frame_duration;
-                            incoming.time_accumulator = it->second.time_accumulator;
-                            incoming.loop = it->second.loop;
-                            incoming.grayscale = it->second.grayscale;
+                            if (incoming.type == 0x01 && it->second.player_index != incoming.player_index) {
+                                needs_sprite_reset = true;
+                            }
+
+                            if (it->second.sprite.getTexture() == nullptr) {
+                                needs_sprite_reset = true;
+                            }
+
+                            if (needs_sprite_reset) {
+                                incoming.prev_x = incoming.x;
+                                incoming.prev_y = incoming.y;
+                                incoming.prev_time = now;
+                                init_entity_sprite(incoming);
+                            } else {
+                                incoming.prev_x = it->second.x;
+                                incoming.prev_y = it->second.y;
+                                incoming.prev_time = it->second.curr_time;
+
+                                incoming.sprite = it->second.sprite;
+                                incoming.frames = it->second.frames;
+                                incoming.current_frame_index = it->second.current_frame_index;
+                                incoming.frame_duration = it->second.frame_duration;
+                                incoming.time_accumulator = it->second.time_accumulator;
+                                incoming.loop = it->second.loop;
+                                incoming.grayscale = it->second.grayscale;
+                            }
                         }
                     } else {
                         if (id == my_network_id_ && incoming.type == 0x01) {
@@ -759,11 +808,11 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::PowerUpCards:
                 powerup_cards_ = msg.powerup_cards;
                 show_powerup_selection_ = true;
-                
+
                 overlay_renderer_.update_powerup_cards(powerup_cards_);
-                
+
                 update_powerup_card_sprites();
-                
+
                 std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
@@ -774,6 +823,11 @@ void Game::process_network_messages() {
                         powerup_type_ = msg.powerup_type;
                     }
                     powerup_time_remaining_ = msg.powerup_time_remaining;
+                    if (show_powerup_selection_) {
+                        show_powerup_selection_ = false;
+                        powerup_cards_.clear();
+                        std::cout << "[Game] Closing powerup selection screen (choice confirmed)" << std::endl;
+                    }
                 }
                 break;
             case NetworkToGame::MessageType::ActivableSlots:
