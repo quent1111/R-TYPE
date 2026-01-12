@@ -3,6 +3,7 @@
 #include "../../src/Common/BinarySerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
+#include <ctime>
 #include <iostream>
 
 namespace rtype {
@@ -55,25 +56,36 @@ void LobbyListState::setup_ui() {
 
     float button_width = 250.0f;
     float button_height = 50.0f;
-    float button_x = static_cast<float>(window_size.x) / 2.0f - button_width / 2.0f;
     float bottom_y = static_cast<float>(window_size.y) - 150.0f;
 
+    float play_button_width = 300.0f;
+    float play_button_x = static_cast<float>(window_size.x) / 2.0f - play_button_width / 2.0f;
+    auto play_btn = std::make_unique<ui::Button>(
+        sf::Vector2f(play_button_x, bottom_y - 80.0f),
+        sf::Vector2f(play_button_width, 60.0f),
+        "PLAY");
+    play_btn->set_callback([this]() { on_play_clicked(); });
+    m_buttons.push_back(std::move(play_btn));
+
+    float total_width = button_width * 3 + 20.0f * 2;
+    float start_x = static_cast<float>(window_size.x) / 2.0f - total_width / 2.0f;
+
     auto create_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(button_x - 280.0f, bottom_y),
+        sf::Vector2f(start_x, bottom_y),
         sf::Vector2f(button_width, button_height),
         "CREATE LOBBY");
     create_btn->set_callback([this]() { on_create_clicked(); });
     m_buttons.push_back(std::move(create_btn));
 
     auto refresh_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(button_x, bottom_y),
+        sf::Vector2f(start_x + button_width + 20.0f, bottom_y),
         sf::Vector2f(button_width, button_height),
         "REFRESH");
     refresh_btn->set_callback([this]() { on_refresh_clicked(); });
     m_buttons.push_back(std::move(refresh_btn));
 
     auto back_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(button_x + 280.0f, bottom_y),
+        sf::Vector2f(start_x + (button_width + 20.0f) * 2, bottom_y),
         sf::Vector2f(button_width, button_height),
         "BACK");
     back_btn->set_callback([this]() { on_back_clicked(); });
@@ -130,6 +142,44 @@ void LobbyListState::on_refresh_clicked() {
     std::cout << "[LobbyListState] Refresh clicked" << std::endl;
     m_info_text.setString("Refreshing...");
     request_lobby_list();
+}
+
+void LobbyListState::on_play_clicked() {
+    std::cout << "[LobbyListState] Play clicked - Starting matchmaking" << std::endl;
+    m_matchmaking = true;
+
+    int available_lobby_id = -1;
+    int ingame_lobby_id = -1;
+
+    for (const auto& lobby : m_lobbies) {
+        if (lobby.state_text == "Waiting" && lobby.current_players < lobby.max_players) {
+            available_lobby_id = lobby.lobby_id;
+            std::cout << "[LobbyListState] Found available lobby: " << lobby.name << " (" << lobby.current_players << "/" << lobby.max_players << ")" << std::endl;
+            break;
+        }
+        if (lobby.state_text == "InGame" && lobby.current_players < lobby.max_players && ingame_lobby_id == -1) {
+            ingame_lobby_id = lobby.lobby_id;
+        }
+    }
+
+    if (available_lobby_id != -1) {
+        std::cout << "[LobbyListState] Joining available lobby " << available_lobby_id << std::endl;
+        send_join_lobby_request(available_lobby_id);
+        m_matchmaking = false;
+        return;
+    }
+
+    if (ingame_lobby_id != -1) {
+        std::cout << "[LobbyListState] Joining game in progress " << ingame_lobby_id << std::endl;
+        send_join_lobby_request(ingame_lobby_id);
+        m_matchmaking = false;
+        return;
+    }
+
+    std::cout << "[LobbyListState] No lobby available, creating new one" << std::endl;
+    std::string auto_lobby_name = "Game " + std::to_string(static_cast<int>(std::time(nullptr)) % 10000);
+    send_create_lobby_request(auto_lobby_name);
+    m_matchmaking = false;
 }
 
 void LobbyListState::on_create_clicked() {

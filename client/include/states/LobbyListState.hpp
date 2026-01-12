@@ -41,6 +41,7 @@ private:
     void request_lobby_list();
     void on_refresh_clicked();
     void on_create_clicked();
+    void on_play_clicked();
     void on_join_clicked(int lobby_id);
     void on_back_clicked();
     void process_network_messages();
@@ -74,6 +75,7 @@ private:
     sf::Vector2f m_mouse_pos;
 
     bool m_creating_lobby{false};
+    bool m_matchmaking{false};
     std::string m_new_lobby_name;
     sf::Text m_input_text;
     sf::RectangleShape m_input_box;
