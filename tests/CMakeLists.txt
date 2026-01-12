@@ -153,7 +153,7 @@ target_link_libraries(test_client_minimal PRIVATE
 add_test(NAME ClientMinimalTest COMMAND test_client_minimal)
 
 # ----------------------------------------------------------------------------
-# Client Unit Tests (Entity, SafeQueue)
+# Client Unit Tests (Entity, SafeQueue, Interpolation, Extrapolation)
 # ----------------------------------------------------------------------------
 add_executable(test_client_units
     client/test_main_client.cpp
@@ -161,6 +161,8 @@ add_executable(test_client_units
     client/test_safe_queue.cpp
     client/test_entity_advanced.cpp
     client/test_queue_advanced.cpp
+    client/test_interpolation.cpp
+    client/test_extrapolation.cpp
 )
 
 target_include_directories(test_client_units PRIVATE
