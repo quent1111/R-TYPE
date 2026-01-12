@@ -123,6 +123,15 @@ void LobbyState::on_back_clicked() {
     std::cout << "[LobbyState] Leave lobby button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
 
+    // Envoyer la requête de quitter le lobby au serveur
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::LeaveLobby;
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+
     m_next_state = "lobby_list";
 }
 

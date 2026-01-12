@@ -2,6 +2,8 @@
 
 #include "common/Settings.hpp"
 #include "input/InputKey.hpp"
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -66,10 +68,31 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     auto& audio = managers::AudioManager::instance();
     audio.load_sounds();
     audio.play_music("assets/sounds/game-loop.ogg", true);
+    
+    // Nettoyer les anciennes entités en cas de reconnexion
+    entities_.clear();
+    has_server_position_ = false;
+    boss_spawn_triggered_ = false;
+    show_game_over_ = false;
+    game_over_timer_ = 0.0f;
+    
+    // Demander l'état complet du jeu au serveur
+    request_game_state();
 }
 
 Game::~Game() {
     std::cout << "[Game] Closing of the client..." << std::endl;
+}
+
+void Game::request_game_state() {
+    std::cout << "[Game] Requesting full game state from server..." << std::endl;
+    
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::RequestGameState;
+    
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
+    game_to_network_queue_.push(msg);
 }
 
 void Game::setup_ui() {
