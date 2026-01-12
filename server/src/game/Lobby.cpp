@@ -76,9 +76,8 @@ bool Lobby::remove_player(int client_id, UDPServer& server) {
 
     if (_game_session) {
         _game_session->set_lobby_clients(_player_ids);
-        if (_state == LobbyState::InGame) {
-            _game_session->remove_player(client_id);
-        }
+        _game_session->remove_player(client_id);
+
         if (!_player_ids.empty()) {
             _game_session->broadcast_lobby_status(server);
         }

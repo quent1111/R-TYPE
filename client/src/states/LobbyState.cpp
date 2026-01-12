@@ -33,6 +33,9 @@ void LobbyState::on_enter() {
     m_title.reset();
     m_footer.reset();
 
+    m_total_players = 1;
+    m_ready_players = 0;
+
     setup_ui();
 }
 
