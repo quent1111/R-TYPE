@@ -11,6 +11,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <string>
 #include <vector>
@@ -20,13 +21,13 @@ namespace server {
 class UDPServer {
 private:
     asio::io_context& io_context_;
-    asio::executor_work_guard<asio::io_context::executor_type> work_guard_;
+    std::optional<asio::executor_work_guard<asio::io_context::executor_type>> work_guard_;
     asio::ip::udp::socket socket_;
     asio::ip::udp::endpoint remote_endpoint_;
     std::map<int, ClientEndpoint> clients_;
     std::mutex clients_mutex_;
     ThreadSafeQueue<NetworkPacket> input_queue_;
-    std::array<uint8_t, 65536> recv_buffer_;
+    std::vector<uint8_t> recv_buffer_;
     int next_client_id_;
     bool running_;
 

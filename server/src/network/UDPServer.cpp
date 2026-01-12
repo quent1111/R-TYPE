@@ -10,33 +10,47 @@ namespace server {
 UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address,
                      unsigned short port)
     : io_context_(io_context),
-      work_guard_(io_context.get_executor()),
       socket_(io_context),
+      recv_buffer_(65536),
       next_client_id_(1),
       running_(true) {
+    std::cout << "[Debug] UDPServer constructor start" << std::endl;
+    
+    // Create work guard to keep io_context running
+    work_guard_.emplace(io_context.get_executor());
+    std::cout << "[Debug] work_guard created" << std::endl;
+    
     try {
+        std::cout << "[Debug] Checking bind_address: '" << bind_address << "'" << std::endl;
         if (bind_address.empty()) {
+            std::cout << "[Debug] Empty bind_address, using dual stack" << std::endl;
             socket_.open(asio::ip::udp::v6());
             socket_.set_option(asio::ip::v6_only(false));
             socket_.bind(asio::ip::udp::endpoint(asio::ip::udp::v6(), port));
             std::cout << "[Network] UDP Server listening on port " << port << " (Dual Stack)"
                       << std::endl;
         } else {
+            std::cout << "[Debug] Parsing address..." << std::endl;
             asio::ip::address addr = asio::ip::make_address(bind_address);
+            std::cout << "[Debug] Address parsed successfully" << std::endl;
             if (addr.is_v6()) {
+                std::cout << "[Debug] IPv6 detected" << std::endl;
                 socket_.open(asio::ip::udp::v6());
                 socket_.set_option(asio::ip::v6_only(false));
                 socket_.bind(asio::ip::udp::endpoint(addr, port));
                 std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
                           << " (IPv6 / dual-stack)" << std::endl;
             } else {
+                std::cout << "[Debug] IPv4 detected, opening socket..." << std::endl;
                 socket_.open(asio::ip::udp::v4());
+                std::cout << "[Debug] Socket opened, binding..." << std::endl;
                 socket_.bind(asio::ip::udp::endpoint(addr, port));
                 std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
                           << " (IPv4)" << std::endl;
             }
         }
     } catch (const std::exception& e) {
+        std::cerr << "[Error] Exception in main bind: " << e.what() << std::endl;
         try {
             socket_.close();
             socket_.open(asio::ip::udp::v4());
@@ -49,7 +63,9 @@ UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_addre
         }
     }
 
+    std::cout << "[Debug] Calling start_receive..." << std::endl;
     start_receive();
+    std::cout << "[Debug] UDPServer constructor end" << std::endl;
 }
 
 UDPServer::~UDPServer() {

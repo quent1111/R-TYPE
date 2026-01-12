@@ -62,12 +62,19 @@ int main(int argc, char** argv) {
     powerup::PowerupRegistry::instance().initialize();
 
     try {
+        std::cout << "[Debug] Creating io_context..." << std::endl;
         asio::io_context io_context;
+        
+        std::cout << "[Debug] Creating UDPServer..." << std::endl;
         server::UDPServer server(io_context, bind_address, port);
 
+        std::cout << "[Debug] Starting network thread..." << std::endl;
         std::thread network_thread(network_loop, std::ref(server));
+        
+        std::cout << "[Debug] Starting game thread..." << std::endl;
         std::thread game_thread(game_loop, std::ref(server));
 
+        std::cout << "[Debug] Waiting for threads..." << std::endl;
         game_thread.join();
         server.stop();
         network_thread.join();

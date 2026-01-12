@@ -22,7 +22,7 @@ class RTypeConan(ConanFile):
             # Configure SFML options for other platforms
             self.options["sfml"].graphics = True
             self.options["sfml"].window = True
-            self.options["sfml"].audio = True
+            self.options["sfml"].audio = False  # Disabled due to openal-soft/GCC15 incompatibility on Windows
             self.options["sfml"].network = False
 
     def layout(self):

@@ -1,254 +1,303 @@
 @echo off
-REM R-TYPE - All-in-One Script (Windows)
-REM Build, run, test, and analyze the R-TYPE project
-REM Usage: r-type.bat [command] [options]
-
 setlocal enabledelayedexpansion
 
 REM ============================================================================
-REM Global Variables
+REM R-TYPE - All-in-One Script (Windows)
 REM ============================================================================
+
+REM Add MSYS2 UCRT64 to PATH (for GCC/MinGW)
+if exist "C:\msys64\ucrt64\bin" (
+    set "PATH=C:\msys64\ucrt64\bin;%PATH%"
+)
+
 set "PROJECT_ROOT=%~dp0"
 set "BUILD_DIR=%PROJECT_ROOT%build"
 set "BUILD_TYPE=Release"
 set "CLEAN_BUILD=0"
 set "VERBOSE=0"
-set "COMMAND=build"
+set "COMMAND="
+set "EXTRA_ARGS="
 
-REM Detect number of processors
 if not defined NUMBER_OF_PROCESSORS set NUMBER_OF_PROCESSORS=4
 set "JOBS=%NUMBER_OF_PROCESSORS%"
 
-REM Colors (Windows 10+)
-set "RED=[91m"
-set "GREEN=[92m"
-set "YELLOW=[93m"
-set "BLUE=[94m"
-set "MAGENTA=[95m"
-set "CYAN=[96m"
-set "NC=[0m"
-
 REM ============================================================================
-REM Functions
+REM Parse Arguments First
 REM ============================================================================
 
-:print_banner
-echo.
-echo %CYAN%╔═══════════════════════════════════════════════════════╗%NC%
-echo %CYAN%║                                                       ║%NC%
-echo %CYAN%║                   R-TYPE Manager                      ║%NC%
-echo %CYAN%║            Build • Run • Test • Analyze               ║%NC%
-echo %CYAN%║                                                       ║%NC%
-echo %CYAN%╚═══════════════════════════════════════════════════════╝%NC%
-echo.
-goto :eof
+:parse_loop
+if "%~1"=="" goto parse_done
 
-:show_help
-call :print_banner
-echo %YELLOW%USAGE:%NC%
-echo     r-type.bat [COMMAND] [OPTIONS]
-echo.
-echo %YELLOW%COMMANDS:%NC%
-echo     %GREEN%build%NC%               Build the project (default: Release)
-echo     %GREEN%client%NC%              Build and run the client
-echo     %GREEN%server%NC%              Build and run the server
-echo     %GREEN%test%NC%                Build and run tests
-echo     %GREEN%coverage%NC%            Generate code coverage report (requires OpenCppCoverage)
-echo     %GREEN%clean%NC%               Clean build directory
-echo     %GREEN%install%NC%             Install dependencies only
-echo     %GREEN%rebuild%NC%             Clean and build from scratch
-echo     %GREEN%all%NC%                 Build everything (client + server + tests)
-echo.
-echo %YELLOW%OPTIONS:%NC%
-echo     -d, --debug             Build in Debug mode
-echo     -r, --release           Build in Release mode (default)
-echo     -c, --clean             Clean before building
-echo     -v, --verbose           Verbose output
-echo     -j N, --jobs N          Number of parallel jobs (default: auto)
-echo     -h, --help              Show this help message
-echo.
-echo %YELLOW%EXAMPLES:%NC%
-echo     %CYAN%# Quick start (build + run server)%NC%
-echo     r-type.bat server
-echo.
-echo     %CYAN%# Build in Debug mode%NC%
-echo     r-type.bat build --debug
-echo.
-echo     %CYAN%# Clean rebuild%NC%
-echo     r-type.bat rebuild
-echo.
-goto :eof
+if /i "%~1"=="build" set "COMMAND=build" & shift & goto parse_loop
+if /i "%~1"=="client" set "COMMAND=client" & shift & goto collect_extra_args
+if /i "%~1"=="server" set "COMMAND=server" & shift & goto collect_extra_args
+if /i "%~1"=="test" set "COMMAND=test" & shift & goto parse_loop
+if /i "%~1"=="clean" set "COMMAND=clean" & shift & goto parse_loop
+if /i "%~1"=="install" set "COMMAND=install" & shift & goto parse_loop
+if /i "%~1"=="rebuild" set "COMMAND=rebuild" & shift & goto parse_loop
+if /i "%~1"=="all" set "COMMAND=all" & shift & goto parse_loop
+if /i "%~1"=="-d" set "BUILD_TYPE=Debug" & shift & goto parse_loop
+if /i "%~1"=="--debug" set "BUILD_TYPE=Debug" & shift & goto parse_loop
+if /i "%~1"=="-r" set "BUILD_TYPE=Release" & shift & goto parse_loop
+if /i "%~1"=="--release" set "BUILD_TYPE=Release" & shift & goto parse_loop
+if /i "%~1"=="-c" set "CLEAN_BUILD=1" & shift & goto parse_loop
+if /i "%~1"=="--clean" set "CLEAN_BUILD=1" & shift & goto parse_loop
+if /i "%~1"=="-v" set "VERBOSE=1" & shift & goto parse_loop
+if /i "%~1"=="--verbose" set "VERBOSE=1" & shift & goto parse_loop
+if /i "%~1"=="-h" goto show_help
+if /i "%~1"=="--help" goto show_help
 
-:print_step
+echo [WARNING] Unknown argument: %~1
+shift
+goto parse_loop
+
+REM Collect remaining arguments for client/server
+:collect_extra_args
+if "%~1"=="" goto parse_done
+set "EXTRA_ARGS=!EXTRA_ARGS! %~1"
+shift
+goto collect_extra_args
+
+:parse_done
+if "%COMMAND%"=="" set "COMMAND=build"
+
+REM ============================================================================
+REM Print Banner
+REM ============================================================================
+
 echo.
-echo %BLUE%▶ %~1%NC%
-goto :eof
+echo ========================================================
+echo                   R-TYPE Manager
+echo            Build * Run * Test * Analyze
+echo ========================================================
+echo.
 
-:print_success
-echo %GREEN%✓ %~1%NC%
-goto :eof
+REM ============================================================================
+REM Execute Command
+REM ============================================================================
 
-:print_error
-echo %RED%✗ %~1%NC%
-goto :eof
+if /i "%COMMAND%"=="clean" goto cmd_clean
+if /i "%COMMAND%"=="install" goto cmd_install
+if /i "%COMMAND%"=="build" goto cmd_build
+if /i "%COMMAND%"=="client" goto cmd_client
+if /i "%COMMAND%"=="server" goto cmd_server
+if /i "%COMMAND%"=="test" goto cmd_test
+if /i "%COMMAND%"=="rebuild" goto cmd_rebuild
+if /i "%COMMAND%"=="all" goto cmd_all
 
-:print_warning
-echo %YELLOW%⚠ %~1%NC%
-goto :eof
+echo [ERROR] Unknown command: %COMMAND%
+goto show_help
 
-:command_exists
-where %1 >nul 2>&1
-goto :eof
+REM ============================================================================
+REM Command Implementations
+REM ============================================================================
 
-:get_bin_dir
-if exist "%BUILD_DIR%\build\%BUILD_TYPE%\bin" (
-    set "BIN_DIR=%BUILD_DIR%\build\%BUILD_TYPE%\bin"
-) else if exist "%BUILD_DIR%\bin" (
-    set "BIN_DIR=%BUILD_DIR%\bin"
+:cmd_clean
+echo.
+echo [STEP] Cleaning build directory...
+if exist "%BUILD_DIR%" (
+    rd /s /q "%BUILD_DIR%"
+    echo [OK] Build directory cleaned
 ) else (
-    set "BIN_DIR=%BUILD_DIR%\bin"
+    echo [WARNING] Build directory doesn't exist
 )
-goto :eof
+goto end_success
+
+:cmd_install
+call :check_conan || exit /b 1
+call :install_deps || exit /b 1
+goto end_success
+
+:cmd_build
+call :do_full_build "" || exit /b 1
+goto end_success
+
+:cmd_client
+call :do_full_build "r-type_client" || exit /b 1
+call :run_client || exit /b 1
+goto end_success
+
+:cmd_server
+call :do_full_build "r-type_server" || exit /b 1
+call :run_server || exit /b 1
+goto end_success
+
+:cmd_test
+call :do_full_build "" || exit /b 1
+call :run_tests || exit /b 1
+goto end_success
+
+:cmd_rebuild
+set "CLEAN_BUILD=1"
+call :do_full_build "" || exit /b 1
+goto end_success
+
+:cmd_all
+call :do_full_build "all" || exit /b 1
+goto end_success
 
 REM ============================================================================
-REM Check Functions
+REM Helper Functions
 REM ============================================================================
 
 :check_conan
-call :print_step "Checking Conan installation..."
-
-call :command_exists conan
-if %ERRORLEVEL% neq 0 (
-    call :print_warning "Conan not found. Installing..."
-    call :command_exists pip
-    if %ERRORLEVEL% neq 0 (
-        call :print_error "pip not found. Please install Python 3 and pip first."
-        echo   Download from: https://www.python.org/downloads/
-        exit /b 1
+echo.
+echo [STEP] Checking Conan installation...
+where conan >nul 2>&1
+if errorlevel 1 (
+    echo [WARNING] Conan not found in PATH. Checking if installed via pip...
+    
+    REM Check if conan module is available via Python
+    python -c "import conans" >nul 2>&1
+    if not errorlevel 1 (
+        echo [OK] Conan is installed via pip but not in PATH
+        echo [INFO] Will use 'python -m conans.cli' instead of 'conan'
+        set "CONAN_CMD=python -m conans.cli"
+        
+        REM Detect profile
+        python -m conans.cli profile detect --force >nul 2>&1
+        exit /b 0
     )
-    pip install --user conan
-    if %ERRORLEVEL% neq 0 (
-        call :print_error "Failed to install Conan"
-        exit /b 1
+    
+    echo [WARNING] Conan not found. Installing...
+    
+    REM Try different Python/pip commands
+    where python >nul 2>&1
+    if not errorlevel 1 (
+        echo Installing with python -m pip...
+        python -m pip install --user conan
+        if not errorlevel 1 (
+            echo [OK] Conan installed successfully
+            set "CONAN_CMD=python -m conans.cli"
+            python -m conans.cli profile detect --force >nul 2>&1
+            exit /b 0
+        )
     )
-    conan profile detect --force
-    call :print_success "Conan installed successfully"
+    
+    where py >nul 2>&1
+    if not errorlevel 1 (
+        echo Installing with py -m pip...
+        py -m pip install --user conan
+        if not errorlevel 1 (
+            echo [OK] Conan installed successfully
+            set "CONAN_CMD=py -m conans.cli"
+            py -m conans.cli profile detect --force >nul 2>&1
+            exit /b 0
+        )
+    )
+    
+    where pip >nul 2>&1
+    if not errorlevel 1 (
+        echo Installing with pip...
+        pip install --user conan
+        if not errorlevel 1 (
+            echo [OK] Conan installed successfully
+            set "CONAN_CMD=pip"
+            exit /b 0
+        )
+    )
+    
+    echo [ERROR] Could not install Conan.
+    echo Try manually: python -m pip install conan
+    exit /b 1
 ) else (
-    call :print_success "Conan is already installed"
+    echo [OK] Conan is already installed
+    set "CONAN_CMD=conan"
 )
-goto :eof
+exit /b 0
 
 :check_cmake
-call :print_step "Checking CMake..."
-
-call :command_exists cmake
-if %ERRORLEVEL% neq 0 (
-    call :print_error "CMake not found. Please install CMake 3.20 or higher."
+echo.
+echo [STEP] Checking CMake...
+where cmake >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] CMake not found. Please install CMake 3.20 or higher.
     echo   Download from: https://cmake.org/download/
     exit /b 1
 )
-
-for /f "tokens=3" %%i in ('cmake --version ^| findstr /R "[0-9]"') do (
-    call :print_success "CMake %%i found"
-    goto :cmake_found
+for /f "tokens=3" %%i in ('cmake --version 2^>^&1 ^| findstr /R "[0-9]"') do (
+    echo [OK] CMake %%i found
+    exit /b 0
 )
-:cmake_found
-goto :eof
+exit /b 0
 
 :check_compiler
-call :print_step "Checking C++ compiler..."
-
-call :command_exists cl
-if %ERRORLEVEL% equ 0 (
-    for /f "tokens=*" %%i in ('cl 2^>^&1 ^| findstr "Version"') do (
-        call :print_success "MSVC found"
-        goto :compiler_found
-    )
+echo.
+echo [STEP] Checking C++ compiler...
+where cl >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] MSVC found
+    exit /b 0
 )
-
-call :command_exists g++
-if %ERRORLEVEL% equ 0 (
-    for /f "tokens=3" %%i in ('g++ --version ^| findstr "g++"') do (
-        call :print_success "GCC %%i found"
-        goto :compiler_found
-    )
+where g++ >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] GCC found
+    exit /b 0
 )
-
-call :print_error "No C++ compiler found. Please install Visual Studio or MinGW."
+echo [ERROR] No C++ compiler found. Please install Visual Studio or MinGW.
 exit /b 1
 
-:compiler_found
-goto :eof
-
-REM ============================================================================
-REM Build Functions
-REM ============================================================================
-
-:install_dependencies
+:install_deps
 cd /d "%PROJECT_ROOT%"
 
-REM Check if dependencies are already installed
-if exist "%BUILD_DIR%\conan_toolchain.cmake" goto :deps_found
-if exist "%BUILD_DIR%\build\%BUILD_TYPE%\generators\conan_toolchain.cmake" goto :deps_found
-if exist "%BUILD_DIR%\generators\conan_toolchain.cmake" goto :deps_found
+if exist "%BUILD_DIR%\conan_toolchain.cmake" (
+    echo [OK] Dependencies already installed (skipping)
+    exit /b 0
+)
+if exist "%BUILD_DIR%\build\%BUILD_TYPE%\generators\conan_toolchain.cmake" (
+    echo [OK] Dependencies already installed (skipping)
+    exit /b 0
+)
+if exist "%BUILD_DIR%\generators\conan_toolchain.cmake" (
+    echo [OK] Dependencies already installed (skipping)
+    exit /b 0
+)
 
-call :print_step "Installing dependencies with Conan (this may take a few minutes)..."
-
-REM Create build directory if it doesn't exist
+echo.
+echo [STEP] Installing dependencies with Conan...
 if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
+REM Use CONAN_CMD if set, otherwise use 'conan'
+if not defined CONAN_CMD set "CONAN_CMD=conan"
+
 if "%VERBOSE%"=="1" (
-    conan install . --output-folder="%BUILD_DIR%" --build=missing -s build_type=%BUILD_TYPE% -c tools.system.package_manager:mode=install
+    %CONAN_CMD% install . --output-folder="%BUILD_DIR%" --build=missing -s build_type=%BUILD_TYPE% -c tools.system.package_manager:mode=install
 ) else (
-    conan install . --output-folder="%BUILD_DIR%" --build=missing -s build_type=%BUILD_TYPE% -c tools.system.package_manager:mode=install > "%BUILD_DIR%\conan-install.log" 2>&1
-    if %ERRORLEVEL% neq 0 (
-        call :print_error "Conan installation failed. Check %BUILD_DIR%\conan-install.log for details."
-        type "%BUILD_DIR%\conan-install.log" | more +20
+    echo This may take a few minutes...
+    %CONAN_CMD% install . --output-folder="%BUILD_DIR%" --build=missing -s build_type=%BUILD_TYPE% -c tools.system.package_manager:mode=install > "%BUILD_DIR%\conan-install.log" 2>&1
+    if errorlevel 1 (
+        echo [ERROR] Conan installation failed. See log:
+        type "%BUILD_DIR%\conan-install.log"
         exit /b 1
     )
 )
-
-call :print_success "Dependencies installed"
-goto :eof
-
-:deps_found
-call :print_success "Dependencies already installed (skipping)"
-goto :eof
+echo [OK] Dependencies installed
+exit /b 0
 
 :configure_cmake
-call :print_step "Configuring CMake..."
-
+echo.
+echo [STEP] Configuring CMake...
 cd /d "%PROJECT_ROOT%"
 
-REM Use CMake preset if available
 if exist "CMakeUserPresets.json" (
     if "%BUILD_TYPE%"=="Release" set "PRESET=conan-release"
     if "%BUILD_TYPE%"=="Debug" set "PRESET=conan-debug"
+    
     if "%VERBOSE%"=="1" (
         cmake --preset !PRESET!
-        set CMAKE_EXIT=!ERRORLEVEL!
     ) else (
         cmake --preset !PRESET! > "%BUILD_DIR%\cmake-config.log" 2>&1
-        set CMAKE_EXIT=!ERRORLEVEL!
     )
-    if !CMAKE_EXIT! neq 0 (
-        call :print_error "CMake configuration failed"
-        echo.
-        if "%VERBOSE%"=="0" (
-            echo Last 30 lines of %BUILD_DIR%\cmake-config.log:
-            echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            type "%BUILD_DIR%\cmake-config.log" | more +30
-            echo ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            echo.
-            echo Tip: Run with --verbose for full output
-        )
+    
+    if errorlevel 1 (
+        echo [ERROR] CMake configuration failed
+        if exist "%BUILD_DIR%\cmake-config.log" type "%BUILD_DIR%\cmake-config.log"
         exit /b 1
     )
 ) else (
-    REM Fallback to manual configuration
     if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
     cd /d "%BUILD_DIR%"
-    REM Find toolchain file
+    
     if exist "conan_toolchain.cmake" (
         set "TOOLCHAIN=conan_toolchain.cmake"
     ) else if exist "build\%BUILD_TYPE%\generators\conan_toolchain.cmake" (
@@ -256,394 +305,159 @@ if exist "CMakeUserPresets.json" (
     ) else if exist "generators\conan_toolchain.cmake" (
         set "TOOLCHAIN=generators\conan_toolchain.cmake"
     ) else (
-        call :print_error "Could not find conan_toolchain.cmake"
+        echo [ERROR] Could not find conan_toolchain.cmake
         exit /b 1
     )
+    
     cmake -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_TOOLCHAIN_FILE=!TOOLCHAIN! ..
-    if %ERRORLEVEL% neq 0 (
-        call :print_error "CMake configuration failed"
+    if errorlevel 1 (
+        echo [ERROR] CMake configuration failed
         exit /b 1
     )
 )
 
-call :print_success "CMake configured"
-goto :eof
+echo [OK] CMake configured
+exit /b 0
 
 :build_project
 set "TARGET=%~1"
 if "%TARGET%"=="" set "TARGET=all"
 
-call :print_step "Building %TARGET% (%BUILD_TYPE% mode)..."
+echo.
+echo [STEP] Building %TARGET% (%BUILD_TYPE% mode)...
 
-REM Determine actual build directory
 set "ACTUAL_BUILD_DIR=%BUILD_DIR%"
-if exist "%BUILD_DIR%\build\%BUILD_TYPE%" (
-    set "ACTUAL_BUILD_DIR=%BUILD_DIR%\build\%BUILD_TYPE%"
-)
+if exist "%BUILD_DIR%\build\%BUILD_TYPE%" set "ACTUAL_BUILD_DIR=%BUILD_DIR%\build\%BUILD_TYPE%"
 
 cd /d "!ACTUAL_BUILD_DIR!"
 
 if not "%TARGET%"=="all" (
-    set "BUILD_CMD=cmake --build . --config %BUILD_TYPE% -j %JOBS% --target %TARGET%"
+    cmake --build . --config %BUILD_TYPE% -j %JOBS% --target %TARGET%
 ) else (
-    set "BUILD_CMD=cmake --build . --config %BUILD_TYPE% -j %JOBS%"
+    cmake --build . --config %BUILD_TYPE% -j %JOBS%
 )
 
-if "%VERBOSE%"=="1" (
-    !BUILD_CMD!
-) else (
-    !BUILD_CMD! 2>&1 | findstr /R /C:"Building" /C:"Linking" /C:"Error" /C:"error:" /C:"warning:"
-)
-
-if %ERRORLEVEL% neq 0 (
-    call :print_error "Build failed"
+if errorlevel 1 (
+    echo [ERROR] Build failed
     exit /b 1
 )
 
-call :print_success "Build completed"
-goto :eof
+echo [OK] Build completed
+exit /b 0
 
-:clean_build
-call :print_step "Cleaning build directory..."
+:do_full_build
+set "BUILD_TARGET=%~1"
 
-if exist "%BUILD_DIR%" (
-    rd /s /q "%BUILD_DIR%"
-    call :print_success "Build directory cleaned"
-) else (
-    call :print_warning "Build directory doesn't exist"
+if "%CLEAN_BUILD%"=="1" (
+    echo.
+    echo [STEP] Cleaning build directory...
+    if exist "%BUILD_DIR%" rd /s /q "%BUILD_DIR%"
+    echo [OK] Build directory cleaned
 )
-goto :eof
 
-REM ============================================================================
-REM Run Functions
-REM ============================================================================
+call :check_conan || exit /b 1
+call :check_cmake || exit /b 1
+call :check_compiler || exit /b 1
+call :install_deps || exit /b 1
+call :configure_cmake || exit /b 1
+call :build_project "%BUILD_TARGET%" || exit /b 1
+
+exit /b 0
 
 :run_client
-call :print_step "Launching R-TYPE Client..."
+echo.
+echo [STEP] Launching R-TYPE Client...
 
-call :get_bin_dir
+set "BIN_DIR=%BUILD_DIR%\bin"
+if exist "%BUILD_DIR%\build\%BUILD_TYPE%\bin" set "BIN_DIR=%BUILD_DIR%\build\%BUILD_TYPE%\bin"
 
-if not exist "%BIN_DIR%\r-type_client.exe" (
-    call :print_error "Client not found. Building..."
-    call :do_build r-type_client
-    call :get_bin_dir
+if not exist "!BIN_DIR!\r-type_client.exe" (
+    echo [ERROR] Client not found at: !BIN_DIR!\r-type_client.exe
+    exit /b 1
 )
 
-cd /d "%BIN_DIR%"
-echo %CYAN%━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%NC%
-r-type_client.exe %*
-goto :eof
+cd /d "!BIN_DIR!"
+echo ================================================
+echo Starting client...%EXTRA_ARGS%
+echo ================================================
+r-type_client.exe%EXTRA_ARGS%
+exit /b 0
 
 :run_server
-call :print_step "Launching R-TYPE Server..."
+echo.
+echo [STEP] Launching R-TYPE Server...
 
-call :get_bin_dir
+set "BIN_DIR=%BUILD_DIR%\bin"
+if exist "%BUILD_DIR%\build\%BUILD_TYPE%\bin" set "BIN_DIR=%BUILD_DIR%\build\%BUILD_TYPE%\bin"
 
-if not exist "%BIN_DIR%\r-type_server.exe" (
-    call :print_error "Server not found. Building..."
-    call :do_build r-type_server
-    call :get_bin_dir
+if not exist "!BIN_DIR!\r-type_server.exe" (
+    echo [ERROR] Server not found at: !BIN_DIR!\r-type_server.exe
+    exit /b 1
 )
 
-cd /d "%BIN_DIR%"
-echo %CYAN%━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━%NC%
-r-type_server.exe %*
-goto :eof
+cd /d "!BIN_DIR!"
+echo ================================================
+echo Starting server...%EXTRA_ARGS%
+echo ================================================
+r-type_server.exe%EXTRA_ARGS%
+exit /b 0
 
 :run_tests
-call :print_step "Running tests..."
+echo.
+echo [STEP] Running tests...
 
-if not exist "%BUILD_DIR%" (
-    call :print_error "Build directory not found. Building..."
-    call :do_build
-)
-
-REM Determine test directory
 set "TEST_DIR=%BUILD_DIR%"
-if exist "%BUILD_DIR%\build\%BUILD_TYPE%" (
-    set "TEST_DIR=%BUILD_DIR%\build\%BUILD_TYPE%"
-)
+if exist "%BUILD_DIR%\build\%BUILD_TYPE%" set "TEST_DIR=%BUILD_DIR%\build\%BUILD_TYPE%"
 
 cd /d "!TEST_DIR!"
 ctest --output-on-failure -C %BUILD_TYPE%
 
-if %ERRORLEVEL% neq 0 (
-    call :print_error "Tests failed"
+if errorlevel 1 (
+    echo [ERROR] Tests failed
     exit /b 1
 )
 
-call :print_success "All tests passed!"
-goto :eof
-
-:generate_coverage
-call :print_step "Generating code coverage report..."
-
-call :print_warning "Note: On Windows, coverage requires OpenCppCoverage"
-echo   Install from: https://github.com/OpenCppCoverage/OpenCppCoverage/releases
-echo   Or with Chocolatey: choco install opencppcoverage
-echo.
-
-call :command_exists OpenCppCoverage
-if %ERRORLEVEL% neq 0 (
-    call :print_error "OpenCppCoverage not found"
-    exit /b 1
-)
-
-if not "%BUILD_TYPE%"=="Debug" (
-    call :print_warning "Coverage requires Debug build. Switching to Debug mode..."
-    set "BUILD_TYPE=Debug"
-)
-
-call :do_build
-
-REM Determine test directory
-set "TEST_DIR=%BUILD_DIR%"
-if exist "%BUILD_DIR%\build\%BUILD_TYPE%" (
-    set "TEST_DIR=%BUILD_DIR%\build\%BUILD_TYPE%"
-)
-
-cd /d "!TEST_DIR!"
-
-call :get_bin_dir
-OpenCppCoverage --sources "%PROJECT_ROOT%" --export_type html:coverage_html -- ctest -C Debug
-
-call :print_success "Coverage report generated in !TEST_DIR!\coverage_html\index.html"
-echo.
-echo Open the report with:
-echo   start !TEST_DIR!\coverage_html\index.html
-goto :eof
-
-REM ============================================================================
-REM Main Build Workflow
-REM ============================================================================
-
-:do_build
-set "TARGET=%~1"
-if "%TARGET%"=="" set "TARGET=all"
-
-if "%CLEAN_BUILD%"=="1" call :clean_build
-
-call :check_conan
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call :check_cmake
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call :check_compiler
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call :install_dependencies
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call :configure_cmake
-if %ERRORLEVEL% neq 0 exit /b 1
-
-call :build_project %TARGET%
-if %ERRORLEVEL% neq 0 exit /b 1
-
-goto :eof
-
-REM ============================================================================
-REM Parse Arguments
-REM ============================================================================
-
-:parse_args
-if "%~1"=="" goto :args_done
-
-REM Commands
-if /i "%~1"=="build" (
-    set "COMMAND=build"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="client" (
-    set "COMMAND=client"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="server" (
-    set "COMMAND=server"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="test" (
-    set "COMMAND=test"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="coverage" (
-    set "COMMAND=coverage"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="clean" (
-    set "COMMAND=clean"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="install" (
-    set "COMMAND=install"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="rebuild" (
-    set "COMMAND=rebuild"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="all" (
-    set "COMMAND=all"
-    shift
-    goto :parse_args
-)
-
-REM Options
-if /i "%~1"=="-d" (
-    set "BUILD_TYPE=Debug"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--debug" (
-    set "BUILD_TYPE=Debug"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="-r" (
-    set "BUILD_TYPE=Release"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--release" (
-    set "BUILD_TYPE=Release"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="-c" (
-    set "CLEAN_BUILD=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--clean" (
-    set "CLEAN_BUILD=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="-v" (
-    set "VERBOSE=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--verbose" (
-    set "VERBOSE=1"
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="-j" (
-    set "JOBS=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="--jobs" (
-    set "JOBS=%~2"
-    shift
-    shift
-    goto :parse_args
-)
-if /i "%~1"=="-h" (
-    call :show_help
-    exit /b 0
-)
-if /i "%~1"=="--help" (
-    call :show_help
-    exit /b 0
-)
-
-REM Unknown argument
-call :print_warning "Unknown argument: %~1"
-shift
-goto :parse_args
-
-:args_done
-goto :eof
-
-REM ============================================================================
-REM Main Entry Point
-REM ============================================================================
-
-:main
-REM Parse command line arguments
-call :parse_args %*
-
-REM Execute command
-if /i "%COMMAND%"=="build" (
-    call :print_banner
-    call :do_build
-    goto :done
-)
-
-if /i "%COMMAND%"=="client" (
-    call :print_banner
-    call :do_build r-type_client
-    call :run_client
-    goto :done
-)
-
-if /i "%COMMAND%"=="server" (
-    call :print_banner
-    call :do_build r-type_server
-    call :run_server
-    goto :done
-)
-
-if /i "%COMMAND%"=="test" (
-    call :print_banner
-    call :do_build
-    call :run_tests
-    goto :done
-)
-
-if /i "%COMMAND%"=="coverage" (
-    call :print_banner
-    call :generate_coverage
-    goto :done
-)
-
-if /i "%COMMAND%"=="clean" (
-    call :print_banner
-    call :clean_build
-    goto :done
-)
-
-if /i "%COMMAND%"=="install" (
-    call :print_banner
-    call :check_conan
-    call :install_dependencies
-    goto :done
-)
-
-if /i "%COMMAND%"=="rebuild" (
-    call :print_banner
-    set "CLEAN_BUILD=1"
-    call :do_build
-    goto :done
-)
-
-if /i "%COMMAND%"=="all" (
-    call :print_banner
-    call :do_build all
-    goto :done
-)
-
-REM Unknown command
-call :print_error "Unknown command: %COMMAND%"
-call :show_help
-exit /b 1
-
-:done
-echo.
-call :print_success "Done! 🚀"
+echo [OK] All tests passed!
 exit /b 0
 
-REM Call main
-call :main %*
+:end_success
+echo.
+echo [OK] Done!
+exit /b 0
+
+:show_help
+echo.
+echo ========================================================
+echo                   R-TYPE Manager
+echo            Build * Run * Test * Analyze
+echo ========================================================
+echo.
+echo USAGE:
+echo     r-type.bat [COMMAND] [OPTIONS] [-- ARGS]
+echo.
+echo COMMANDS:
+echo     build               Build the project (default: Release)
+echo     client [ARGS]       Build and run the client with optional arguments
+echo     server [ARGS]       Build and run the server with optional arguments
+echo     test                Build and run tests
+echo     clean               Clean build directory
+echo     install             Install dependencies only
+echo     rebuild             Clean and build from scratch
+echo     all                 Build everything
+echo.
+echo OPTIONS:
+echo     -d, --debug         Build in Debug mode
+echo     -r, --release       Build in Release mode (default)
+echo     -c, --clean         Clean before building
+echo     -v, --verbose       Verbose output
+echo     -h, --help          Show this help message
+echo.
+echo EXAMPLES:
+echo     r-type.bat server
+echo     r-type.bat server -p 5000
+echo     r-type.bat client -h 10.84.106.198
+echo     r-type.bat client -h 192.168.1.10 -p 4242
+echo     r-type.bat build --debug
+echo     r-type.bat rebuild
+echo.
+exit /b 0
