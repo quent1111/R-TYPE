@@ -48,13 +48,27 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/explosion.gif");
         texture_mgr.load("assets/weirdbaby.gif");
         texture_mgr.load("assets/r-typesheet5.gif");
-        texture_mgr.load("assets/laserbeam.png");
         texture_mgr.load("assets/missile.png");
         texture_mgr.load("assets/drone.png");
+        // Serpent boss textures
+        texture_mgr.load("assets/serpent_head.png");
+        texture_mgr.load("assets/serpent_body.png");
+        texture_mgr.load("assets/serpent_scale.png");
+        texture_mgr.load("assets/serpent_tail.png");
+        texture_mgr.load("assets/serpent_nest.png");
+        texture_mgr.load("assets/serpent_homing.png");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
+        std::cout << "[Game] Serpent boss textures loaded" << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
+    }
+    
+    // Load optional textures (may not exist)
+    try {
+        texture_mgr.load("assets/laserbeam.png");
+    } catch (...) {
+        // Laser beam texture is optional
     }
 
     game_renderer_.init(window_);
@@ -519,6 +533,102 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x0A) {
         // Legacy Ally type - Should no longer be used (replaced by 0x0B, 0x0C, 0x0D)
         std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
+        
+    // Serpent Boss Parts (Level 10)
+    } else if (entity.type == 0x10) {
+        // SerpentNest - Stationary nest at bottom of screen
+        if (texture_mgr.has("assets/serpent_nest.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_nest.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_nest.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(4.0F, 4.0F);  // Large nest
+        }
+        
+    } else if (entity.type == 0x11) {
+        // SerpentHead - faces left by default
+        if (texture_mgr.has("assets/serpent_head.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_head.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_head.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);  // Larger head
+        }
+        
+    } else if (entity.type == 0x12) {
+        // SerpentBody - faces left by default
+        if (texture_mgr.has("assets/serpent_body.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_body.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_body.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);  // Larger body
+        }
+        
+    } else if (entity.type == 0x13) {
+        // SerpentScale - turret attached to body, aims at player
+        // Bottom of sprite is cannon, so it rotates to point toward player
+        if (texture_mgr.has("assets/serpent_scale.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_scale.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_scale.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);  // Larger scale turret
+        }
+        
+    } else if (entity.type == 0x14) {
+        // SerpentTail - faces left by default (end of tail is on the right of sprite)
+        if (texture_mgr.has("assets/serpent_tail.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_tail.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_tail.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);  // Larger tail
+        }
+        
+    } else if (entity.type == 0x15) {
+        // SerpentHoming - homing enemies summoned by serpent scream
+        if (texture_mgr.has("assets/serpent_homing.png")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/serpent_homing.png"));
+            auto tex_size = texture_mgr.get("assets/serpent_homing.png")->getSize();
+            entity.frames = {{0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)}};
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
+        
+    } else if (entity.type == 0x16) {
+        // SerpentLaser - laser origin point, rendered via particle system
+        // Don't render sprite, the particle system handles visuals
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x17) {
+        // SerpentLaserSegment - invisible collision segments along laser beam
+        // No visual rendering needed, collision only
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x18) {
+        // SerpentScream - scream effect marker, rendered via particle system
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        
+    } else if (entity.type == 0x19) {
+        // SerpentLaserCharge - laser charging effect, rendered via particle system
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -749,6 +859,7 @@ void Game::render() {
     hud_renderer_.render_health_bar(window_, entities_, my_network_id_);
     hud_renderer_.render_level_hud(window_, show_level_intro_);
     hud_renderer_.render_combo_bar(window_);
+    hud_renderer_.render_boss_health_bar(window_, entities_);
 
     overlay_renderer_.render_powerup_active(window_, player_powerups_, entities_,
                                             player_shield_frame_, my_network_id_);

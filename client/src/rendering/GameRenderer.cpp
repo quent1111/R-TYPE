@@ -63,6 +63,16 @@ void GameRenderer::init(sf::RenderWindow& window) {
     ruins_bg2_sprite2_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
     
+    // Boss fight background (Level 10 serpent)
+    sf::Texture& boss_fight_texture = texture_mgr.load("assets/worm_bossfightbg.png");
+    boss_fight_bg_sprite_.setTexture(boss_fight_texture);
+    // Scale to fill entire screen
+    sf::Vector2u tex_size = boss_fight_texture.getSize();
+    float scale_x = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(tex_size.x);
+    float scale_y = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size.y);
+    boss_fight_bg_sprite_.setScale(scale_x, scale_y);
+    boss_fight_bg_sprite_.setPosition(0, 0);
+    
     std::vector<std::string> top_files = {
         "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
         "assets/ruins-top4.png", "assets/ruins-top5.png"
@@ -144,6 +154,9 @@ void GameRenderer::init(sf::RenderWindow& window) {
 }
 
 void GameRenderer::update(float dt) {
+    // Stop scrolling during boss levels for cinematic effect
+    bool is_boss_level = (current_bg_level_ == 5 || current_bg_level_ == 10 || current_bg_level_ == 15);
+    
     if (current_bg_level_ >= 6) {
         if (bg_fade_active_) {
             bg_fade_timer_ += dt;
@@ -152,10 +165,15 @@ void GameRenderer::update(float dt) {
                 bg_fade_timer_ = bg_fade_duration_;
             }
         }
-        ruins_bg_scroll_offset_ += bg_scroll_speed_ * dt;
-        if (ruins_bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
-            ruins_bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+        
+        // Only scroll if not a boss level
+        if (!is_boss_level) {
+            ruins_bg_scroll_offset_ += bg_scroll_speed_ * dt;
+            if (ruins_bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
+                ruins_bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+            }
         }
+        
         if (current_bg_level_ >= 10) {
             ruins_bg2_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
@@ -163,15 +181,20 @@ void GameRenderer::update(float dt) {
             ruins_bg_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
         }
-        const float RUIN_SPEED = 300.0f;
-        ruins_top_offset_ += RUIN_SPEED * dt;
-        ruins_bottom_offset_ += RUIN_SPEED * dt;
-        if (ruins_top_offset_ >= ruins_top_total_width_) {
-            ruins_top_offset_ -= ruins_top_total_width_;
+        
+        // Only scroll ruins/borders if not a boss level
+        if (!is_boss_level) {
+            const float RUIN_SPEED = 300.0f;
+            ruins_top_offset_ += RUIN_SPEED * dt;
+            ruins_bottom_offset_ += RUIN_SPEED * dt;
+            if (ruins_top_offset_ >= ruins_top_total_width_) {
+                ruins_top_offset_ -= ruins_top_total_width_;
+            }
+            if (ruins_bottom_offset_ >= ruins_bottom_total_width_) {
+                ruins_bottom_offset_ -= ruins_bottom_total_width_;
+            }
         }
-        if (ruins_bottom_offset_ >= ruins_bottom_total_width_) {
-            ruins_bottom_offset_ -= ruins_bottom_total_width_;
-        }
+        
         for (size_t i = 0; i < ruins_top_sprites_.size(); ++i) {
             float x = ruins_top_base_positions_[i] - ruins_top_offset_;
             float y = ruins_top_base_y_positions_[i];
@@ -189,9 +212,12 @@ void GameRenderer::update(float dt) {
             ruins_bottom_sprites_[i].setPosition(x, y);
         }
     } else {
-        bg_scroll_offset_ += bg_scroll_speed_ * dt;
-        if (bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
-            bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+        // Only scroll if not a boss level (level 5)
+        if (!is_boss_level) {
+            bg_scroll_offset_ += bg_scroll_speed_ * dt;
+            if (bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
+                bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
+            }
         }
         bg_sprite1_.setPosition(-bg_scroll_offset_, 0);
         bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - bg_scroll_offset_, 0);
@@ -199,32 +225,18 @@ void GameRenderer::update(float dt) {
 }
 
 void GameRenderer::render_background(sf::RenderWindow& window) {
+    // Boss fight level 10 - special background, no ruins/borders
+    if (current_bg_level_ == 10) {
+        window.draw(boss_fight_bg_sprite_);
+        return;  // Don't draw ruins or borders during boss fight
+    }
+    
     if (current_bg_level_ >= 6) {
-        if (current_bg_level_ >= 10) {
-            if (bg_fade_active_) {
-                float fade_progress = bg_fade_timer_ / bg_fade_duration_;
-                sf::Uint8 old_alpha = static_cast<sf::Uint8>((1.0f - fade_progress) * 255);
-                ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, old_alpha));
-                ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, old_alpha));
-                window.draw(ruins_bg_sprite1_);
-                window.draw(ruins_bg_sprite2_);
-                sf::Uint8 new_alpha = static_cast<sf::Uint8>(fade_progress * 255);
-                ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, new_alpha));
-                ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, new_alpha));
-                window.draw(ruins_bg2_sprite1_);
-                window.draw(ruins_bg2_sprite2_);
-            } else {
-                ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, 255));
-                ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, 255));
-                window.draw(ruins_bg2_sprite1_);
-                window.draw(ruins_bg2_sprite2_);
-            }
-        } else {
-            ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, 255));
-            ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, 255));
-            window.draw(ruins_bg_sprite1_);
-            window.draw(ruins_bg_sprite2_);
-        }
+        ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, 255));
+        ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, 255));
+        window.draw(ruins_bg_sprite1_);
+        window.draw(ruins_bg_sprite2_);
+        
         for (const auto& sprite : ruins_top_sprites_) {
             window.draw(sprite);
         }
@@ -380,9 +392,18 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
     const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
+    // Collect serpent nest to draw last (to hide serpent emerging)
+    Entity* serpent_nest = nullptr;
+
     for (auto& pair : entities) {
         Entity& e = pair.second;
         uint32_t entity_id = pair.first;
+
+        // Skip serpent nest for now, will draw at the end
+        if (e.type == 0x10) {
+            serpent_nest = &e;
+            continue;
+        }
 
         if (e.type == 0x01) {
             update_ship_tilt(e, dt);
@@ -429,6 +450,18 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
                 e.sprite.setRotation(angle_deg);
             }
         }
+        
+        // Apply rotation for serpent parts (sprites face left by default, so add 180 degrees)
+        if (e.type == 0x11 || e.type == 0x12 || e.type == 0x14) {
+            // Head, Body, Tail - follow movement direction
+            // Sprites face LEFT by default, so rotation=0 means facing left
+            // We add 180 to make them face the direction of movement
+            e.sprite.setRotation(e.rotation + 180.0f);
+        } else if (e.type == 0x13) {
+            // Scales - aim at player (rotation already calculated to aim at player)
+            // The bottom of scale sprite is the cannon, so we need rotation pointing toward player
+            e.sprite.setRotation(e.rotation);
+        }
 
         if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
@@ -448,11 +481,22 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
 
         window.draw(e.sprite);
     }
-}void GameRenderer::render_effects(sf::RenderWindow& window) {
+    
+    // Draw serpent nest LAST to hide serpent body emerging from it
+    if (serpent_nest != nullptr) {
+        serpent_nest->update_animation(dt);
+        serpent_nest->sprite.setPosition(serpent_nest->x, serpent_nest->y);
+        serpent_nest->sprite.setColor(sf::Color(255, 255, 255, 255));
+        window.draw(serpent_nest->sprite);
+    }
+}
+
+void GameRenderer::render_effects(sf::RenderWindow& window) {
     managers::EffectsManager::instance().render(window);
 }
 
 void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities, float dt) {
+    // Clean up player laser systems
     std::vector<uint32_t> to_remove;
     for (auto& [laser_id, system] : laser_particle_systems_) {
         if (entities.find(laser_id) == entities.end()) {
@@ -463,6 +507,24 @@ void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uin
         laser_particle_systems_.erase(id);
     }
     
+    // Clean up serpent laser systems
+    to_remove.clear();
+    for (auto& [laser_id, system] : serpent_laser_systems_) {
+        if (entities.find(laser_id) == entities.end()) {
+            to_remove.push_back(laser_id);
+        }
+    }
+    for (uint32_t id : to_remove) {
+        serpent_laser_systems_.erase(id);
+    }
+    
+    // Track serpent effects state
+    bool scream_active = false;
+    float scream_x = 0.0f, scream_y = 0.0f;
+    bool charge_active = false;
+    float charge_x = 0.0f, charge_y = 0.0f, charge_progress = 0.0f;
+    
+    // Render player laser (type 0x0B)
     for (auto& [entity_id, entity] : entities) {
         if (entity.type == 0x0B) {
             if (laser_particle_systems_.find(entity_id) == laser_particle_systems_.end()) {
@@ -475,6 +537,44 @@ void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uin
             
             float laser_length = 2000.0f;
             system.update(dt, entity.x, entity.y, laser_length);
+            system.render(window);
+        }
+        // Serpent scream effect (type 0x18)
+        else if (entity.type == 0x18) {
+            scream_active = true;
+            scream_x = entity.x;
+            scream_y = entity.y;
+        }
+        // Serpent laser charge effect (type 0x19)
+        else if (entity.type == 0x19) {
+            charge_active = true;
+            charge_x = entity.x;
+            charge_y = entity.y;
+            charge_progress = entity.vy / 100.0f;  // Progress was stored as 0-100
+        }
+    }
+    
+    // Update and render serpent effects
+    serpent_effects_.update_scream(dt, scream_x, scream_y, scream_active);
+    serpent_effects_.update_laser_charge(dt, charge_x, charge_y, charge_active, charge_progress);
+    serpent_effects_.render(window);
+    
+    // Render serpent laser (type 0x16 - SerpentLaser)
+    // The laser origin entity stores angle in vx (multiplied by 100) and length in vy
+    for (auto& [entity_id, entity] : entities) {
+        if (entity.type == 0x16) {
+            if (serpent_laser_systems_.find(entity_id) == serpent_laser_systems_.end()) {
+                serpent_laser_systems_[entity_id] = SerpentLaserSystem();
+            }
+            
+            auto& system = serpent_laser_systems_[entity_id];
+            system.set_active(true);
+            
+            // Decode angle and length from velocity fields
+            float angle = entity.vx / 100.0f;  // Was multiplied by 100 on server
+            float length = entity.vy;           // Length stored directly
+            
+            system.update(dt, entity.x, entity.y, angle, length);
             system.render(window);
         }
     }

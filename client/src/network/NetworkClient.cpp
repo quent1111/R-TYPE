@@ -218,11 +218,34 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 deserializer >> current_health >> max_health;
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08) {
+            } else if (type_val == 0x08 ||        // Boss
+                       type_val == 0x11 ||        // SerpentHead
+                       type_val == 0x12 ||        // SerpentBody
+                       type_val == 0x13 ||        // SerpentScale
+                       type_val == 0x14) {        // SerpentTail
                 int32_t current_health, max_health;
                 deserializer >> current_health >> max_health;
                 entity.health = current_health;
                 entity.max_health = max_health;
+                
+                // Read grayscale flag
+                uint8_t grayscale_flag;
+                deserializer >> grayscale_flag;
+                entity.grayscale = (grayscale_flag != 0);
+                
+                // Read rotation for serpent parts
+                if (type_val == 0x11 || type_val == 0x12 || type_val == 0x13 || type_val == 0x14) {
+                    float rotation;
+                    deserializer >> rotation;
+                    entity.rotation = rotation;
+                    
+                    // For scales, read attached body ID
+                    if (type_val == 0x13) {
+                        uint32_t attached_id;
+                        deserializer >> attached_id;
+                        entity.attached_to = attached_id;
+                    }
+                }
             }
 
             new_entities[entity_id] = entity;
