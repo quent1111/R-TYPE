@@ -222,12 +222,19 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
 
             deserializer >> entity_id >> type_val;
 
-            deserializer.read_position(x, y);
-            deserializer.read_velocity(vx, vy);
-
             Entity entity;
             entity.id = entity_id;
             entity.type = type_val;
+
+            if (type_val == 0x01) {
+                uint8_t player_idx;
+                deserializer >> player_idx;
+                entity.player_index = player_idx;
+            }
+
+            deserializer.read_position(x, y);
+            deserializer.read_velocity(vx, vy);
+
             entity.x = x;
             entity.y = y;
             entity.vx = vx;

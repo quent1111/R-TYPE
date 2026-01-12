@@ -43,6 +43,8 @@ public:
     std::vector<int> remove_inactive_clients(std::chrono::seconds timeout);
     size_t get_client_count();
     std::map<int, ClientEndpoint> get_clients();
+    std::map<int, asio::ip::udp::endpoint> get_all_clients();
+    void disconnect_client(int client_id);
 
     void send_to_all(const std::vector<uint8_t>& data);
     void send_to_clients(const std::vector<int>& client_ids, const std::vector<uint8_t>& data);

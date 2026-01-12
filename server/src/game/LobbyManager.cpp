@@ -119,6 +119,12 @@ bool LobbyManager::leave_lobby(int client_id, UDPServer& server) {
     Lobby* lobby = get_lobby(lobby_id);
     if (lobby) {
         lobby->remove_player(client_id, server);
+
+        if (lobby->is_empty()) {
+            std::lock_guard<std::mutex> lock(_lobbies_mutex);
+            _lobbies.erase(lobby_id);
+            std::cout << "[LobbyManager] Removed empty lobby " << lobby_id << std::endl;
+        }
     }
 
     return true;
@@ -171,8 +177,11 @@ void LobbyManager::cleanup_inactive_lobbies(std::chrono::seconds timeout) {
     std::lock_guard<std::mutex> lock(_lobbies_mutex);
 
     for (auto it = _lobbies.begin(); it != _lobbies.end();) {
-        if (it->second->is_inactive(timeout) && it->second->get_state() != LobbyState::InGame) {
-            std::cout << "[LobbyManager] Removing inactive lobby " << it->first << std::endl;
+        if (it->second->get_state() == LobbyState::Finished ||
+            (it->second->is_inactive(timeout) && it->second->get_state() != LobbyState::InGame)) {
+            std::cout << "[LobbyManager] Removing lobby " << it->first
+                      << " (state: " << (it->second->get_state() == LobbyState::Finished ? "Finished" : "Inactive")
+                      << ")" << std::endl;
             it = _lobbies.erase(it);
         } else {
             ++it;

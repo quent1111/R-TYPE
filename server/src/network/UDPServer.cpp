@@ -224,6 +224,43 @@ std::map<int, ClientEndpoint> UDPServer::get_clients() {
     return clients_;
 }
 
+std::map<int, asio::ip::udp::endpoint> UDPServer::get_all_clients() {
+    std::lock_guard<std::mutex> lock(clients_mutex_);
+    std::map<int, asio::ip::udp::endpoint> result;
+    for (const auto& [id, client] : clients_) {
+        result[id] = client.endpoint;
+    }
+    return result;
+}
+
+void UDPServer::disconnect_client(int client_id) {
+    std::lock_guard<std::mutex> lock(clients_mutex_);
+    auto it = clients_.find(client_id);
+    if (it != clients_.end()) {
+        std::cout << "[Network] Disconnecting client: ID=" << client_id
+                  << " (" << it->second.endpoint.address().to_string()
+                  << ":" << it->second.endpoint.port() << ")" << std::endl;
+
+        try {
+            std::vector<uint8_t> disconnect_packet = {0x42, 0xB5, 0x40};
+            if (socket_) {
+                socket_->send_to(asio::buffer(disconnect_packet), it->second.endpoint);
+                std::cout << "[Network] Disconnect notification sent to client " << client_id << std::endl;
+            } else {
+                std::cerr << "[Network] Socket is null, cannot send disconnect notification for client "
+                          << client_id << std::endl;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "[Network] Failed to send disconnect notification: " << e.what() << std::endl;
+        }
+
+        clients_.erase(it);
+        std::cout << "[Network] Client " << client_id << " removed from server" << std::endl;
+    } else {
+        std::cout << "[Network] Client " << client_id << " not found (already disconnected?)" << std::endl;
+    }
+}
+
 void UDPServer::run_network_loop() {
     std::cout << "[System] Network thread started." << std::endl;
     try {

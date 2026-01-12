@@ -9,8 +9,9 @@
 struct Entity {
     uint32_t id{0};
     uint8_t type{0};
-    
+
     uint8_t ally_subtype{0};
+    uint8_t player_index{0};
 
     float x{0.f}, y{0.f};
     float vx{0.f}, vy{0.f};
@@ -21,7 +22,7 @@ struct Entity {
     float damage_flash_timer{0.0f};
     float damage_flash_duration{0.15f};
     int prev_health{100};
-    
+
     bool grayscale{false};
     
     // Rotation angle in degrees (for serpent parts)

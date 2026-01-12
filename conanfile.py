@@ -23,7 +23,7 @@ class RTypeConan(ConanFile):
                 self.options["sfml"].audio = False
             else:
                 self.options["sfml"].audio = True
-            self.options["sfml"].network = False
+            self.options["sfml"].network = True
 
     def layout(self):
         cmake_layout(self)

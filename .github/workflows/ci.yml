@@ -55,7 +55,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.conan2
-        key: ${{ runner.os }}-conan-build-${{ hashFiles('conanfile.txt') }}
+        key: ${{ runner.os }}-conan-build-${{ hashFiles('conanfile.py') }}
         restore-keys: |
           ${{ runner.os }}-conan-build-
           ${{ runner.os }}-conan-
@@ -149,7 +149,7 @@ jobs:
         path: |
           ~/.conan2
           C:\Users\runneradmin\.conan2
-        key: ${{ runner.os }}-conan-matrix-${{ hashFiles('conanfile.txt') }}
+        key: ${{ runner.os }}-conan-matrix-${{ hashFiles('conanfile.py') }}
         restore-keys: |
           ${{ runner.os }}-conan-matrix-
           ${{ runner.os }}-conan-

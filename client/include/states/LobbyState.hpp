@@ -35,6 +35,8 @@ private:
     void on_start_game_clicked();
     void process_network_messages();
     void send_start_game_request();
+    void send_keepalive();
+    void request_lobby_status();
 
     sf::RenderWindow& m_window;
     std::string m_next_state;
@@ -58,6 +60,9 @@ private:
     int m_ready_players{0};
     int m_max_players{4};
     std::vector<std::string> m_player_names;
+
+    float m_keepalive_timer{0.0f};
+    static constexpr float KEEPALIVE_INTERVAL = 10.0f;
 
     sf::Vector2f m_mouse_pos;
 };

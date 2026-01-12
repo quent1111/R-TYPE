@@ -21,6 +21,9 @@ public:
                                     const std::unordered_map<int, std::size_t>& client_entity_ids,
                                     const std::vector<int>& lobby_client_ids);
 
+    void send_full_game_state_to_client(UDPServer& server, registry& reg,
+                                       const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                       int client_id);
     void print_compression_stats() const;
 
 private:
