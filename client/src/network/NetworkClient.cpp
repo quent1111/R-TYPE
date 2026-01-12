@@ -9,7 +9,7 @@ NetworkClient::NetworkClient(const std::string& host, unsigned short port,
       running_(true),
       game_to_network_queue_(game_to_net),
       network_to_game_queue_(net_to_game),
-      start_time_(std::chrono::steady_clock::now()) {  // ✅ Initialiser le temps de départ
+      start_time_(std::chrono::steady_clock::now()) {
     try {
         asio::ip::udp::resolver resolver(io_context_);
         auto endpoints = resolver.resolve(asio::ip::udp::v4(), host, std::to_string(port));
@@ -240,6 +240,7 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.y = y;
             entity.vx = vx;
             entity.vy = vy;
+            entity.curr_time = std::chrono::steady_clock::now();
 
             if (type_val == 0x01) {
                 int current_health, max_health;
