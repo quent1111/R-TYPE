@@ -56,6 +56,26 @@ GameSession::GameSession() {
 
 GameSession::~GameSession() {}
 
+void GameSession::set_lobby_name(const std::string& name) {
+    _lobby_name = name;
+    _starting_level = 1;
+
+    std::string lower_name = name;
+    for (auto& c : lower_name) {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+
+    if (lower_name.length() > 3 && lower_name.substr(0, 3) == "lvl") {
+        try {
+            int level = std::stoi(lower_name.substr(3));
+            if (level >= 1 && level <= 15) {
+                _starting_level = level;
+                std::cout << "[Game] Lobby name '" << name << "' detected - Starting level set to " << _starting_level << std::endl;
+            }
+        } catch (...) {}
+    }
+}
+
 void GameSession::handle_player_ready(int client_id, bool ready) {
     _client_ready_status[client_id] = ready;
     std::cout << "[Game] Client " << client_id << " is " << (ready ? "READY" : "NOT READY")
@@ -83,10 +103,18 @@ void GameSession::check_start_game(UDPServer& server) {
 }
 
 void GameSession::start_game(UDPServer& server) {
-    std::cout << "[Game] Starting game..." << std::endl;
+    std::cout << "[Game] Starting game at level " << _starting_level << "..." << std::endl;
 
     _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
     _game_phase = GamePhase::InGame;
+
+    auto& level_managers = _engine.get_registry().get_components<level_manager>();
+    for (size_t i = 0; i < level_managers.size(); ++i) {
+        if (level_managers[i].has_value()) {
+            level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
+            break;
+        }
+    }
 
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
@@ -97,7 +125,20 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
 
-    _game_broadcaster.broadcast_level_start(server, 1, _lobby_client_ids);
+    // Spawn boss if starting directly at a boss level
+    if (_starting_level == 5) {
+        std::cout << "[SERVER] *** Starting at Level 5 - Spawning BOSS! ***" << std::endl;
+        _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
+                                         _boss_shoot_timer, _boss_animation_complete,
+                                         _boss_entrance_complete, _boss_target_x);
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    } else if (_starting_level == 10) {
+        std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
+        _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    }
+
+    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level), _lobby_client_ids);
 }
 
 void GameSession::broadcast_lobby_status(UDPServer& server) {
@@ -297,6 +338,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
         _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
         _boss_shoot_counter, dt);
+
+    _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity, _client_entity_ids, dt);
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
@@ -873,6 +916,11 @@ void GameSession::advance_level(UDPServer& server) {
         _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
                                          _boss_shoot_timer, _boss_animation_complete,
                                          _boss_entrance_complete, _boss_target_x);
+
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    } else if (current_level == 10) {
+        std::cout << "[SERVER] *** Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
+        _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
 
         _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
     }

@@ -77,6 +77,13 @@ private:
     float _boss_target_x = 1500.0f;
     int _boss_shoot_counter = 0;
 
+    // Level 10 Serpent Boss
+    std::optional<entity> _serpent_controller_entity;
+    
+    // Lobby name for level skip feature
+    std::string _lobby_name;
+    int _starting_level = 1;
+
     void process_network_events(UDPServer& server);
     void update_game_state(UDPServer& server, float dt);
     void send_periodic_updates(UDPServer& server, float dt);
@@ -90,6 +97,7 @@ public:
     void check_start_game(UDPServer& server);
     void start_game(UDPServer& server);
     void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
+    void set_lobby_name(const std::string& name);
     void broadcast_lobby_status(UDPServer& server);
     void remove_player(int client_id);
     GameSession();

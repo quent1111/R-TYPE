@@ -48,7 +48,18 @@ enum class EntityType : uint8_t {
     Ally         = 0x0A,
     LaserBeam    = 0x0B,
     SupportDrone = 0x0C,
-    MissileDrone = 0x0D
+    MissileDrone = 0x0D,
+    // Serpent boss parts (Level 10)
+    SerpentNest  = 0x10,
+    SerpentHead  = 0x11,
+    SerpentBody  = 0x12,
+    SerpentScale = 0x13,
+    SerpentTail  = 0x14,
+    SerpentHoming = 0x15,  // Homing enemies summoned by serpent scream
+    SerpentLaser  = 0x16,  // Laser beam origin (has angle/length in velocity)
+    SerpentLaserSegment = 0x17,  // Invisible collision segments along laser
+    SerpentScream = 0x18,  // Scream effect marker (at head position)
+    SerpentLaserCharge = 0x19  // Laser charging effect marker (at tail position, vy = progress 0-100)
 };
 
 struct MagicNumber {
