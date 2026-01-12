@@ -87,7 +87,7 @@ bool Lobby::remove_player(int client_id, UDPServer& server) {
         }
     }
 
-    if (is_empty() && _state == LobbyState::InGame) {
+    if (is_empty()) {
         _state = LobbyState::Finished;
         std::cout << "[Lobby " << _lobby_id << "] All players left, marking as finished"
                   << std::endl;

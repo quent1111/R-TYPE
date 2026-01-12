@@ -119,6 +119,12 @@ bool LobbyManager::leave_lobby(int client_id, UDPServer& server) {
     Lobby* lobby = get_lobby(lobby_id);
     if (lobby) {
         lobby->remove_player(client_id, server);
+
+        if (lobby->is_empty()) {
+            std::lock_guard<std::mutex> lock(_lobbies_mutex);
+            _lobbies.erase(lobby_id);
+            std::cout << "[LobbyManager] Removed empty lobby " << lobby_id << std::endl;
+        }
     }
 
     return true;

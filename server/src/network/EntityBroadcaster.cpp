@@ -219,8 +219,6 @@ void EntityBroadcaster::send_full_game_state_to_client(
     server.send_to_client(client_id, serializer.data());
 }
 
-}  // namespace server
-
 void EntityBroadcaster::print_compression_stats() const {
     const auto& stats = broadcast_serializer_.get_stats();
     std::cout << "\n=== EntityBroadcaster Compression Stats ===" << std::endl;
@@ -233,4 +231,4 @@ void EntityBroadcaster::print_compression_stats() const {
     std::cout << "==========================================\n" << std::endl;
 }
 
-}
+}  // namespace server
