@@ -231,11 +231,15 @@ struct power_cannon {
 
     constexpr power_cannon() noexcept = default;
 
-    constexpr void activate(float custom_duration = 10.0f, int custom_damage = 50) noexcept {
+    constexpr void activate(float custom_duration = -1.0f, int custom_damage = -1) noexcept {
         active = true;
-        duration = custom_duration;
-        time_remaining = custom_duration;
-        damage = custom_damage;
+        if (custom_duration >= 0.0f) {
+            duration = custom_duration;
+        }
+        time_remaining = duration;
+        if (custom_damage >= 0) {
+            damage = custom_damage;
+        }
     }
     
     constexpr void update(float dt) noexcept {
@@ -262,11 +266,15 @@ struct shield {
     
     constexpr shield() noexcept = default;
     
-    constexpr void activate(float custom_duration = 10.0f, float custom_radius = 80.0f) noexcept {
+    constexpr void activate(float custom_duration = -1.0f, float custom_radius = -1.0f) noexcept {
         active = true;
-        duration = custom_duration;
-        time_remaining = custom_duration;
-        radius = custom_radius;
+        if (custom_duration >= 0.0f) {
+            duration = custom_duration;
+        }
+        time_remaining = duration;
+        if (custom_radius >= 0.0f) {
+            radius = custom_radius;
+        }
     }
     
     constexpr void update(float dt) noexcept {
