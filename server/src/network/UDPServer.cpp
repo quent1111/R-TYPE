@@ -10,43 +10,62 @@ namespace server {
 UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_address,
                      unsigned short port)
     : io_context_(io_context),
-      work_guard_(io_context.get_executor()),
-      socket_(io_context),
       next_client_id_(1),
       running_(true) {
     try {
+        recv_buffer_ = std::make_unique<std::vector<uint8_t>>(65536);
+    } catch (const std::exception& e) {
+        std::cerr << "[Error] Failed to allocate recv_buffer: " << e.what() << std::endl;
+        throw;
+    } catch (...) {
+        std::cerr << "[Error] Unknown error allocating recv_buffer" << std::endl;
+        throw;
+    }
+    
+    try {
+        work_guard_ = std::make_unique<asio::executor_work_guard<asio::io_context::executor_type>>(io_context.get_executor());
+    } catch (const std::exception& e) {
+        std::cerr << "[Error] Failed to create work_guard: " << e.what() << std::endl;
+        throw;
+    } catch (...) {
+        std::cerr << "[Error] Unknown error creating work_guard" << std::endl;
+        throw;
+    }
+
+    try {
+        socket_ = std::make_unique<asio::ip::udp::socket>(io_context);
+        
         if (bind_address.empty()) {
-            socket_.open(asio::ip::udp::v6());
-            socket_.set_option(asio::ip::v6_only(false));
-            socket_.bind(asio::ip::udp::endpoint(asio::ip::udp::v6(), port));
+            socket_->open(asio::ip::udp::v6());
+            socket_->set_option(asio::ip::v6_only(false));
+            socket_->bind(asio::ip::udp::endpoint(asio::ip::udp::v6(), port));
             std::cout << "[Network] UDP Server listening on port " << port << " (Dual Stack)"
                       << std::endl;
         } else {
             asio::ip::address addr = asio::ip::make_address(bind_address);
             if (addr.is_v6()) {
-                socket_.open(asio::ip::udp::v6());
-                socket_.set_option(asio::ip::v6_only(false));
-                socket_.bind(asio::ip::udp::endpoint(addr, port));
+                socket_->open(asio::ip::udp::v6());
+                socket_->set_option(asio::ip::v6_only(false));
+                socket_->bind(asio::ip::udp::endpoint(addr, port));
                 std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
                           << " (IPv6 / dual-stack)" << std::endl;
             } else {
-                socket_.open(asio::ip::udp::v4());
-                socket_.bind(asio::ip::udp::endpoint(addr, port));
+                socket_->open(asio::ip::udp::v4());
+                socket_->bind(asio::ip::udp::endpoint(addr, port));
                 std::cout << "[Network] UDP Server listening on " << bind_address << ":" << port
                           << " (IPv4)" << std::endl;
             }
         }
+    } catch (const std::system_error& e) {
+        std::cerr << "[Error] System error in socket creation/bind: " << e.what() 
+                  << " (code: " << e.code() << ")" << std::endl;
+        throw;
     } catch (const std::exception& e) {
-        try {
-            socket_.close();
-            socket_.open(asio::ip::udp::v4());
-            socket_.bind(asio::ip::udp::endpoint(asio::ip::udp::v4(), port));
-            std::cout << "[Network] UDP Server listening on port " << port << " (IPv4 Only)"
-                      << std::endl;
-        } catch (const std::exception& ex) {
-            std::cerr << "[Error] Failed to bind UDP socket: " << ex.what() << std::endl;
-            throw;
-        }
+        std::cerr << "[Error] Exception in socket creation/bind: " << e.what() << std::endl;
+        throw;
+    } catch (...) {
+        std::cerr << "[Error] Unknown error in socket creation/bind" << std::endl;
+        throw;
     }
 
     start_receive();
@@ -57,8 +76,8 @@ UDPServer::~UDPServer() {
 }
 
 void UDPServer::start_receive() {
-    socket_.async_receive_from(
-        asio::buffer(recv_buffer_), remote_endpoint_,
+    socket_->async_receive_from(
+        asio::buffer(*recv_buffer_), remote_endpoint_,
         [this](std::error_code ec, std::size_t bytes_recvd) { handle_receive(ec, bytes_recvd); });
 }
 
@@ -66,8 +85,8 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received > 0) {
         if (bytes_received >= 2) {
 
-            std::vector<uint8_t> data(recv_buffer_.begin(),
-                                      recv_buffer_.begin() + bytes_received);
+            std::vector<uint8_t> data(recv_buffer_->begin(),
+                                      recv_buffer_->begin() + bytes_received);
 
             try {
                 RType::CompressionSerializer decompressor(data);
@@ -98,7 +117,7 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
                 }
             }
         }
-    } else if (ec != asio::error::operation_aborted) {
+    } else if (ec) {
         std::cerr << "[Error] Receive error: " << ec.message() << std::endl;
     }
 
@@ -109,7 +128,7 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
 
 void UDPServer::queue_output_packet(NetworkPacket packet) {
     asio::post(io_context_, [this, packet = std::move(packet)]() {
-        socket_.async_send_to(
+        socket_->async_send_to(
             asio::buffer(packet.data), packet.sender, [](std::error_code ec, std::size_t) {
                 if (ec) {
                     std::cerr << "[Error] Send failed: " << ec.message() << std::endl;
@@ -224,8 +243,13 @@ void UDPServer::disconnect_client(int client_id) {
 
         try {
             std::vector<uint8_t> disconnect_packet = {0x42, 0xB5, 0x40};
-            socket_.send_to(asio::buffer(disconnect_packet), it->second.endpoint);
-            std::cout << "[Network] Disconnect notification sent to client " << client_id << std::endl;
+            if (socket_) {
+                socket_->send_to(asio::buffer(disconnect_packet), it->second.endpoint);
+                std::cout << "[Network] Disconnect notification sent to client " << client_id << std::endl;
+            } else {
+                std::cerr << "[Network] Socket is null, cannot send disconnect notification for client "
+                          << client_id << std::endl;
+            }
         } catch (const std::exception& e) {
             std::cerr << "[Network] Failed to send disconnect notification: " << e.what() << std::endl;
         }
@@ -251,7 +275,9 @@ void UDPServer::stop() {
     running_ = false;
     work_guard_.reset();
     io_context_.stop();
-    socket_.close();
+    if (socket_) {
+        socket_->close();
+    }
 }
 
 }  // namespace server

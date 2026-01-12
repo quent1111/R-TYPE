@@ -56,6 +56,68 @@ Developed as part of the Advanced C++ curriculum at Epitech.
 
 ---
 
+## Requirements
+
+### System Requirements
+
+**Supported Platforms:**
+- Linux (Ubuntu 20.04+, Debian 11+, or equivalent)
+- macOS (11.0+ Big Sur or later)
+- Windows (10/11 with MinGW-w64 or MSVC)
+
+**Build Tools:**
+- CMake 3.20 or higher
+- C++20 compatible compiler:
+  - GCC 10+ (Linux)
+  - Clang 12+ (macOS)
+  - MSVC 2019+ or MinGW-w64 GCC 10+ (Windows)
+- Python 3.7+ (for Conan package manager)
+- pip (Python package installer)
+
+**Runtime Dependencies:**
+- SFML 2.6.1 (automatically installed via Conan)
+- Asio 1.30.2 (automatically installed via Conan)
+- LZ4 1.9.4 (automatically installed via Conan)
+
+### Installing Prerequisites
+
+**Linux (Ubuntu/Debian):**
+```bash
+sudo apt update
+sudo apt install build-essential cmake python3 python3-pip git
+```
+
+**macOS:**
+```bash
+brew install cmake python git
+# For ARM64 Macs, also install SFML via Homebrew:
+brew install sfml
+```
+
+**Windows:**
+
+Option 1 - MinGW-w64 via MSYS2 (recommended):
+1. Download and install MSYS2 from https://www.msys2.org/
+2. Open **MSYS2 UCRT64** terminal (not MSYS2 or MinGW64)
+3. Update packages: `pacman -Syu`
+4. Install tools: `pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make`
+5. Add `C:\msys64\ucrt64\bin` to your Windows PATH:
+   - **Temporary (current session)**: In PowerShell: `$env:Path += ";C:\msys64\ucrt64\bin"`
+   - **Permanent**: System Properties → Environment Variables → Path → Add `C:\msys64\ucrt64\bin`
+6. Restart PowerShell and verify: `g++ --version`
+
+Option 2 - Visual Studio:
+1. Install Visual Studio 2019+ with C++ development tools
+2. Install CMake from https://cmake.org/download/
+3. Install Python from https://www.python.org/downloads/
+
+**Python Dependencies (for documentation):**
+```bash
+pip install -r docs/requirements.txt
+```
+
+---
+
 ## Quick Start
 
 ### Building and Running

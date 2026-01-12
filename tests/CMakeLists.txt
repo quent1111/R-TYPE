@@ -55,7 +55,7 @@ target_include_directories(test_network PRIVATE
 target_link_libraries(test_network PRIVATE
     r-type-engine
     gtest::gtest
-    asio::asio
+    Boost::boost
     LZ4::lz4_static
     project_options
     project_warnings
@@ -123,7 +123,7 @@ add_executable(test_integration
 target_link_libraries(test_integration PRIVATE
     r-type-engine
     gtest::gtest
-    asio::asio
+    Boost::boost
     project_options
     project_warnings
 )

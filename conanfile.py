@@ -7,22 +7,22 @@ class RTypeConan(ConanFile):
     generators = "CMakeDeps", "CMakeToolchain"
 
     def requirements(self):
-        # Skip SFML on macOS ARM64 (use Homebrew instead)
         if not (self.settings.os == "Macos" and self.settings.arch == "armv8"):
             self.requires("sfml/2.6.1")
-        self.requires("asio/1.30.2")
+        self.requires("boost/1.86.0")
         self.requires("gtest/1.14.0")
         self.requires("lz4/1.9.4")
 
     def configure(self):
         if self.settings.os == "Macos" and self.settings.arch == "armv8":
-            # Skip SFML on macOS ARM64
             pass
         else:
-            # Configure SFML options for other platforms
             self.options["sfml"].graphics = True
             self.options["sfml"].window = True
-            self.options["sfml"].audio = True
+            if self.settings.os == "Windows":
+                self.options["sfml"].audio = False
+            else:
+                self.options["sfml"].audio = True
             self.options["sfml"].network = True
 
     def layout(self):

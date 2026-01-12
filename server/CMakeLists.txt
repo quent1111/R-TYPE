@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Define Windows version for ASIO (Windows 10)
+if(WIN32)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
+    add_compile_definitions(WINVER=0x0A00)
+    add_compile_definitions(BOOST_ASIO_HAS_STD_INVOKE_RESULT)
+endif()
+
 add_executable(r-type_server
     src/main.cpp
     ../src/Common/Opcodes.cpp
@@ -32,7 +39,7 @@ target_link_libraries(r-type_server PRIVATE
     game_logic
     project_options
     project_warnings
-    asio::asio
+    Boost::boost
     LZ4::lz4_static
 )
 

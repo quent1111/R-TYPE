@@ -7,7 +7,8 @@
 #include "network/Messages.hpp"
 
 #include <SFML/Graphics.hpp>
-#include <asio.hpp>
+#include <boost/asio.hpp>
+namespace asio = boost::asio;
 #include <cstdint>
 
 #include <atomic>
