@@ -1,6 +1,8 @@
 #include "handlers/LobbyCommandHandler.hpp"
 
 #include <iostream>
+#include "../../src/Common/CompressionSerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
 
 namespace server {
 
@@ -14,7 +16,7 @@ void LobbyCommandHandler::handle_list_lobbies(UDPServer& server, int client_id) 
 
     auto lobbies = _lobby_manager.get_lobby_list();
 
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::ListLobbies);
     serializer << static_cast<int32_t>(lobbies.size());
@@ -27,6 +29,7 @@ void LobbyCommandHandler::handle_list_lobbies(UDPServer& server, int client_id) 
         serializer << static_cast<uint8_t>(lobby.state);
     }
 
+    serializer.compress();
     std::cout << "[LobbyCommandHandler] Sending " << lobbies.size() << " lobbies to client " << client_id << std::endl;
     server.send_to_client(client_id, serializer.data());
 }
@@ -113,11 +116,12 @@ void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id) {
 
 void LobbyCommandHandler::send_lobby_joined_ack(UDPServer& server, int client_id, int lobby_id,
                                                  bool success) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::LobbyJoined);
     serializer << static_cast<uint8_t>(success ? 1 : 0);
     serializer << static_cast<int32_t>(lobby_id);
+    serializer.compress();
 
     server.send_to_client(client_id, serializer.data());
 
@@ -126,10 +130,11 @@ void LobbyCommandHandler::send_lobby_joined_ack(UDPServer& server, int client_id
 }
 
 void LobbyCommandHandler::send_lobby_left_ack(UDPServer& server, int client_id, bool success) {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::LobbyLeft);
     serializer << static_cast<uint8_t>(success ? 1 : 0);
+    serializer.compress();
 
     server.send_to_client(client_id, serializer.data());
 

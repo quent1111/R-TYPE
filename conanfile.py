@@ -12,6 +12,7 @@ class RTypeConan(ConanFile):
             self.requires("sfml/2.6.1")
         self.requires("asio/1.30.2")
         self.requires("gtest/1.14.0")
+        self.requires("lz4/1.9.4")
 
     def configure(self):
         if self.settings.os == "Macos" and self.settings.arch == "armv8":

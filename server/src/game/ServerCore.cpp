@@ -1,6 +1,6 @@
 #include "game/ServerCore.hpp"
 
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "common/NetworkPacket.hpp"
 
@@ -44,10 +44,11 @@ void ServerCore::process_network_events(UDPServer& server) {
             switch (opcode) {
                 case RType::OpCode::Login: {
                     std::cout << "[ServerCore] Login request from client " << client_id << std::endl;
-                    RType::BinarySerializer ack_serializer;
+                    RType::CompressionSerializer ack_serializer;
                     ack_serializer << RType::MagicNumber::VALUE;
                     ack_serializer << static_cast<uint8_t>(RType::OpCode::LoginAck);
                     ack_serializer << static_cast<uint32_t>(client_id);
+                    ack_serializer.compress();
                     server.send_to_client(client_id, ack_serializer.data());
                     continue;
                 }
