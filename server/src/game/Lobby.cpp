@@ -18,6 +18,11 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players)
     _game_session->set_game_reset_callback([this]() {
         this->reset_after_game_over();
     });
+    
+    // Pass lobby name to game session for level skip feature (e.g., "lvl9" starts at level 9)
+    if (_game_session) {
+        _game_session->set_lobby_name(_lobby_name);
+    }
 }
 
 bool Lobby::has_player(int client_id) const {

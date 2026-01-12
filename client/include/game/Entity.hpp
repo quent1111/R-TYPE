@@ -24,6 +24,12 @@ struct Entity {
     int prev_health{100};
 
     bool grayscale{false};
+    
+    // Rotation angle in degrees (for serpent parts)
+    float rotation{0.f};
+    
+    // For serpent scales: entity ID they're attached to
+    uint32_t attached_to{0};
 
     float prev_x{0.f}, prev_y{0.f};
     std::chrono::steady_clock::time_point prev_time{std::chrono::steady_clock::now()};

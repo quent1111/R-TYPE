@@ -7,12 +7,6 @@
 #include "wave_system.hpp"
 #include "cleanup_system.hpp"
 
-/**
- * @brief ISystem wrappers for existing game logic functions.
- * 
- * These classes wrap free functions into the ISystem interface,
- * making them pluggable into the engine's SystemManager.
- */
 
 class ShootingSystem : public engine::ISystem {
 public:

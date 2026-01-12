@@ -12,6 +12,8 @@ add_executable(r-type_client
     src/rendering/HUDRenderer.cpp
     src/rendering/OverlayRenderer.cpp
     src/rendering/LaserParticleSystem.cpp
+    src/rendering/SerpentLaserSystem.cpp
+    src/rendering/SerpentEffectsSystem.cpp
     src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp

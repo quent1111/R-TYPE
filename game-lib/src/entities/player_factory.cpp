@@ -16,6 +16,7 @@ entity createPlayer(registry& reg, float x, float y, int player_index) {
     reg.register_component<player_tag>();
     reg.register_component<bounded_movement>();
     reg.register_component<player_index_component>();
+    reg.register_component<laser_damage_immunity>();
 
     std::vector<sf::IntRect> player_frames = {
         {99, 0, 33, 17},
@@ -35,6 +36,7 @@ entity createPlayer(registry& reg, float x, float y, int player_index) {
     reg.add_component(player, player_tag{});
     reg.add_component(player, bounded_movement{0.0f, 1920.0f, 0.0f, 1080.0f});
     reg.add_component(player, player_index_component{player_index});
+    reg.add_component(player, laser_damage_immunity{0.2f});
 
     return player;
 }

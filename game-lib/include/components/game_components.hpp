@@ -114,3 +114,26 @@ struct player_index_component {
     player_index_component(int player_idx = 0)
         : index(player_idx) {}
 };
+struct laser_damage_immunity {
+    float immunity_timer;
+    float immunity_duration;
+    
+    laser_damage_immunity(float duration = 0.1f)
+        : immunity_timer(0.0f), immunity_duration(duration) {}
+    
+    bool is_immune() const {
+        return immunity_timer > 0.0f;
+    }
+    
+    void trigger() {
+        immunity_timer = immunity_duration;
+    }
+    
+    void update(float dt) {
+        if (immunity_timer > 0.0f) {
+            immunity_timer -= dt;
+            if (immunity_timer < 0.0f) immunity_timer = 0.0f;
+        }
+    }
+};
+

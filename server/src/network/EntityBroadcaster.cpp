@@ -93,11 +93,41 @@ void EntityBroadcaster::broadcast_entity_positions(
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             broadcast_serializer_.write_velocity(vx, vy);
 
-            if (tags[i]->type == RType::EntityType::Boss) {
+            // Send health for boss and serpent parts
+            if (tags[i]->type == RType::EntityType::Boss ||
+                tags[i]->type == RType::EntityType::SerpentHead ||
+                tags[i]->type == RType::EntityType::SerpentBody ||
+                tags[i]->type == RType::EntityType::SerpentScale ||
+                tags[i]->type == RType::EntityType::SerpentTail) {
                 auto health_opt = reg.get_component<health>(entity_obj);
                 int current_health = health_opt.has_value() ? health_opt->current : 100;
                 int max_health = health_opt.has_value() ? health_opt->maximum : 100;
                 broadcast_serializer_.write_quantized_health(current_health, max_health);
+                
+                // Send grayscale flag for serpent parts
+                auto sprite_opt = reg.get_component<sprite_component>(entity_obj);
+                bool grayscale = sprite_opt.has_value() ? sprite_opt->grayscale : false;
+                broadcast_serializer_ << static_cast<uint8_t>(grayscale ? 1 : 0);
+                
+                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at player)
+                if (tags[i]->type == RType::EntityType::SerpentHead ||
+                    tags[i]->type == RType::EntityType::SerpentBody ||
+                    tags[i]->type == RType::EntityType::SerpentScale ||
+                    tags[i]->type == RType::EntityType::SerpentTail) {
+                    auto part_opt = reg.get_component<serpent_part>(entity_obj);
+                    float rotation = part_opt.has_value() ? part_opt->rotation : 0.0f;
+                    broadcast_serializer_ << rotation;
+                    
+                    // For scales, also send the body entity they're attached to
+                    if (tags[i]->type == RType::EntityType::SerpentScale && part_opt.has_value()) {
+                        uint32_t attached_id = 0;
+                        if (part_opt->attached_body.has_value()) {
+                            attached_id = OTHER_ID_OFFSET + static_cast<uint32_t>(
+                                static_cast<std::size_t>(part_opt->attached_body.value()));
+                        }
+                        broadcast_serializer_ << attached_id;
+                    }
+                }
             }
 
             entity_count++;

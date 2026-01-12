@@ -1,6 +1,7 @@
 #include "systems/cleanup_system.hpp"
 #include "ecs/components.hpp"
 #include "components/game_components.hpp"
+#include "components/logic_components.hpp"
 #include "entities/explosion_factory.hpp"
 #include <vector>
 
@@ -9,6 +10,7 @@ void cleanupSystem(registry& reg) {
     auto& healths = reg.get_components<health>();
     auto& enemy_tags = reg.get_components<enemy_tag>();
     auto& player_tags = reg.get_components<player_tag>();
+    auto& serpent_parts = reg.get_components<serpent_part>();
 
     std::vector<entity> entities_to_kill;
 
@@ -18,6 +20,11 @@ void cleanupSystem(registry& reg) {
         if (health_opt && health_opt.value().is_dead()) {
             bool is_player = (i < player_tags.size() && player_tags[i]);
             if (is_player) {
+                continue;
+            }
+            
+            bool is_serpent_part = (i < serpent_parts.size() && serpent_parts[i].has_value());
+            if (is_serpent_part) {
                 continue;
             }
             
@@ -38,6 +45,11 @@ void cleanupSystem(registry& reg) {
 
         if (pos_opt) {
             auto& pos = pos_opt.value();
+            
+            bool is_serpent_part = (i < serpent_parts.size() && serpent_parts[i].has_value());
+            if (is_serpent_part) {
+                continue;
+            }
 
             bool is_projectile = (i < projectile_tags.size() && projectile_tags[i]);
             bool is_enemy = (i < enemy_tags.size() && enemy_tags[i]);

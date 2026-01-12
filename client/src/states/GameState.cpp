@@ -23,18 +23,14 @@ void GameState::on_enter() {
 
 void GameState::on_exit() {
     std::cout << "[GameState] Exiting game\n";
-    // Ensure the window view is reset when leaving the game so subsequent
-    // menu rendering uses the default view (prevents cropped / shifted UI).
     try {
         m_window.setView(m_window.getDefaultView());
     } catch (...) {
-        // defensive: ignore if window state is invalid
     }
     m_game.reset();
 }
 
 void GameState::handle_event(const sf::Event& event) {
-    // Escape handled by Game (open settings). Do not force state change here.
 
     if (m_game) {
         if (event.type == sf::Event::GainedFocus) {
@@ -55,7 +51,6 @@ void GameState::update(float dt) {
             m_next_state = "menu";
         }
 
-        // If game requested to return to menu (via settings Quit), transition
         if (m_game->should_return_to_menu()) {
             m_next_state = "menu";
         }
