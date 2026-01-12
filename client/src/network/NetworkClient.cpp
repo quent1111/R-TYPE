@@ -8,7 +8,8 @@ NetworkClient::NetworkClient(const std::string& host, unsigned short port,
       socket_(io_context_),
       running_(true),
       game_to_network_queue_(game_to_net),
-      network_to_game_queue_(net_to_game) {
+      network_to_game_queue_(net_to_game),
+      start_time_(std::chrono::steady_clock::now()) {  // ✅ Initialiser le temps de départ
     try {
         asio::ip::udp::resolver resolver(io_context_);
         auto endpoints = resolver.resolve(asio::ip::udp::v4(), host, std::to_string(port));
@@ -302,11 +303,15 @@ void NetworkClient::send_login() {
 }
 
 void NetworkClient::send_input(uint8_t input_mask) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time_);
+    uint32_t timestamp = static_cast<uint32_t>(elapsed.count());
+
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Input;
     serializer << input_mask;
-    serializer << static_cast<uint32_t>(0);
+    serializer << timestamp;
     serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,
