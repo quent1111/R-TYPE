@@ -12,7 +12,7 @@
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
 #include "../../game-lib/include/systems/system_wrappers.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "common/GameConstants.hpp"
 #include "game/BossManager.hpp"

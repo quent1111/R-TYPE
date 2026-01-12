@@ -42,6 +42,9 @@ add_executable(test_network
     network/test_protocol_advanced.cpp
     network/test_opcodes.cpp
     network/test_serializer_edge_cases.cpp
+    # Compression tests
+    network/test_compression.cpp
+    network/test_full_compression_integration.cpp
 )
 
 target_include_directories(test_network PRIVATE
@@ -53,6 +56,7 @@ target_link_libraries(test_network PRIVATE
     r-type-engine
     gtest::gtest
     asio::asio
+    LZ4::lz4_static
     project_options
     project_warnings
 )

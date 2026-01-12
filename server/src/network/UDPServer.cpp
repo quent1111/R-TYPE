@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include <iostream>
+#include "../../src/Common/CompressionSerializer.hpp"
 
 namespace server {
 
@@ -64,18 +65,35 @@ void UDPServer::start_receive() {
 void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received > 0) {
         if (bytes_received >= 2) {
-            uint16_t magic_number = static_cast<uint16_t>(recv_buffer_[0]) |
-                                    (static_cast<uint16_t>(recv_buffer_[1]) << 8);
-            if (magic_number == 0xB542) {
-                std::vector<uint8_t> data(recv_buffer_.begin(),
-                                          recv_buffer_.begin() + bytes_received);
-                NetworkPacket packet(std::move(data), remote_endpoint_);
 
-                register_client(remote_endpoint_);
-                input_queue_.push(std::move(packet));
-            } else {
-                std::cerr << "[Security] Ignored packet with bad Magic Number from "
-                          << remote_endpoint_ << std::endl;
+            std::vector<uint8_t> data(recv_buffer_.begin(),
+                                      recv_buffer_.begin() + bytes_received);
+
+            try {
+                RType::CompressionSerializer decompressor(data);
+                decompressor.decompress();
+                data = decompressor.data();
+            } catch (const RType::CompressionException& e) {
+                std::cerr << "[Security] Decompression error from " << remote_endpoint_ 
+                          << ": " << e.what() << std::endl;
+                if (running_) {
+                    start_receive();
+                }
+                return;
+            }
+
+            if (data.size() >= 2) {
+                uint16_t magic_number = static_cast<uint16_t>(data[0]) |
+                                        (static_cast<uint16_t>(data[1]) << 8);
+                if (magic_number == 0xB542) {
+                    NetworkPacket packet(std::move(data), remote_endpoint_);
+
+                    register_client(remote_endpoint_);
+                    input_queue_.push(std::move(packet));
+                } else {
+                    std::cerr << "[Security] Ignored packet with bad Magic Number from "
+                              << remote_endpoint_ << std::endl;
+                }
             }
         }
     } else if (ec != asio::error::operation_aborted) {

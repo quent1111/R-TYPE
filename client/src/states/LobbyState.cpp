@@ -1,7 +1,7 @@
 #include "states/LobbyState.hpp"
 
 #include "managers/AudioManager.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
 #include <iostream>
@@ -143,9 +143,10 @@ void LobbyState::on_back_clicked() {
 void LobbyState::send_start_game_request() {
     std::cout << "[LobbyState] Sending StartGame request to server\n";
 
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::StartGame);
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
     msg.raw_data = serializer.data();

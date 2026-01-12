@@ -1,6 +1,6 @@
 #include "game/LobbyManager.hpp"
 
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
 #include <algorithm>
@@ -191,7 +191,7 @@ void LobbyManager::handle_client_disconnect(int client_id, UDPServer& server) {
 void LobbyManager::broadcast_lobby_list(UDPServer& server) {
     auto lobbies = get_lobby_list();
 
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::ListLobbies);
     serializer << static_cast<int32_t>(lobbies.size());
@@ -204,6 +204,7 @@ void LobbyManager::broadcast_lobby_list(UDPServer& server) {
         serializer << static_cast<uint8_t>(lobby.state);
     }
 
+    serializer.compress();
     server.send_to_all(serializer.data());
 }
 

@@ -2,7 +2,7 @@
 
 #include "../../engine/ecs/registry.hpp"
 #include "../../game-lib/include/components/logic_components.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "network/UDPServer.hpp"
 

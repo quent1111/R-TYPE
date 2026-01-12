@@ -1,9 +1,18 @@
 #include "network/EntityBroadcaster.hpp"
+#include "../../src/Common/CompressionSerializer.hpp"
+#include <iostream>
 
 namespace server {
 
 EntityBroadcaster::EntityBroadcaster() {
     broadcast_serializer_.reserve(65536);
+    
+    // Configure compression
+    RType::CompressionConfig config;
+    config.min_compress_size = 128;      // Compress packets >= 128 bytes
+    config.acceleration = 10;            // Balance between speed and ratio
+    config.use_high_compression = false; // Fast mode for real-time
+    broadcast_serializer_.set_config(config);
 }
 
 void EntityBroadcaster::broadcast_entity_positions(
@@ -31,23 +40,22 @@ void EntityBroadcaster::broadcast_entity_positions(
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
+
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
 
             uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
             broadcast_serializer_ << player_idx;
 
-            broadcast_serializer_ << pos.x;
-            broadcast_serializer_ << pos.y;
+            broadcast_serializer_.write_position(pos.x, pos.y);
+
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
-            broadcast_serializer_ << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
-            broadcast_serializer_ << vy;
+            broadcast_serializer_.write_velocity(vx, vy);
 
             int current_health = health_opt.has_value() ? health_opt->current : 100;
             int max_health = health_opt.has_value() ? health_opt->maximum : 100;
-            broadcast_serializer_ << static_cast<int32_t>(current_health);
-            broadcast_serializer_ << static_cast<int32_t>(max_health);
+            broadcast_serializer_.write_quantized_health(current_health, max_health);
 
             entity_count++;
         }
@@ -78,19 +86,18 @@ void EntityBroadcaster::broadcast_entity_positions(
 
             broadcast_serializer_ << network_id;
             broadcast_serializer_ << static_cast<uint8_t>(tags[i]->type);
-            broadcast_serializer_ << pos.x;
-            broadcast_serializer_ << pos.y;
+
+            broadcast_serializer_.write_position(pos.x, pos.y);
+
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
-            broadcast_serializer_ << vx;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
-            broadcast_serializer_ << vy;
+            broadcast_serializer_.write_velocity(vx, vy);
 
             if (tags[i]->type == RType::EntityType::Boss) {
                 auto health_opt = reg.get_component<health>(entity_obj);
                 int current_health = health_opt.has_value() ? health_opt->current : 100;
                 int max_health = health_opt.has_value() ? health_opt->maximum : 100;
-                broadcast_serializer_ << static_cast<int32_t>(current_health);
-                broadcast_serializer_ << static_cast<int32_t>(max_health);
+                broadcast_serializer_.write_quantized_health(current_health, max_health);
             }
 
             entity_count++;
@@ -101,6 +108,10 @@ void EntityBroadcaster::broadcast_entity_positions(
         return;
 
     broadcast_serializer_.data()[count_position] = static_cast<uint8_t>(entity_count);
+
+    // 🗜️ COMPRESS before sending (LZ4)
+    broadcast_serializer_.compress();
+    
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
@@ -210,3 +221,16 @@ void EntityBroadcaster::send_full_game_state_to_client(
 
 }  // namespace server
 
+void EntityBroadcaster::print_compression_stats() const {
+    const auto& stats = broadcast_serializer_.get_stats();
+    std::cout << "\n=== EntityBroadcaster Compression Stats ===" << std::endl;
+    std::cout << "  Compressed packets   : " << stats.total_compressed << std::endl;
+    std::cout << "  Uncompressed packets : " << stats.total_uncompressed << std::endl;
+    std::cout << "  Total bytes in       : " << stats.total_bytes_in << " bytes" << std::endl;
+    std::cout << "  Total bytes out      : " << stats.total_bytes_out << " bytes" << std::endl;
+    std::cout << "  Compression ratio    : " << (stats.get_compression_ratio() * 100.0) << "%" << std::endl;
+    std::cout << "  Bandwidth savings    : " << stats.get_savings_percent() << "%" << std::endl;
+    std::cout << "==========================================\n" << std::endl;
+}
+
+}

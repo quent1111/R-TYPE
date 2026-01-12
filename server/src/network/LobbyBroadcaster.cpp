@@ -25,6 +25,8 @@ void LobbyBroadcaster::broadcast_lobby_status(
     broadcast_serializer_ << total_players;
     broadcast_serializer_ << ready_players;
 
+    broadcast_serializer_.compress();
+
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
