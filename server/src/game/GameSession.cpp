@@ -243,12 +243,25 @@ void GameSession::process_network_events(UDPServer& server) {
                     auto player_opt =
                         _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
                     if (!player_opt.has_value()) {
+                        // Assign player index if not already assigned
+                        if (_client_player_index.find(client_id) == _client_player_index.end()) {
+                            if (!_available_player_slots.empty()) {
+                                int assigned_slot = *_available_player_slots.begin();
+                                _available_player_slots.erase(_available_player_slots.begin());
+                                _client_player_index[client_id] = assigned_slot;
+                                std::cout << "[GameSession] Reconnect: Assigned player slot " << assigned_slot
+                                          << " to client " << client_id << std::endl;
+                            } else {
+                                _client_player_index[client_id] = 1;
+                            }
+                        }
+                        int player_index = _client_player_index[client_id];
                         float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                         float start_y = 300.0f;
                         auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
-                                                                    client_id, start_x, start_y);
+                                                                    client_id, start_x, start_y, player_index);
                         std::cout << "[Game] New player connected (Implicit): Client " << client_id
-                                  << " (Entity " << player.id() << ")" << std::endl;
+                                  << " (Entity " << player.id() << ", Index " << player_index << ")" << std::endl;
                     }
 
                     std::vector<uint8_t> payload(
@@ -312,12 +325,31 @@ void GameSession::process_network_events(UDPServer& server) {
                     uint8_t powerup_choice;
                     try {
                         deserializer >> powerup_choice;
+
+                        if (_players_who_chose_powerup.find(client_id) != _players_who_chose_powerup.end()) {
+                            std::cout << "[Game] Client " << client_id << " already chose, ignoring duplicate" << std::endl;
+                            break;
+                        }
+                        if (!_waiting_for_powerup_choice) {
+                            std::cout << "[Game] Not waiting for powerup choices, ignoring choice from " << client_id << std::endl;
+                            break;
+                        }
                         _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
                                                                _players_who_chose_powerup,
                                                                client_id, powerup_choice);
 
-                        int alive_players =
-                            _powerup_handler.count_alive_players(_engine.get_registry(), _client_entity_ids);
+                        int alive_players = 0;
+                        for (int lobby_client_id : _lobby_client_ids) {
+                            auto it = _client_entity_ids.find(lobby_client_id);
+                            if (it != _client_entity_ids.end()) {
+                                auto p = _engine.get_registry().entity_from_index(it->second);
+                                auto health_opt = _engine.get_registry().get_component<health>(p);
+                                if (health_opt.has_value() && health_opt->current > 0) {
+                                    alive_players++;
+                                }
+                            }
+                        }
+
                         if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
                             std::cout << "[Game] All players have chosen! Advancing level..."
                                       << std::endl;
@@ -419,19 +451,22 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         if (_powerup_choice_timer >= 20.0f) {
             std::cout << "[Game] Powerup choice timeout - auto-selecting for remaining players" << std::endl;
 
-            for (const auto& [client_id, entity_id] : _client_entity_ids) {
-                auto player = _engine.get_registry().entity_from_index(entity_id);
-                auto health_opt = _engine.get_registry().get_component<health>(player);
+            for (int lobby_client_id : _lobby_client_ids) {
+                auto it = _client_entity_ids.find(lobby_client_id);
+                if (it != _client_entity_ids.end()) {
+                    auto player = _engine.get_registry().entity_from_index(it->second);
+                    auto health_opt = _engine.get_registry().get_component<health>(player);
 
-                if (health_opt.has_value() && health_opt->current > 0) {
-                    if (_players_who_chose_powerup.find(client_id) == _players_who_chose_powerup.end()) {
-                        std::cout << "[Game] Auto-selecting powerup for client " << client_id << std::endl;
-                        _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
-                                                               _players_who_chose_powerup,
-                                                               client_id, 0);
+                    if (health_opt.has_value() && health_opt->current > 0) {
+                        if (_players_who_chose_powerup.find(lobby_client_id) == _players_who_chose_powerup.end()) {
+                            std::cout << "[Game] Auto-selecting powerup for client " << lobby_client_id << std::endl;
+                            _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
+                                                                   _players_who_chose_powerup,
+                                                                   lobby_client_id, 0);
 
-                        _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                      _client_entity_ids, {client_id});
+                            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                                          _client_entity_ids, {lobby_client_id});
+                        }
                     }
                 }
             }
@@ -1029,6 +1064,14 @@ void GameSession::check_level_completion(UDPServer& server) {
 }
 
 void GameSession::advance_level(UDPServer& server) {
+    auto& level_managers = _engine.get_registry().get_components<level_manager>();
+    for (size_t i = 0; i < level_managers.size(); ++i) {
+        if (level_managers[i].has_value()) {
+            level_managers[i]->level_completed = false;
+            break;
+        }
+    }
+
     _level_manager.advance_level(_engine.get_registry());
 
     _player_manager.respawn_dead_players(_engine.get_registry(), _client_entity_ids);
@@ -1230,12 +1273,24 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
                 auto player_opt =
                     _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
                 if (!player_opt.has_value()) {
+                    if (_client_player_index.find(client_id) == _client_player_index.end()) {
+                        if (!_available_player_slots.empty()) {
+                            int assigned_slot = *_available_player_slots.begin();
+                            _available_player_slots.erase(_available_player_slots.begin());
+                            _client_player_index[client_id] = assigned_slot;
+                            std::cout << "[GameSession] Reconnect: Assigned player slot " << assigned_slot
+                                      << " to client " << client_id << std::endl;
+                        } else {
+                            _client_player_index[client_id] = 1;
+                        }
+                    }
+                    int player_index = _client_player_index[client_id];
                     float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                     float start_y = 300.0f;
                     auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
-                                                                client_id, start_x, start_y);
+                                                                client_id, start_x, start_y, player_index);
                     std::cout << "[GameSession] New player connected (Implicit): Client " << client_id
-                              << " (Entity " << player.id() << ")" << std::endl;
+                              << " (Entity " << player.id() << ", Index " << player_index << ")" << std::endl;
                 }
 
                 std::vector<uint8_t> payload(
