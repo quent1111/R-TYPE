@@ -14,9 +14,10 @@ namespace server {
 
 ServerCore::ServerCore()
     : _lobby_manager(4),
-      _lobby_command_handler(_lobby_manager) {
+      _lobby_command_handler(_lobby_manager),
+      _admin_manager(std::make_unique<AdminManager>("admin123")) {
     std::cout << "[ServerCore] Initialized" << std::endl;
-
+    std::cout << "[ServerCore] Admin system enabled (default password: admin123)" << std::endl;
 }
 
 void ServerCore::process_network_events(UDPServer& server) {
@@ -66,6 +67,40 @@ void ServerCore::process_network_events(UDPServer& server) {
                 case RType::OpCode::StartGame:
                     _lobby_command_handler.handle_start_game(server, client_id);
                     continue;
+                case RType::OpCode::AdminLogin: {
+                    std::string password;
+                    deserializer >> password;
+
+                    bool success = _admin_manager->authenticate(client_id, password);
+
+                    RType::BinarySerializer response;
+                    response << RType::MagicNumber::VALUE;
+                    response << RType::OpCode::AdminLoginAck;
+                    response << (success ? std::string("OK: Authenticated") : std::string("ERROR: Authentication failed"));
+                    server.send_to_client(client_id, response.data());
+                    std::cout << "[ServerCore] Admin login attempt from client " << client_id 
+                              << ": " << (success ? "SUCCESS" : "FAILED") << std::endl;
+                    continue;
+                }
+                case RType::OpCode::AdminCommand: {
+                    std::string command;
+                    deserializer >> command;
+
+                    std::string result = _admin_manager->execute_command(client_id, command, server, _lobby_manager);
+
+                    RType::BinarySerializer response;
+                    response << RType::MagicNumber::VALUE;
+                    response << RType::OpCode::AdminResponse;
+                    response << result;
+
+                    server.send_to_client(client_id, response.data());
+                    continue;
+                }
+                case RType::OpCode::AdminLogout: {
+                    _admin_manager->logout(client_id);
+                    std::cout << "[ServerCore] Admin client " << client_id << " logged out" << std::endl;
+                    continue;
+                }
                 default:
                     break;
             }

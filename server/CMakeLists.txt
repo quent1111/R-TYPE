@@ -19,6 +19,7 @@ add_executable(r-type_server
     src/game/Lobby.cpp
     src/game/LobbyManager.cpp
     src/game/ServerCore.cpp
+    src/admin/AdminManager.cpp
 )
 
 target_include_directories(r-type_server PRIVATE

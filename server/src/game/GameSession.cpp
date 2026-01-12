@@ -104,6 +104,39 @@ void GameSession::broadcast_lobby_status(UDPServer& server) {
     _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
 }
 
+void GameSession::create_player_for_client(int client_id, float start_x, float start_y) {
+    std::cout << "[GameSession] Creating player for client " << client_id << std::endl;
+    _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, start_y);
+}
+
+void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
+    std::cout << "[GameSession] Sending game state to client " << client_id << std::endl;
+
+    _entity_broadcaster.send_full_game_state_to_client(server, _engine.get_registry(),
+                                                       _client_entity_ids, client_id);
+
+    _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
+
+    _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                  _client_entity_ids, {client_id});
+
+    auto player_opt = _player_manager.get_player_entity(_engine.get_registry(),
+                                                        _client_entity_ids, client_id);
+    if (player_opt.has_value()) {
+        auto player = player_opt.value();
+        auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+        if (powerups_opt.has_value()) {
+            _powerup_broadcaster.broadcast_activable_slots(server, client_id,
+                                                          powerups_opt->activable_slots);
+        }
+    }
+}
+
+void GameSession::notify_game_started(UDPServer& server, int client_id) {
+    std::cout << "[GameSession] Notifying client " << client_id << " that game has started" << std::endl;
+    _game_broadcaster.broadcast_start_game(server, {client_id});
+}
+
 void GameSession::process_network_events(UDPServer& server) {
     NetworkPacket packet;
     while (server.get_input_packet(packet)) {
@@ -233,6 +266,31 @@ void GameSession::process_network_events(UDPServer& server) {
                                                              client_id, powerup_type);
                     _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                                   _client_entity_ids, _lobby_client_ids);
+                    break;
+                }
+                case RType::OpCode::RequestGameState: {
+                    std::cout << "[Game] Client " << client_id << " requested full game state" << std::endl;
+
+                    _entity_broadcaster.send_full_game_state_to_client(server, _engine.get_registry(), 
+                                                                       _client_entity_ids, client_id);
+
+                    _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
+
+                    auto player_opt = _player_manager.get_player_entity(_engine.get_registry(), 
+                                                                        _client_entity_ids, client_id);
+                    if (player_opt.has_value()) {
+                        _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                                      _client_entity_ids, {client_id});
+
+                        auto player = player_opt.value();
+                        auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+                        if (powerups_opt.has_value()) {
+                            _powerup_broadcaster.broadcast_activable_slots(server, client_id,
+                                                                          powerups_opt->activable_slots);
+                        }
+                    }
+
+                    std::cout << "[Game] Full game state sent to client " << client_id << std::endl;
                     break;
                 }
                 default: {
@@ -983,8 +1041,36 @@ void GameSession::remove_player(int client_id) {
     auto it = _client_entity_ids.find(client_id);
     if (it != _client_entity_ids.end()) {
         auto entity = _engine.get_registry().entity_from_index(it->second);
+
+        auto& little_friends = _engine.get_registry().get_components<little_friend>();
+        auto& missile_drones = _engine.get_registry().get_components<missile_drone>();
+
+        if (it->second < little_friends.size() && little_friends[it->second].has_value()) {
+            auto& lf = little_friends[it->second].value();
+            for (auto& friend_entity_opt : lf.friend_entities) {
+                if (friend_entity_opt.has_value()) {
+                    try {
+                        _engine.get_registry().kill_entity(friend_entity_opt.value());
+                    } catch (...) {}
+                }
+            }
+        }
+
+        if (it->second < missile_drones.size() && missile_drones[it->second].has_value()) {
+            auto& md = missile_drones[it->second].value();
+            for (auto& drone_entity_opt : md.drone_entities) {
+                if (drone_entity_opt.has_value()) {
+                    try {
+                        _engine.get_registry().kill_entity(drone_entity_opt.value());
+                    } catch (...) {}
+                }
+            }
+        }
+
         _engine.get_registry().kill_entity(entity);
         _client_entity_ids.erase(it);
+
+        std::cout << "[GameSession] Player " << client_id << " and associated entities removed" << std::endl;
     }
 }
 

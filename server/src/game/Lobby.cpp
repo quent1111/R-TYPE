@@ -33,22 +33,27 @@ bool Lobby::add_player(int client_id, UDPServer& server) {
         return false;
     }
 
-    if (_state == LobbyState::InGame) {
-        std::cout << "[Lobby " << _lobby_id << "] Cannot add player " << client_id
-                  << ": game in progress" << std::endl;
-        return false;
-    }
-
     _player_ids.push_back(client_id);
     update_activity();
 
-    // Mettre à jour la liste des clients dans la GameSession pour les broadcasts
     if (_game_session) {
         _game_session->set_lobby_clients(_player_ids);
-        // Initialiser le statut du joueur à "not ready"
-        _game_session->handle_player_ready(client_id, false);
-        // Broadcaster immédiatement le nouveau statut du lobby
-        _game_session->broadcast_lobby_status(server);
+
+        if (_state == LobbyState::InGame) {
+            std::cout << "[Lobby " << _lobby_id << "] Player " << client_id 
+                      << " joining game in progress" << std::endl;
+
+            float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
+            float start_y = 300.0f;
+            _game_session->create_player_for_client(client_id, start_x, start_y);
+
+            _game_session->send_game_state_to_client(server, client_id);
+
+            _game_session->notify_game_started(server, client_id);
+        } else {
+            _game_session->handle_player_ready(client_id, false);
+            _game_session->broadcast_lobby_status(server);
+        }
     }
 
     std::cout << "[Lobby " << _lobby_id << "] Player " << client_id << " joined ("
@@ -69,13 +74,11 @@ bool Lobby::remove_player(int client_id, UDPServer& server) {
     std::cout << "[Lobby " << _lobby_id << "] Player " << client_id << " left ("
               << _player_ids.size() << "/" << _max_players << ")" << std::endl;
 
-    // Mettre à jour la liste des clients dans la GameSession
     if (_game_session) {
         _game_session->set_lobby_clients(_player_ids);
         if (_state == LobbyState::InGame) {
             _game_session->remove_player(client_id);
         }
-        // Broadcaster le nouveau statut aux joueurs restants
         if (!_player_ids.empty()) {
             _game_session->broadcast_lobby_status(server);
         }

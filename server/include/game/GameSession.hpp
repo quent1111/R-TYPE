@@ -92,6 +92,9 @@ public:
     void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
     void broadcast_lobby_status(UDPServer& server);
     void remove_player(int client_id);
+    void create_player_for_client(int client_id, float start_x, float start_y);
+    void send_game_state_to_client(UDPServer& server, int client_id);
+    void notify_game_started(UDPServer& server, int client_id);
     GameSession();
     ~GameSession();
     void runGameLoop(UDPServer& server);
