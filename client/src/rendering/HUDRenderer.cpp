@@ -82,11 +82,10 @@ void HUDRenderer::init(const sf::Font& font) {
     combo_timer_bar_.setFillColor(sf::Color(255, 80, 80));
     combo_timer_bar_.setPosition(WINDOW_WIDTH - 210, 103);
 
-    // Boss health bar (top center of screen, below timer)
     const float boss_bar_width = 800.0f;
     const float boss_bar_height = 30.0f;
     const float boss_bar_x = (WINDOW_WIDTH - boss_bar_width) / 2.0f;
-    const float boss_bar_y = 90.0f;  // Lowered to avoid timer overlap
+    const float boss_bar_y = 90.0f;
     
     boss_health_bar_border_.setSize(sf::Vector2f(boss_bar_width + 6.0f, boss_bar_height + 6.0f));
     boss_health_bar_border_.setPosition(boss_bar_x - 3.0f, boss_bar_y - 3.0f);
@@ -272,14 +271,12 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
         return;
     }
     
-    // Find boss entity
     int boss_current_hp = 0;
     int boss_max_hp = 0;
     bool boss_found = false;
     std::string boss_name = "BOSS";
     
     for (const auto& [id, entity] : entities) {
-        // Level 5 boss (type 0x08)
         if (entity.type == 0x08 && current_level_ == 5) {
             boss_current_hp = entity.health;
             boss_max_hp = entity.max_health;
@@ -287,8 +284,7 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
             boss_name = "DESTROYER";
             break;
         }
-        // Level 10 Serpent boss - use head health (synced from controller)
-        if (current_level_ == 10 && entity.type == 0x11) {  // Serpent Head
+        if (current_level_ == 10 && entity.type == 0x11) {
             boss_current_hp = entity.health;
             boss_max_hp = entity.max_health;
             boss_found = true;
@@ -301,32 +297,27 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
         return;
     }
     
-    // Draw boss name
     boss_name_text_.setString(boss_name);
     sf::FloatRect name_bounds = boss_name_text_.getLocalBounds();
     boss_name_text_.setOrigin(name_bounds.width / 2.0f, name_bounds.height / 2.0f);
-    boss_name_text_.setPosition(WINDOW_WIDTH / 2.0f, 70.0f);  // Just above health bar (bar is at y=90)
+    boss_name_text_.setPosition(WINDOW_WIDTH / 2.0f, 70.0f);
     window.draw(boss_name_text_);
     
-    // Draw health bar background and border
     window.draw(boss_health_bar_border_);
     window.draw(boss_health_bar_bg_);
     
-    // Calculate health percentage
     float health_pct = static_cast<float>(boss_current_hp) / static_cast<float>(boss_max_hp);
     health_pct = std::max(0.0f, std::min(1.0f, health_pct));
     
-    // Color transitions: green -> yellow -> orange -> red
     sf::Color bar_color;
     if (health_pct > 0.6f) {
-        bar_color = sf::Color(200, 50, 50);  // Red for bosses
+        bar_color = sf::Color(200, 50, 50);
     } else if (health_pct > 0.3f) {
-        bar_color = sf::Color(255, 100, 50);  // Orange
+        bar_color = sf::Color(255, 100, 50);
     } else {
-        bar_color = sf::Color(255, 50, 50);  // Bright red when low
+        bar_color = sf::Color(255, 50, 50);
     }
     
-    // Draw health bar fill
     const float boss_bar_width = 800.0f;
     boss_health_bar_fill_.setSize(sf::Vector2f(boss_bar_width * health_pct, boss_health_bar_fill_.getSize().y));
     boss_health_bar_fill_.setFillColor(bar_color);

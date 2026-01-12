@@ -11,11 +11,9 @@ MenuState::MenuState(sf::RenderWindow& window) : m_window(window) {}
 
 void MenuState::on_enter() {
     std::cout << "[MenuState] Entering menu\n";
-    // Ensure UI renders with the default view in case previous state left a custom view
     try {
         m_window.setView(m_window.getDefaultView());
     } catch (...) {
-        // ignore if window is in an unexpected state
     }
     m_buttons.clear();
     m_corners.clear();

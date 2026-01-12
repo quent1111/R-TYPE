@@ -52,7 +52,6 @@ private:
     sf::RectangleShape combo_bar_fill_;
     sf::RectangleShape combo_timer_bar_;
 
-    // Boss health bar
     sf::RectangleShape boss_health_bar_bg_;
     sf::RectangleShape boss_health_bar_fill_;
     sf::RectangleShape boss_health_bar_border_;

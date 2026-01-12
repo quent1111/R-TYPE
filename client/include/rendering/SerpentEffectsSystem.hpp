@@ -38,10 +38,8 @@ public:
     SerpentEffectsSystem();
     ~SerpentEffectsSystem() = default;
     
-    // Scream effect - sonic waves emanating from head
     void update_scream(float dt, float head_x, float head_y, bool active);
     
-    // Laser charging effect - energy gathering at tail
     void update_laser_charge(float dt, float tail_x, float tail_y, bool charging, float charge_progress);
     
     void render(sf::RenderWindow& window);
@@ -62,12 +60,10 @@ private:
     float scream_wave_timer_;
     float charge_particle_timer_;
     
-    // Scream colors - purple/magenta sonic waves
     sf::Color scream_core_color_;
     sf::Color scream_wave_color_;
     sf::Color scream_outer_color_;
     
-    // Charge colors - orange/red energy
     sf::Color charge_core_color_;
     sf::Color charge_mid_color_;
     sf::Color charge_outer_color_;

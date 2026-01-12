@@ -124,7 +124,6 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_controls_text.setCharacterSize(20);
     m_controls_text.setFillColor(sf::Color(200, 200, 200));
     m_controls_text.setPosition(content_x, content_y);
-    // Help text removed as requested by user
     m_controls_text.setString("");
 
     create_buttons();
@@ -499,7 +498,6 @@ void SettingsPanel::render(sf::RenderWindow& window) {
     }
 
     if (m_current_tab == Tab::Controls) {
-        // help text removed; controls remapping buttons are shown instead
     }
 
     for (auto& b : m_buttons)

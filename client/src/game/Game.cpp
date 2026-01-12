@@ -505,7 +505,6 @@ void Game::init_entity_sprite(Entity& entity) {
         entity.loop = false;
         
     } else if (entity.type == 0x0C) {
-        // SupportDrone entity - Animated sprite following player (orange/red color)
         if (texture_mgr.has("assets/r-typesheet5.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
             entity.frames = {{495, 0, 33, 32}, {462, 0, 33, 32}};
@@ -518,10 +517,9 @@ void Game::init_entity_sprite(Entity& entity) {
         }
         
     } else if (entity.type == 0x0D) {
-        // MissileDrone entity - Static sprite positioned above player
         if (texture_mgr.has("assets/drone.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/drone.png"));
-            entity.frames = {{0, 0, 32, 40}};  // Full sprite dimensions
+            entity.frames = {{0, 0, 32, 40}};
             entity.current_frame_index = 0;
             entity.frame_duration = 0.1F;
             entity.loop = false;
@@ -531,12 +529,9 @@ void Game::init_entity_sprite(Entity& entity) {
         }
         
     } else if (entity.type == 0x0A) {
-        // Legacy Ally type - Should no longer be used (replaced by 0x0B, 0x0C, 0x0D)
         std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
         
-    // Serpent Boss Parts (Level 10)
     } else if (entity.type == 0x10) {
-        // SerpentNest - Stationary nest at bottom of screen
         if (texture_mgr.has("assets/serpent_nest.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_nest.png"));
             auto tex_size = texture_mgr.get("assets/serpent_nest.png")->getSize();
@@ -544,11 +539,10 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(4.0F, 4.0F);  // Large nest
+            entity.sprite.setScale(4.0F, 4.0F);
         }
         
     } else if (entity.type == 0x11) {
-        // SerpentHead - faces left by default
         if (texture_mgr.has("assets/serpent_head.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_head.png"));
             auto tex_size = texture_mgr.get("assets/serpent_head.png")->getSize();
@@ -556,11 +550,10 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);  // Larger head
+            entity.sprite.setScale(2.5F, 2.5F);
         }
         
     } else if (entity.type == 0x12) {
-        // SerpentBody - faces left by default
         if (texture_mgr.has("assets/serpent_body.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_body.png"));
             auto tex_size = texture_mgr.get("assets/serpent_body.png")->getSize();
@@ -568,12 +561,10 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);  // Larger body
+            entity.sprite.setScale(2.5F, 2.5F);
         }
         
     } else if (entity.type == 0x13) {
-        // SerpentScale - turret attached to body, aims at player
-        // Bottom of sprite is cannon, so it rotates to point toward player
         if (texture_mgr.has("assets/serpent_scale.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_scale.png"));
             auto tex_size = texture_mgr.get("assets/serpent_scale.png")->getSize();
@@ -581,11 +572,10 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);  // Larger scale turret
+            entity.sprite.setScale(2.5F, 2.5F);
         }
         
     } else if (entity.type == 0x14) {
-        // SerpentTail - faces left by default (end of tail is on the right of sprite)
         if (texture_mgr.has("assets/serpent_tail.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_tail.png"));
             auto tex_size = texture_mgr.get("assets/serpent_tail.png")->getSize();
@@ -593,11 +583,10 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.frame_duration = 0.1F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);  // Larger tail
+            entity.sprite.setScale(2.5F, 2.5F);
         }
         
     } else if (entity.type == 0x15) {
-        // SerpentHoming - homing enemies summoned by serpent scream
         if (texture_mgr.has("assets/serpent_homing.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_homing.png"));
             auto tex_size = texture_mgr.get("assets/serpent_homing.png")->getSize();
@@ -609,24 +598,18 @@ void Game::init_entity_sprite(Entity& entity) {
         }
         
     } else if (entity.type == 0x16) {
-        // SerpentLaser - laser origin point, rendered via particle system
-        // Don't render sprite, the particle system handles visuals
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
         
     } else if (entity.type == 0x17) {
-        // SerpentLaserSegment - invisible collision segments along laser beam
-        // No visual rendering needed, collision only
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
         
     } else if (entity.type == 0x18) {
-        // SerpentScream - scream effect marker, rendered via particle system
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
         
     } else if (entity.type == 0x19) {
-        // SerpentLaserCharge - laser charging effect, rendered via particle system
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
     }
@@ -676,7 +659,6 @@ void Game::process_network_messages() {
                             incoming.prev_y = it->second.y;
                             incoming.prev_time = it->second.curr_time;
 
-                            // Preserve sprite properties from existing entity
                             incoming.sprite = it->second.sprite;
                             incoming.frames = it->second.frames;
                             incoming.current_frame_index = it->second.current_frame_index;
@@ -775,14 +757,11 @@ void Game::process_network_messages() {
                 show_powerup_selection_ = true;
                 break;
             case NetworkToGame::MessageType::PowerUpCards:
-                // Store the received cards
                 powerup_cards_ = msg.powerup_cards;
                 show_powerup_selection_ = true;
                 
-                // Update the overlay renderer with the new cards
                 overlay_renderer_.update_powerup_cards(powerup_cards_);
                 
-                // Update Game.cpp sprites for hitbox detection
                 update_powerup_card_sprites();
                 
                 std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
@@ -843,7 +822,6 @@ void Game::render() {
     game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
                                     predicted_player_x_, predicted_player_y_);
 
-    // Rendu des particules laser par-dessus les entités
     game_renderer_.render_laser_particles(window_, entities_, dt);
 
     game_renderer_.render_effects(window_);
@@ -883,7 +861,6 @@ void Game::update_powerup_card_sprites() {
     auto& texture_mgr = managers::TextureManager::instance();
     const auto& registry = powerup::PowerupRegistry::instance();
     
-    // Update card 1
     if (powerup_cards_.size() > 0) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
         if (powerup_def) {
@@ -904,7 +881,6 @@ void Game::update_powerup_card_sprites() {
         }
     }
     
-    // Update card 2
     if (powerup_cards_.size() > 1) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
         if (powerup_def) {
@@ -925,7 +901,6 @@ void Game::update_powerup_card_sprites() {
         }
     }
     
-    // Update card 3
     if (powerup_cards_.size() > 2) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
         if (powerup_def) {

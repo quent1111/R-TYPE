@@ -77,10 +77,8 @@ private:
     float _boss_target_x = 1500.0f;
     int _boss_shoot_counter = 0;
 
-    // Level 10 Serpent Boss
     std::optional<entity> _serpent_controller_entity;
     
-    // Lobby name for level skip feature
     std::string _lobby_name;
     int _starting_level = 1;
 

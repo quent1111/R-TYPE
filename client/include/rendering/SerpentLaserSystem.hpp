@@ -35,7 +35,6 @@ public:
     SerpentLaserSystem();
     ~SerpentLaserSystem() = default;
     
-    // Update with position, angle (radians), and length
     void update(float dt, float start_x, float start_y, float angle, float length);
     void render(sf::RenderWindow& window);
     
@@ -56,11 +55,10 @@ private:
     float spawn_timer_;
     float spawn_interval_;
     
-    // Evil laser colors - red/orange
-    sf::Color core_color_;     // Bright white-yellow core
-    sf::Color mid_color_;      // Orange mid
-    sf::Color outer_color_;    // Red outer glow
-    sf::Color spark_color_;    // Yellow-orange sparks
+    sf::Color core_color_;
+    sf::Color mid_color_;
+    sf::Color outer_color_;
+    sf::Color spark_color_;
 };
 
 } // namespace rendering

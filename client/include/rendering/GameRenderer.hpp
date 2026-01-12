@@ -61,7 +61,7 @@ private:
     sf::Sprite ruins_bg_sprite2_;
     sf::Sprite ruins_bg2_sprite1_;
     sf::Sprite ruins_bg2_sprite2_;
-    sf::Sprite boss_fight_bg_sprite_;  // Special boss fight background
+    sf::Sprite boss_fight_bg_sprite_;
     float ruins_bg_scroll_offset_ = 0.0f;
     bool bg_fade_active_ = false;
     float bg_fade_timer_ = 0.0f;

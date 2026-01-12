@@ -15,7 +15,6 @@
 #include <thread>
 
 int main(int argc, char* argv[]) {
-    // Initialize power-up registry
     std::cout << "[Client] Initializing power-up system..." << std::endl;
     powerup::PowerupRegistry::instance().initialize();
     

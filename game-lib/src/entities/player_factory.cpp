@@ -34,7 +34,7 @@ entity createPlayer(registry& reg, float x, float y) {
     reg.add_component(player, collision_box{48.0f, 24.0f});
     reg.add_component(player, player_tag{});
     reg.add_component(player, bounded_movement{0.0f, 1920.0f, 0.0f, 1080.0f});
-    reg.add_component(player, laser_damage_immunity{0.2f});  // 0.2s immunity between laser hits
+    reg.add_component(player, laser_damage_immunity{0.2f});
 
     return player;
 }

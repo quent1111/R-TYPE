@@ -78,7 +78,6 @@ private:
     sf::Text powerup_desc3_text_;
     sf::Text powerup_instruction_;
 
-    // Textures for powerup cards
     sf::Texture powerup_card1_texture_;
     sf::Texture powerup_card2_texture_;
     sf::Texture powerup_card3_texture_;

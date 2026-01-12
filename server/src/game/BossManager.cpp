@@ -1,5 +1,7 @@
 #include "game/BossManager.hpp"
 
+#include <array>
+
 namespace server {
 
 void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_entity,

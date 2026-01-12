@@ -218,7 +218,6 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    // Mise à jour simple du texte au centre
     std::string status_info = "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
     m_status_text.setString(status_info);
     

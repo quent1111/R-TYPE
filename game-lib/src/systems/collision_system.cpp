@@ -480,7 +480,6 @@ void collisionSystem(registry& reg) {
 
     auto& laser_immunities = reg.get_components<laser_damage_immunity>();
 
-    // Serpent parts (body, head, tail) collision with players
     for (std::size_t s = 0; s < positions.size() && s < serpent_parts.size(); ++s) {
         if (serpent_parts[s].has_value() && positions[s].has_value() && 
             s < collision_boxes.size() && collision_boxes[s].has_value() &&

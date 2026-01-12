@@ -345,7 +345,6 @@ void LobbyListState::handle_event(const sf::Event& event) {
         }
         if (event.type == sf::Event::TextEntered) {
             uint32_t c = event.text.unicode;
-            // Ignorer backspace (8), enter (13) et autres caractères de contrôle
             if (c >= 32 && c < 127 && c != 127 && m_new_lobby_name.length() < 12) {
                 m_new_lobby_name.push_back(static_cast<char>(c));
                 m_input_text.setString(m_new_lobby_name);

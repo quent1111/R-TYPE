@@ -183,7 +183,6 @@ void SerpentEffectsSystem::spawn_charge_particles(float x, float y, float progre
         p.max_lifetime = p.lifetime;
         p.size = 4.0f + progress * 4.0f + dist_(rng_) * 3.0f;
         
-        // Color varies with progress
         if (progress < 0.5f) {
             p.color = charge_outer_color_;
         } else if (progress < 0.8f) {
@@ -200,8 +199,7 @@ void SerpentEffectsSystem::spawn_charge_particles(float x, float y, float progre
 }
 
 void SerpentEffectsSystem::spawn_charge_ring(float x, float y, float progress) {
-    // Pulsing ring around the charge point
-    if (progress < 0.3f) return;  // Only show rings after 30% charge
+    if (progress < 0.3f) return;
     
     int ring_particles = 16;
     float ring_radius = 30.0f + (1.0f - progress) * 40.0f;
@@ -213,7 +211,6 @@ void SerpentEffectsSystem::spawn_charge_ring(float x, float y, float progress) {
         p.position.x = x + std::cos(angle) * ring_radius;
         p.position.y = y + std::sin(angle) * ring_radius;
         
-        // Slight inward movement
         p.velocity.x = -std::cos(angle) * 20.0f;
         p.velocity.y = -std::sin(angle) * 20.0f;
         
@@ -228,7 +225,6 @@ void SerpentEffectsSystem::spawn_charge_ring(float x, float y, float progress) {
         charge_particles_.push_back(p);
     }
     
-    // Core glow
     SerpentEffectParticle core;
     core.position.x = x;
     core.position.y = y;
@@ -247,7 +243,6 @@ void SerpentEffectsSystem::spawn_charge_ring(float x, float y, float progress) {
 void SerpentEffectsSystem::render(sf::RenderWindow& window) {
     sf::CircleShape circle;
     
-    // Render scream particles
     for (const auto& p : scream_particles_) {
         circle.setRadius(p.size);
         circle.setOrigin(p.size, p.size);
@@ -256,7 +251,6 @@ void SerpentEffectsSystem::render(sf::RenderWindow& window) {
         window.draw(circle);
     }
     
-    // Render charge particles
     for (const auto& p : charge_particles_) {
         circle.setRadius(p.size);
         circle.setOrigin(p.size, p.size);

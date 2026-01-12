@@ -20,7 +20,6 @@ public:
     BossManager() = default;
     ~BossManager() = default;
 
-    // Level 5 Boss
     void spawn_boss_level_5(registry& reg, std::optional<entity>& boss_entity,
                             float& boss_animation_timer, float& boss_shoot_timer,
                             bool& boss_animation_complete, bool& boss_entrance_complete,
@@ -37,7 +36,6 @@ public:
                                const std::unordered_map<int, std::size_t>& client_entity_ids,
                                float dt);
 
-    // Level 10 Serpent Boss
     void spawn_boss_level_10(registry& reg, std::optional<entity>& serpent_controller_entity);
 
     void update_serpent_boss(registry& reg, 
@@ -45,7 +43,6 @@ public:
                              const std::unordered_map<int, std::size_t>& client_entity_ids,
                              float dt);
 
-    // Get boss health for HUD display
     std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity, 
                                         std::optional<entity>& serpent_controller);
 
@@ -55,7 +52,6 @@ private:
 
     void boss_spawn_homing_enemy(registry& reg, std::optional<entity>& boss_entity);
 
-    // Serpent helpers
     void spawn_serpent_nest(registry& reg, serpent_boss_controller& controller);
     void spawn_serpent_part(registry& reg, serpent_boss_controller& controller, 
                             SerpentPartType type, int index, float x, float y,
@@ -70,7 +66,6 @@ private:
     void handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller, 
                                     entity part_entity, int damage);
     
-    // Serpent attacks
     void update_serpent_attacks(registry& reg, serpent_boss_controller& controller,
                                 const std::unordered_map<int, std::size_t>& client_entity_ids,
                                 float dt);
