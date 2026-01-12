@@ -24,7 +24,6 @@ void OverlayRenderer::init(const sf::Font& font) {
     level_intro_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     level_intro_overlay_.setFillColor(sf::Color(0, 0, 0, 150));
 
-    // Boss wave warning elements
     boss_warning_text_.setFont(font);
     boss_warning_text_.setCharacterSize(120);
     boss_warning_text_.setFillColor(sf::Color(255, 50, 50));
@@ -213,32 +212,26 @@ void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, ui
     bool is_boss_wave = (level == 5 || level == 10 || level == 15);
 
     if (is_boss_wave) {
-        // Dark red overlay for boss waves
         level_intro_overlay_.setFillColor(sf::Color(40, 0, 0, 200));
         window.draw(level_intro_overlay_);
         
-        // Top warning stripe
         boss_warning_stripe1_.setPosition(0, WINDOW_HEIGHT / 2.0f - 200.0f);
         window.draw(boss_warning_stripe1_);
         
-        // Bottom warning stripe
         boss_warning_stripe2_.setPosition(0, WINDOW_HEIGHT / 2.0f + 120.0f);
         window.draw(boss_warning_stripe2_);
         
-        // WARNING text
         boss_warning_text_.setString("!! WARNING !!");
         sf::FloatRect warning_bounds = boss_warning_text_.getLocalBounds();
         boss_warning_text_.setOrigin(warning_bounds.width / 2.0f, warning_bounds.height / 2.0f);
         boss_warning_text_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f - 100.0f);
         window.draw(boss_warning_text_);
         
-        // BOSS WAVE text
         sf::FloatRect wave_bounds = boss_wave_text_.getLocalBounds();
         boss_wave_text_.setOrigin(wave_bounds.width / 2.0f, wave_bounds.height / 2.0f);
         boss_wave_text_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 50.0f);
         window.draw(boss_wave_text_);
     } else {
-        // Normal level intro
         level_intro_overlay_.setFillColor(sf::Color(0, 0, 0, 150));
         window.draw(level_intro_overlay_);
 
