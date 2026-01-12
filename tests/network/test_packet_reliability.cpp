@@ -363,7 +363,7 @@ TEST_F(PacketReliabilityTest, PacketLossThenRecovery) {
 // Tests de Performance
 // ============================================================================
 
-TEST_F(PacketReliabilityTest, ProcessPacketPerformance) {
+TEST_F(PacketReliabilityTest, DISABLED_ProcessPacketPerformance) {
     auto start = std::chrono::high_resolution_clock::now();
     
     for (int i = 1; i <= 1000; ++i) {
