@@ -8,6 +8,7 @@ namespace RType {
 enum class OpCode : uint8_t {
     Login = 0x01,
     LoginAck = 0x02,
+    Keepalive = 0x03,
     Input = 0x10,
     EntitySpawn = 0x11,
     EntityDestroy = 0x12,

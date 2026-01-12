@@ -52,6 +52,8 @@ void ServerCore::process_network_events(UDPServer& server) {
                     server.send_to_client(client_id, ack_serializer.data());
                     continue;
                 }
+                case RType::OpCode::Keepalive:
+                    continue;
                 case RType::OpCode::ListLobbies:
                     _lobby_command_handler.handle_list_lobbies(server, client_id);
                     continue;

@@ -147,13 +147,23 @@ void LobbyState::send_start_game_request() {
     m_game_to_network_queue->push(msg);
 }
 
+void LobbyState::send_keepalive() {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << static_cast<uint8_t>(RType::OpCode::Keepalive);
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+}
+
 void LobbyState::process_network_messages() {
     NetworkToGame::Message msg(NetworkToGame::MessageType::EntityUpdate);
 
     while (m_network_to_game_queue->try_pop(msg)) {
         switch (msg.type) {
             case NetworkToGame::MessageType::LobbyStatus:
-                std::cout << "[LobbyState] Received LobbyStatus: total=" << msg.total_players 
+                std::cout << "[LobbyState] Received LobbyStatus: total=" << msg.total_players
                           << ", ready=" << msg.ready_players << std::endl;
                 m_total_players = msg.total_players;
                 m_ready_players = msg.ready_players;
@@ -211,6 +221,12 @@ void LobbyState::handle_event(const sf::Event& event) {
 void LobbyState::update(float dt) {
     process_network_messages();
 
+    m_keepalive_timer += dt;
+    if (m_keepalive_timer >= KEEPALIVE_INTERVAL) {
+        send_keepalive();
+        m_keepalive_timer = 0.0f;
+    }
+
     if (m_background) {
         m_background->update(dt);
     }
@@ -227,10 +243,9 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    // Mise à jour simple du texte au centre
     std::string status_info = "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
     m_status_text.setString(status_info);
-    
+
     auto status_bounds = m_status_text.getLocalBounds();
     auto window_size = m_window.getSize();
     sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
