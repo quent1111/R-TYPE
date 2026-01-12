@@ -45,7 +45,7 @@ void waveSystem(registry& reg, float dt) {
                     auto& lvl_mgr = level_managers[j].value();
                     int level = lvl_mgr.current_level;
 
-                    if (level == 5) {
+                    if (level == 5 || level == 10 || level == 15) {
                         is_boss_level = true;
                         break;
                     }
