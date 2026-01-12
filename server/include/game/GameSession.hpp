@@ -29,6 +29,7 @@
 
 #include <atomic>
 #include <optional>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -40,6 +41,8 @@ private:
     std::unordered_map<int, std::size_t> _client_entity_ids;
     std::unordered_map<int, bool> _client_ready_status;
     std::vector<int> _lobby_client_ids;
+    std::unordered_map<int, int> _client_player_index;
+    std::set<int> _available_player_slots;
 
     PlayerManager _player_manager;
     LevelManager _level_manager;
@@ -60,6 +63,7 @@ private:
     float _level_broadcast_accumulator = 0.0f;
     float _level_complete_timer = 0.0f;
     float _powerup_broadcast_accumulator = 0.0f;
+    float _powerup_choice_timer = 0.0f;
     float _game_over_timer = 0.0f;
     float _game_over_broadcast_accumulator = 0.0f;
     bool _level_complete_waiting = false;

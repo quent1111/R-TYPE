@@ -2,7 +2,7 @@
 #include "ecs/components.hpp"
 #include "components/game_components.hpp"
 
-entity createPlayer(registry& reg, float x, float y) {
+entity createPlayer(registry& reg, float x, float y, int player_index) {
     entity player = reg.spawn_entity();
 
     reg.register_component<position>();
@@ -15,6 +15,7 @@ entity createPlayer(registry& reg, float x, float y) {
     reg.register_component<collision_box>();
     reg.register_component<player_tag>();
     reg.register_component<bounded_movement>();
+    reg.register_component<player_index_component>();
 
     std::vector<sf::IntRect> player_frames = {
         {99, 0, 33, 17},
@@ -33,6 +34,7 @@ entity createPlayer(registry& reg, float x, float y) {
     reg.add_component(player, collision_box{48.0f, 24.0f});
     reg.add_component(player, player_tag{});
     reg.add_component(player, bounded_movement{0.0f, 1920.0f, 0.0f, 1080.0f});
+    reg.add_component(player, player_index_component{player_index});
 
     return player;
 }

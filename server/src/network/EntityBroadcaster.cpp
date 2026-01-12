@@ -27,11 +27,16 @@ void EntityBroadcaster::broadcast_entity_positions(
         auto pos_opt = reg.get_component<position>(player);
         auto vel_opt = reg.get_component<velocity>(player);
         auto health_opt = reg.get_component<health>(player);
+        auto player_idx_opt = reg.get_component<player_index_component>(player);
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
+
+            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            broadcast_serializer_ << player_idx;
+
             broadcast_serializer_ << pos.x;
             broadcast_serializer_ << pos.y;
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
@@ -122,11 +127,16 @@ void EntityBroadcaster::send_full_game_state_to_client(
         auto pos_opt = reg.get_component<position>(player);
         auto vel_opt = reg.get_component<velocity>(player);
         auto health_opt = reg.get_component<health>(player);
+        auto player_idx_opt = reg.get_component<player_index_component>(player);
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
             serializer << static_cast<uint32_t>(other_client_id);
             serializer << static_cast<uint8_t>(RType::EntityType::Player);
+
+            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            serializer << player_idx;
+
             serializer << pos.x;
             serializer << pos.y;
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;

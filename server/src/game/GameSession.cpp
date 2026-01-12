@@ -4,12 +4,14 @@
 #include <iostream>
 #include <thread>
 #include <memory>
+#include <set>
 
 extern std::atomic<bool> server_running;
 
 namespace server {
 
 GameSession::GameSession() {
+    _available_player_slots = {1, 2, 3, 4};
 
     auto& reg = _engine.get_registry();
     reg.register_component<position>();
@@ -57,6 +59,19 @@ GameSession::GameSession() {
 GameSession::~GameSession() {}
 
 void GameSession::handle_player_ready(int client_id, bool ready) {
+    if (_client_player_index.find(client_id) == _client_player_index.end()) {
+        if (!_available_player_slots.empty()) {
+            int assigned_slot = *_available_player_slots.begin();
+            _available_player_slots.erase(_available_player_slots.begin());
+            _client_player_index[client_id] = assigned_slot;
+            std::cout << "[GameSession] Assigned player slot " << assigned_slot
+                      << " to client " << client_id << std::endl;
+        } else {
+            std::cout << "[GameSession] WARNING: No player slots available for client "
+                      << client_id << std::endl;
+        }
+    }
+
     _client_ready_status[client_id] = ready;
     std::cout << "[Game] Client " << client_id << " is " << (ready ? "READY" : "NOT READY")
               << std::endl;
@@ -90,7 +105,8 @@ void GameSession::start_game(UDPServer& server) {
 
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
-        _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, 300.0f);
+        int player_index = _client_player_index[client_id];
+        _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, 300.0f, player_index);
         start_x += 50.0f;
     }
 
@@ -106,7 +122,23 @@ void GameSession::broadcast_lobby_status(UDPServer& server) {
 
 void GameSession::create_player_for_client(int client_id, float start_x, float start_y) {
     std::cout << "[GameSession] Creating player for client " << client_id << std::endl;
-    _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, start_y);
+
+    if (_client_player_index.find(client_id) == _client_player_index.end()) {
+        if (!_available_player_slots.empty()) {
+            int assigned_slot = *_available_player_slots.begin();
+            _available_player_slots.erase(_available_player_slots.begin());
+            _client_player_index[client_id] = assigned_slot;
+            std::cout << "[GameSession] Late-join: Assigned player slot " << assigned_slot 
+                      << " to client " << client_id << std::endl;
+        } else {
+            std::cout << "[GameSession] WARNING: No player slots available for late-joining client " 
+                      << client_id << std::endl;
+            _client_player_index[client_id] = 1;
+        }
+    }
+
+    int player_index = _client_player_index[client_id];
+    _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, start_y, player_index);
 }
 
 void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
@@ -340,6 +372,40 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
     }
 
     if (_waiting_for_powerup_choice) {
+        _powerup_choice_timer += dt;
+
+        if (_powerup_choice_timer >= 20.0f) {
+            std::cout << "[Game] Powerup choice timeout - auto-selecting for remaining players" << std::endl;
+
+            for (const auto& [client_id, entity_id] : _client_entity_ids) {
+                auto player = _engine.get_registry().entity_from_index(entity_id);
+                auto health_opt = _engine.get_registry().get_component<health>(player);
+
+                if (health_opt.has_value() && health_opt->current > 0) {
+                    if (_players_who_chose_powerup.find(client_id) == _players_who_chose_powerup.end()) {
+                        std::cout << "[Game] Auto-selecting powerup for client " << client_id << std::endl;
+                        _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
+                                                               _players_who_chose_powerup,
+                                                               client_id, 0);
+
+                        _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                                      _client_entity_ids, {client_id});
+                    }
+                }
+            }
+
+            std::cout << "[Game] All players have chosen (some forced)! Advancing level..." << std::endl;
+            _waiting_for_powerup_choice = false;
+            _level_complete_waiting = false;
+            _players_who_chose_powerup.clear();
+            _powerup_choice_timer = 0.0f;
+
+            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                          _client_entity_ids, _lobby_client_ids);
+            advance_level(server);
+            return;
+        }
+
         auto& velocities = _engine.get_registry().get_components<velocity>();
         auto& player_tags = _engine.get_registry().get_components<player_tag>();
         for (size_t i = 0; i < velocities.size(); ++i) {
@@ -912,6 +978,7 @@ void GameSession::check_level_completion(UDPServer& server) {
                 _powerup_broadcaster.broadcast_powerup_selection(server, _lobby_client_ids);
                 _level_complete_waiting = true;
                 _waiting_for_powerup_choice = true;
+                _powerup_choice_timer = 0.0f;
                 _level_complete_timer = 0.0f;
             }
         }
@@ -972,6 +1039,7 @@ void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
     _game_phase = GamePhase::Lobby;
     _level_complete_waiting = false;
     _waiting_for_powerup_choice = false;
+    _powerup_choice_timer = 0.0f;
 
     if (_boss_entity.has_value()) {
         try {
@@ -1036,6 +1104,13 @@ void GameSession::process_inputs(UDPServer& server) {
 
 void GameSession::remove_player(int client_id) {
     std::cout << "[GameSession] Removing player " << client_id << " from game session" << std::endl;
+
+    auto index_it = _client_player_index.find(client_id);
+    if (index_it != _client_player_index.end()) {
+        _available_player_slots.insert(index_it->second);
+        std::cout << "[GameSession] Freed player slot " << index_it->second << std::endl;
+        _client_player_index.erase(index_it);
+    }
 
     _client_ready_status.erase(client_id);
 

@@ -362,14 +362,23 @@ void Game::init_entity_sprite(Entity& entity) {
 
     if (entity.type == 0x01) {
         std::string sprite_sheet;
-        if (entity.id == 2) {
-            sprite_sheet = "assets/r-typesheet1.3.png";
-        } else if (entity.id == 3) {
-            sprite_sheet = "assets/r-typesheet1.4.png";
-        } else if (entity.id == 4) {
-            sprite_sheet = "assets/r-typesheet1.5.png";
-        } else {
-            sprite_sheet = "assets/r-typesheet1.png";
+
+        switch (entity.player_index) {
+            case 1:
+                sprite_sheet = "assets/r-typesheet1.png";
+                break;
+            case 2:
+                sprite_sheet = "assets/r-typesheet1.3.png";
+                break;
+            case 3:
+                sprite_sheet = "assets/r-typesheet1.4.png";
+                break;
+            case 4:
+                sprite_sheet = "assets/r-typesheet1.5.png";
+                break;
+            default:
+                sprite_sheet = "assets/r-typesheet1.png";
+                break;
         }
 
         if (!texture_mgr.has(sprite_sheet)) {
@@ -691,13 +700,11 @@ void Game::process_network_messages() {
                 // Store the received cards
                 powerup_cards_ = msg.powerup_cards;
                 show_powerup_selection_ = true;
-                
-                // Update the overlay renderer with the new cards
+
                 overlay_renderer_.update_powerup_cards(powerup_cards_);
-                
-                // Update Game.cpp sprites for hitbox detection
+
                 update_powerup_card_sprites();
-                
+
                 std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
@@ -708,6 +715,11 @@ void Game::process_network_messages() {
                         powerup_type_ = msg.powerup_type;
                     }
                     powerup_time_remaining_ = msg.powerup_time_remaining;
+                    if (show_powerup_selection_) {
+                        show_powerup_selection_ = false;
+                        powerup_cards_.clear();
+                        std::cout << "[Game] Closing powerup selection screen (choice confirmed)" << std::endl;
+                    }
                 }
                 break;
             case NetworkToGame::MessageType::ActivableSlots:
