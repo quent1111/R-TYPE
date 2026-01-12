@@ -14,6 +14,11 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players)
       _last_activity(std::chrono::steady_clock::now()) {
     std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name
               << " (max " << _max_players << " players)" << std::endl;
+    
+    // Pass lobby name to game session for level skip feature (e.g., "lvl9" starts at level 9)
+    if (_game_session) {
+        _game_session->set_lobby_name(_lobby_name);
+    }
 }
 
 bool Lobby::has_player(int client_id) const {

@@ -28,32 +28,32 @@ std::vector<powerup::PowerupCard> PowerupHandler::generate_card_choices(
     registry& reg,
     const std::unordered_map<int, std::size_t>& client_entity_ids,
     int client_id) {
-    
+
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         return {};
     }
-    
+
     auto player = player_opt.value();
-    
+
     auto& powerups_opt = reg.get_component<player_powerups_component>(player);
     if (!powerups_opt.has_value()) {
         reg.emplace_component<player_powerups_component>(player);
     }
-    
+
     auto& powerups = reg.get_component<player_powerups_component>(player).value();
-    
+
     auto cards = card_pool_.generate_card_choices(powerups, 3);
-    
+
     player_card_choices_[client_id] = cards;
-    
+
     return cards;
 }
 
 void PowerupHandler::handle_powerup_choice(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids,
     std::unordered_set<int>& players_who_chose_powerup, int client_id, uint8_t powerup_choice) {
-    
+
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         std::cerr << "[Game] Cannot apply power-up: player not found for client " << client_id
@@ -67,34 +67,34 @@ void PowerupHandler::handle_powerup_choice(
     if (!powerups_opt.has_value()) {
         reg.emplace_component<player_powerups_component>(player);
     }
-    
+
     auto& powerups = reg.get_component<player_powerups_component>(player).value();
-    
+
     auto it = player_card_choices_.find(client_id);
     if (it == player_card_choices_.end()) {
         std::cerr << "[PowerupHandler] No stored cards found for client " << client_id << std::endl;
         return;
     }
-    
+
     const auto& cards = it->second;
-    
+
     if (powerup_choice > 0 && powerup_choice <= cards.size()) {
         const auto& chosen_card = cards[powerup_choice - 1];
-        
+
         std::cout << "[PowerupHandler] Client " << client_id 
                   << " chose card " << static_cast<int>(powerup_choice) 
                   << " - PowerupId=" << static_cast<int>(chosen_card.id) 
                   << " Level=" << static_cast<int>(chosen_card.level) << std::endl;
-        
+
         powerups.add_or_upgrade(chosen_card.id);
-        
+
         auto* def = powerup::PowerupRegistry::instance().get_powerup(chosen_card.id);
         if (def) {
             std::cout << "[Game] Client " << client_id << " received: " 
                       << def->name << " Level " << static_cast<int>(powerups.get_level(chosen_card.id))
                       << std::endl;
         }
-        
+
         if (def && def->category == powerup::PowerupCategory::Activable) {
             uint8_t level = powerups.get_level(chosen_card.id);
             bool assigned = powerups.assign_to_slot(chosen_card.id, level);
@@ -102,18 +102,18 @@ void PowerupHandler::handle_powerup_choice(
                 std::cout << "[Game] Assigned " << def->name << " to activable slot" << std::endl;
             }
         }
-        
+
         if (def && def->category == powerup::PowerupCategory::Passive) {
             apply_passive_powerup(reg, player, chosen_card.id, powerups.get_level(chosen_card.id));
         }
-        
+
         if (def && def->category == powerup::PowerupCategory::Stat) {
             apply_stat_powerup(reg, player, chosen_card.id, powerups.get_level(chosen_card.id));
         }
     }
 
     players_who_chose_powerup.insert(client_id);
-    
+
     player_card_choices_.erase(client_id);
 
     int alive_players = count_alive_players(reg, client_entity_ids);
@@ -125,48 +125,48 @@ void PowerupHandler::handle_powerup_choice(
 void PowerupHandler::handle_powerup_activate(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id,
     uint8_t slot_index) {
-    
+
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         return;
     }
     auto player = player_opt.value();
-    
+
     auto& powerups_opt = reg.get_component<player_powerups_component>(player);
     if (!powerups_opt.has_value()) {
         return;
     }
-    
+
     auto& powerups = powerups_opt.value();
-    
+
     if (slot_index >= 2) {
         return;
     }
-    
-    const auto* slot = powerups.get_slot(static_cast<std::size_t>(slot_index));
+
+    const auto* slot = powerups.get_slot(static_cast<int>(slot_index));
     if (!slot || !slot->has_powerup() || !slot->is_ready()) {
         return;
     }
-    
+
     powerup::PowerupId id = slot->powerup_id.value();
     uint8_t level = slot->level;
-    
+
     if (!powerups.activate_slot(slot_index)) {
         return;
     }
-    
+
     auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
     if (def) {
         std::cout << "[Game] Client " << client_id << " activated slot " << static_cast<int>(slot_index)
                   << " - " << def->name << " Level " << static_cast<int>(level) << std::endl;
     }
-    
+
     if (id == powerup::PowerupId::PowerCannon) {
         if (def && level > 0 && level <= def->level_effects.size()) {
             const auto& effect = def->level_effects[level - 1];
             float duration = effect.duration;
             int damage = static_cast<int>(effect.value);
-            
+
             auto& cannon_opt = reg.get_component<power_cannon>(player);
             if (cannon_opt.has_value()) {
                 cannon_opt->activate(duration, damage);
@@ -180,7 +180,7 @@ void PowerupHandler::handle_powerup_activate(
             const auto& effect = def->level_effects[level - 1];
             float duration = effect.duration;
             float radius = effect.value;
-            
+
             auto& shield_opt = reg.get_component<shield>(player);
             if (shield_opt.has_value()) {
                 shield_opt->activate(duration, radius);
@@ -194,7 +194,7 @@ void PowerupHandler::handle_powerup_activate(
             const auto& effect = def->level_effects[level - 1];
             float duration = effect.duration;
             float dps = effect.value;
-            
+
             auto& laser_opt = reg.get_component<laser_beam>(player);
             if (laser_opt.has_value()) {
                 laser_opt->max_duration = duration;
@@ -218,9 +218,9 @@ void PowerupHandler::apply_passive_powerup(registry& reg, entity player,
         if (!friend_opt.has_value()) {
             reg.emplace_component<little_friend>(player);
         }
-        
+
         auto& lf = reg.get_component<little_friend>(player).value();
-        
+
         auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
         if (def && level > 0 && level <= def->level_effects.size()) {
             const auto& effect = def->level_effects[level - 1];
@@ -241,9 +241,9 @@ void PowerupHandler::apply_passive_powerup(registry& reg, entity player,
         if (!drone_opt.has_value()) {
             reg.emplace_component<missile_drone>(player);
         }
-        
+
         auto& md = reg.get_component<missile_drone>(player).value();
-        
+
         auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
         if (def && level > 0 && level <= def->level_effects.size()) {
             const auto& effect = def->level_effects[level - 1];
@@ -265,9 +265,9 @@ void PowerupHandler::apply_stat_powerup(registry& reg, entity player,
     if (!def || level == 0 || level > def->level_effects.size()) {
         return;
     }
-    
+
     const auto& effect = def->level_effects[level - 1];
-    
+
     if (id == powerup::PowerupId::Damage) {
         auto& weapon_opt = reg.get_component<weapon>(player);
         if (weapon_opt.has_value()) {

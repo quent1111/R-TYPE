@@ -103,7 +103,7 @@ public:
 
         // Calculate max compressed size
         int max_compressed = LZ4_compressBound(static_cast<int>(buffer.size()));
-        std::vector<uint8_t> compressed(max_compressed);
+        std::vector<uint8_t> compressed(static_cast<std::size_t>(max_compressed));
 
         // Compress
         int compressed_size;
@@ -130,7 +130,7 @@ public:
         }
 
         // Only use compression if it actually saves space (+ overhead)
-        size_t compressed_total = 1 + 4 + compressed_size; // flag + size + data
+        size_t compressed_total = 1 + 4 + static_cast<std::size_t>(compressed_size); // flag + size + data
         if (compressed_total >= buffer.size()) {
             // Not worth compressing
             buffer.insert(buffer.begin(), UNCOMPRESSED_FLAG);

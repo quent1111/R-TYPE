@@ -108,3 +108,26 @@ struct homing_component {
         : speed(homing_speed), turn_rate(homing_turn_rate) {}
 };
 
+struct laser_damage_immunity {
+    float immunity_timer;
+    float immunity_duration;
+    
+    laser_damage_immunity(float duration = 0.1f)
+        : immunity_timer(0.0f), immunity_duration(duration) {}
+    
+    bool is_immune() const {
+        return immunity_timer > 0.0f;
+    }
+    
+    void trigger() {
+        immunity_timer = immunity_duration;
+    }
+    
+    void update(float dt) {
+        if (immunity_timer > 0.0f) {
+            immunity_timer -= dt;
+            if (immunity_timer < 0.0f) immunity_timer = 0.0f;
+        }
+    }
+};
+

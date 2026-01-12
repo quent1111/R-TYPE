@@ -24,6 +24,28 @@ void OverlayRenderer::init(const sf::Font& font) {
     level_intro_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     level_intro_overlay_.setFillColor(sf::Color(0, 0, 0, 150));
 
+    boss_warning_text_.setFont(font);
+    boss_warning_text_.setCharacterSize(120);
+    boss_warning_text_.setFillColor(sf::Color(255, 50, 50));
+    boss_warning_text_.setStyle(sf::Text::Bold);
+    boss_warning_text_.setOutlineColor(sf::Color::Black);
+    boss_warning_text_.setOutlineThickness(4.0f);
+    boss_warning_text_.setString("⚠ WARNING ⚠");
+    
+    boss_wave_text_.setFont(font);
+    boss_wave_text_.setCharacterSize(90);
+    boss_wave_text_.setFillColor(sf::Color(255, 200, 50));
+    boss_wave_text_.setStyle(sf::Text::Bold);
+    boss_wave_text_.setOutlineColor(sf::Color(100, 0, 0));
+    boss_wave_text_.setOutlineThickness(3.0f);
+    boss_wave_text_.setString("BOSS WAVE");
+    
+    boss_warning_stripe1_.setSize(sf::Vector2f(WINDOW_WIDTH, 80.0f));
+    boss_warning_stripe1_.setFillColor(sf::Color(180, 0, 0, 200));
+    
+    boss_warning_stripe2_.setSize(sf::Vector2f(WINDOW_WIDTH, 80.0f));
+    boss_warning_stripe2_.setFillColor(sf::Color(180, 0, 0, 200));
+
     powerup_overlay_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     powerup_overlay_.setFillColor(sf::Color(0, 0, 0, 180));
 
@@ -187,19 +209,44 @@ void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, ui
         return;
     }
 
-    window.draw(level_intro_overlay_);
+    bool is_boss_wave = (level == 5 || level == 10 || level == 15);
 
-    level_intro_title_.setString("LEVEL " + std::to_string(level));
-    sf::FloatRect title_bounds = level_intro_title_.getLocalBounds();
-    level_intro_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2,
-                                   WINDOW_HEIGHT / 2 - 80.0f);
-    window.draw(level_intro_title_);
+    if (is_boss_wave) {
+        level_intro_overlay_.setFillColor(sf::Color(40, 0, 0, 200));
+        window.draw(level_intro_overlay_);
+        
+        boss_warning_stripe1_.setPosition(0, WINDOW_HEIGHT / 2.0f - 200.0f);
+        window.draw(boss_warning_stripe1_);
+        
+        boss_warning_stripe2_.setPosition(0, WINDOW_HEIGHT / 2.0f + 120.0f);
+        window.draw(boss_warning_stripe2_);
+        
+        boss_warning_text_.setString("!! WARNING !!");
+        sf::FloatRect warning_bounds = boss_warning_text_.getLocalBounds();
+        boss_warning_text_.setOrigin(warning_bounds.width / 2.0f, warning_bounds.height / 2.0f);
+        boss_warning_text_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f - 100.0f);
+        window.draw(boss_warning_text_);
+        
+        sf::FloatRect wave_bounds = boss_wave_text_.getLocalBounds();
+        boss_wave_text_.setOrigin(wave_bounds.width / 2.0f, wave_bounds.height / 2.0f);
+        boss_wave_text_.setPosition(WINDOW_WIDTH / 2.0f, WINDOW_HEIGHT / 2.0f + 50.0f);
+        window.draw(boss_wave_text_);
+    } else {
+        level_intro_overlay_.setFillColor(sf::Color(0, 0, 0, 150));
+        window.draw(level_intro_overlay_);
 
-    level_intro_subtitle_.setString("KILL " + std::to_string(enemies_needed) + " ENEMIES");
-    sf::FloatRect sub_bounds = level_intro_subtitle_.getLocalBounds();
-    level_intro_subtitle_.setPosition(WINDOW_WIDTH / 2 - sub_bounds.width / 2,
-                                      WINDOW_HEIGHT / 2 + 20.0f);
-    window.draw(level_intro_subtitle_);
+        level_intro_title_.setString("LEVEL " + std::to_string(level));
+        sf::FloatRect title_bounds = level_intro_title_.getLocalBounds();
+        level_intro_title_.setPosition(WINDOW_WIDTH / 2 - title_bounds.width / 2,
+                                       WINDOW_HEIGHT / 2 - 80.0f);
+        window.draw(level_intro_title_);
+
+        level_intro_subtitle_.setString("KILL " + std::to_string(enemies_needed) + " ENEMIES");
+        sf::FloatRect sub_bounds = level_intro_subtitle_.getLocalBounds();
+        level_intro_subtitle_.setPosition(WINDOW_WIDTH / 2 - sub_bounds.width / 2,
+                                          WINDOW_HEIGHT / 2 + 20.0f);
+        window.draw(level_intro_subtitle_);
+    }
 }
 
 void OverlayRenderer::render_powerup_selection(sf::RenderWindow& window, bool show) {

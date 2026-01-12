@@ -57,6 +57,11 @@ private:
     sf::Text level_intro_subtitle_;
     sf::RectangleShape level_intro_overlay_;
 
+    sf::Text boss_warning_text_;
+    sf::Text boss_wave_text_;
+    sf::RectangleShape boss_warning_stripe1_;
+    sf::RectangleShape boss_warning_stripe2_;
+
     sf::RectangleShape powerup_overlay_;
     sf::Text powerup_title_;
     sf::Sprite powerup_card1_sprite_;
@@ -73,7 +78,6 @@ private:
     sf::Text powerup_desc3_text_;
     sf::Text powerup_instruction_;
 
-    // Textures for powerup cards
     sf::Texture powerup_card1_texture_;
     sf::Texture powerup_card2_texture_;
     sf::Texture powerup_card3_texture_;

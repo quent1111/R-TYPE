@@ -449,3 +449,132 @@ struct network_id {
 };
 
 using player_powerups_component = powerup::PlayerPowerups;
+
+
+enum class SerpentPartType : uint8_t {
+    Nest = 0,
+    Head = 1,
+    Body = 2,
+    Scale = 3,
+    Tail = 4
+};
+
+struct serpent_part {
+    SerpentPartType part_type;
+    int part_index;
+    std::optional<entity> parent_entity;
+    std::optional<entity> boss_entity;
+    std::optional<entity> attached_body;
+    bool can_attack = false;
+    float attack_cooldown = 0.0f;
+    float attack_timer = 0.0f;
+    
+    float target_x = 0.0f;
+    float target_y = 0.0f;
+    float follow_delay = 0.1f;
+    float follow_timer = 0.0f;
+    
+    float rotation = 0.0f;
+    
+    serpent_part() = default;
+    serpent_part(SerpentPartType type, int index)
+        : part_type(type), part_index(index) {
+        can_attack = (type == SerpentPartType::Scale);
+        if (can_attack) {
+            attack_cooldown = 2.0f;
+        }
+    }
+};
+
+struct serpent_boss_controller {
+    int total_health = 5000;
+    int current_health = 5000;
+    int num_body_parts = 12;
+    int num_scale_parts = 3;
+
+    bool spawn_complete = false;
+    bool nest_visible = false;
+    float spawn_timer = 0.0f;
+    float nest_rise_duration = 2.0f;
+    float serpent_emerge_duration = 4.0f;
+    int parts_spawned = 0;
+    
+    float movement_timer = 0.0f;
+    float movement_speed = 400.0f;
+    float wave_frequency = 2.0f;
+    float wave_amplitude = 60.0f;
+    float direction_change_timer = 0.0f;
+    float target_x = 960.0f;
+    float target_y = 500.0f;
+    int current_waypoint_idx = 0;
+    int previous_waypoint_idx = -1;
+
+    float scale_shoot_timer = 0.0f;
+    float scale_shoot_cooldown = 1.2f;
+    int current_scale_index = 0;
+
+    float scream_timer = 0.0f;
+    float scream_cooldown = 15.0f;
+    bool scream_active = false;
+    float scream_duration = 1.5f;
+    float scream_elapsed = 0.0f;
+
+    float laser_timer = 0.0f;
+    float laser_cooldown = 20.0f;
+    bool laser_charging = false;
+    bool laser_firing = false;
+    float laser_charge_duration = 2.0f;
+    float laser_fire_duration = 2.5f;
+    float laser_elapsed = 0.0f;
+    float laser_angle = 0.0f;
+    float laser_start_angle = 0.0f;
+    float laser_sweep_direction = 1.0f;
+
+    std::optional<entity> nest_entity;
+    std::optional<entity> head_entity;
+    std::vector<entity> body_entities;
+    std::vector<entity> scale_entities;
+    std::optional<entity> tail_entity;
+    std::optional<entity> laser_entity;
+    
+    serpent_boss_controller() = default;
+    serpent_boss_controller(int hp, int body_count = 12, int scale_count = 3)
+        : total_health(hp), current_health(hp), 
+          num_body_parts(body_count), num_scale_parts(scale_count) {}
+    
+    void take_global_damage(int damage) {
+        current_health -= damage;
+        if (current_health < 0) current_health = 0;
+    }
+    
+    [[nodiscard]] bool is_defeated() const { return current_health <= 0; }
+    [[nodiscard]] float health_percentage() const {
+        return total_health > 0 ? static_cast<float>(current_health) / static_cast<float>(total_health) : 0.0f;
+    }
+};
+
+struct serpent_nest_tag {};
+
+struct position_history {
+    static constexpr size_t MAX_HISTORY = 60;
+    std::vector<std::pair<float, float>> positions;
+    size_t current_index = 0;
+    
+    position_history() {
+        positions.resize(MAX_HISTORY, {0.0f, 0.0f});
+    }
+    
+    void add_position(float x, float y) {
+        positions[current_index] = {x, y};
+        current_index = (current_index + 1) % MAX_HISTORY;
+    }
+    
+    std::pair<float, float> get_delayed_position(int frames_delay) const {
+        if (frames_delay >= static_cast<int>(MAX_HISTORY)) {
+            frames_delay = MAX_HISTORY - 1;
+        }
+        size_t index = (current_index + MAX_HISTORY - static_cast<size_t>(frames_delay)) % MAX_HISTORY;
+        return positions[index];
+    }
+};
+
