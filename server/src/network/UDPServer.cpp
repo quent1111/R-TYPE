@@ -69,10 +69,18 @@ UDPServer::UDPServer(asio::io_context& io_context, const std::string& bind_addre
     }
 
     start_receive();
+    
+    // Démarrer le thread de retry pour les paquets fiables
+    retry_thread_ = std::thread(&UDPServer::retry_thread_loop, this);
 }
 
 UDPServer::~UDPServer() {
     stop();
+    
+    // Arrêter le thread de retry
+    if (retry_thread_.joinable()) {
+        retry_thread_.join();
+    }
 }
 
 void UDPServer::start_receive() {
@@ -107,10 +115,69 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
                     (static_cast<uint16_t>(data[1]) << 8)
                 );
                 if (magic_number == 0xB542) {
-                    NetworkPacket packet(std::move(data), remote_endpoint_);
-
-                    register_client(remote_endpoint_);
-                    input_queue_.push(std::move(packet));
+                    int client_id = register_client(remote_endpoint_);
+                    
+                    // Vérifier si c'est un ACK (OpCode 0x60)
+                    if (data.size() >= 3 && data[2] == 0x60) {
+                        // Paquet ACK reçu
+                        if (data.size() >= 7) {
+                            uint32_t seq_id = static_cast<uint32_t>(data[3]) |
+                                            (static_cast<uint32_t>(data[4]) << 8) |
+                                            (static_cast<uint32_t>(data[5]) << 16) |
+                                            (static_cast<uint32_t>(data[6]) << 24);
+                            handle_ack(client_id, seq_id);
+                        }
+                        // Ne pas traiter comme paquet normal
+                    } else if (data.size() >= 7) {
+                        // Vérifier si c'est un OpCode critique (avec sequence ID)
+                        uint8_t opcode = data[2];
+                        bool is_reliable_opcode = (opcode == 0x02 ||  // LoginAck
+                                                  opcode == 0x22 ||  // StartGame
+                                                  opcode == 0x30 ||  // LevelStart
+                                                  opcode == 0x50 ||  // BossSpawn
+                                                  opcode == 0x40 ||  // GameOver
+                                                  opcode == 0x37);   // PowerUpCards
+                        
+                        if (is_reliable_opcode) {
+                            // Paquet fiable avec sequence ID
+                            uint32_t seq_id = static_cast<uint32_t>(data[3]) |
+                                            (static_cast<uint32_t>(data[4]) << 8) |
+                                            (static_cast<uint32_t>(data[5]) << 16) |
+                                            (static_cast<uint32_t>(data[6]) << 24);
+                            
+                            // Extraire payload (sans Magic, OpCode, SeqID)
+                            std::vector<uint8_t> payload(data.begin() + 7, data.end());
+                            
+                            // Traiter avec système de fiabilité
+                            std::lock_guard<std::mutex> lock(reliability_mutex_);
+                            auto& state = client_reliability_[client_id];
+                            auto ready_packets = state.process_received_packet(seq_id, payload);
+                            
+                            // Envoyer ACK
+                            send_ack(client_id, seq_id);
+                            
+                            // Traiter les paquets prêts
+                            for (auto& pkt : ready_packets) {
+                                // Reconstruire paquet complet [Magic][OpCode][Payload]
+                                std::vector<uint8_t> complete_packet;
+                                complete_packet.push_back(0x42);
+                                complete_packet.push_back(0xB5);
+                                complete_packet.push_back(opcode);
+                                complete_packet.insert(complete_packet.end(), pkt.begin(), pkt.end());
+                                
+                                NetworkPacket packet(std::move(complete_packet), remote_endpoint_);
+                                input_queue_.push(std::move(packet));
+                            }
+                        } else {
+                            // Paquet normal sans fiabilité
+                            NetworkPacket packet(std::move(data), remote_endpoint_);
+                            input_queue_.push(std::move(packet));
+                        }
+                    } else {
+                        // Paquet normal court
+                        NetworkPacket packet(std::move(data), remote_endpoint_);
+                        input_queue_.push(std::move(packet));
+                    }
                 } else {
                     std::cerr << "[Security] Ignored packet with bad Magic Number from "
                               << remote_endpoint_ << std::endl;
@@ -256,6 +323,9 @@ void UDPServer::disconnect_client(int client_id) {
 
         clients_.erase(it);
         std::cout << "[Network] Client " << client_id << " removed from server" << std::endl;
+        
+        // Nettoyer l'état de fiabilité
+        cleanup_client_reliability(client_id);
     } else {
         std::cout << "[Network] Client " << client_id << " not found (already disconnected?)" << std::endl;
     }
@@ -277,6 +347,143 @@ void UDPServer::stop() {
     io_context_.stop();
     if (socket_) {
         socket_->close();
+    }
+}
+
+// ============================================================================
+// SYSTÈME DE FIABILITÉ RÉSEAU (Perte, Reordering, Duplication)
+// ============================================================================
+
+void UDPServer::send_reliable(int client_id, uint8_t opcode, const std::vector<uint8_t>& payload) {
+    std::lock_guard<std::mutex> lock(reliability_mutex_);
+    
+    auto& state = client_reliability_[client_id];
+    uint32_t seq_id = state.get_next_send_sequence();
+    
+    // Construire paquet fiable : [Magic][OpCode][SequenceID][Payload]
+    std::vector<uint8_t> packet;
+    packet.reserve(3 + 4 + payload.size());
+    
+    // Magic number (0xB542)
+    packet.push_back(0x42);
+    packet.push_back(0xB5);
+    
+    // OpCode
+    packet.push_back(opcode);
+    
+    // Sequence ID (little-endian, 4 bytes)
+    packet.push_back(static_cast<uint8_t>(seq_id & 0xFF));
+    packet.push_back(static_cast<uint8_t>((seq_id >> 8) & 0xFF));
+    packet.push_back(static_cast<uint8_t>((seq_id >> 16) & 0xFF));
+    packet.push_back(static_cast<uint8_t>((seq_id >> 24) & 0xFF));
+    
+    // Payload
+    packet.insert(packet.end(), payload.begin(), payload.end());
+    
+    // Compression
+    RType::CompressionSerializer compressor(packet);
+    compressor.compress();
+    
+    // Envoyer immédiatement
+    send_to_client(client_id, compressor.data());
+    
+    // Stocker pour retry
+    state.pending_acks.emplace_back(seq_id, opcode, compressor.data());
+    
+    std::cout << "[Reliable] Sent packet seq=" << seq_id 
+              << " opcode=0x" << std::hex << (int)opcode << std::dec
+              << " to client " << client_id << std::endl;
+}
+
+void UDPServer::send_ack(int client_id, uint32_t sequence_id) {
+    // Construire paquet ACK : [Magic][OpCode=0x60][SequenceID]
+    std::vector<uint8_t> ack_packet;
+    ack_packet.reserve(7);
+    
+    // Magic number
+    ack_packet.push_back(0x42);
+    ack_packet.push_back(0xB5);
+    
+    // OpCode ACK (0x60)
+    ack_packet.push_back(0x60);
+    
+    // Sequence ID (little-endian)
+    ack_packet.push_back(static_cast<uint8_t>(sequence_id & 0xFF));
+    ack_packet.push_back(static_cast<uint8_t>((sequence_id >> 8) & 0xFF));
+    ack_packet.push_back(static_cast<uint8_t>((sequence_id >> 16) & 0xFF));
+    ack_packet.push_back(static_cast<uint8_t>((sequence_id >> 24) & 0xFF));
+    
+    send_to_client(client_id, ack_packet);
+}
+
+void UDPServer::handle_ack(int client_id, uint32_t sequence_id) {
+    std::lock_guard<std::mutex> lock(reliability_mutex_);
+    
+    auto it = client_reliability_.find(client_id);
+    if (it == client_reliability_.end()) {
+        return;
+    }
+    
+    auto& state = it->second;
+    
+    // Chercher et supprimer le paquet ACKé
+    for (auto pkt_it = state.pending_acks.begin(); pkt_it != state.pending_acks.end(); ++pkt_it) {
+        if (pkt_it->sequence_id == sequence_id) {
+            std::cout << "[Reliable] ACK received seq=" << sequence_id 
+                      << " from client " << client_id
+                      << " (retry_count=" << pkt_it->retry_count << ")" << std::endl;
+            state.pending_acks.erase(pkt_it);
+            return;
+        }
+    }
+}
+
+void UDPServer::retry_unacked_packets() {
+    std::lock_guard<std::mutex> lock(reliability_mutex_);
+    auto now = std::chrono::steady_clock::now();
+    
+    for (auto& [client_id, state] : client_reliability_) {
+        for (auto it = state.pending_acks.begin(); it != state.pending_acks.end();) {
+            if (it->should_retry(now)) {
+                if (it->max_retries_reached()) {
+                    std::cout << "[Warning] Packet seq=" << it->sequence_id 
+                              << " to client " << client_id 
+                              << " max retries reached, dropping" << std::endl;
+                    it = state.pending_acks.erase(it);
+                } else {
+                    std::cout << "[Reliable] Retrying packet seq=" << it->sequence_id 
+                              << " to client " << client_id 
+                              << " (attempt " << (it->retry_count + 1) << ")" << std::endl;
+                    send_to_client(client_id, it->data);
+                    it->mark_resent(now);
+                    ++it;
+                }
+            } else {
+                ++it;
+            }
+        }
+    }
+}
+
+void UDPServer::retry_thread_loop() {
+    std::cout << "[Reliable] Retry thread started" << std::endl;
+    
+    while (running_) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        retry_unacked_packets();
+    }
+    
+    std::cout << "[Reliable] Retry thread stopped" << std::endl;
+}
+
+void UDPServer::cleanup_client_reliability(int client_id) {
+    std::lock_guard<std::mutex> lock(reliability_mutex_);
+    
+    auto it = client_reliability_.find(client_id);
+    if (it != client_reliability_.end()) {
+        std::cout << "[Reliable] Cleaning up reliability state for client " << client_id << std::endl;
+        it->second.reset();
+        client_reliability_.erase(it);
     }
 }
 

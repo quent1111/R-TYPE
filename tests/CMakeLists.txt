@@ -45,11 +45,15 @@ add_executable(test_network
     # Compression tests
     network/test_compression.cpp
     network/test_full_compression_integration.cpp
+    # New networking system tests
+    network/test_input_buffer.cpp
+    network/test_packet_reliability.cpp
 )
 
 target_include_directories(test_network PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/game-lib/include
+    ${CMAKE_SOURCE_DIR}/server/include
 )
 
 target_link_libraries(test_network PRIVATE
@@ -83,10 +87,14 @@ add_executable(test_game
     game/test_health_advanced.cpp
     game/test_tags.cpp
     game/test_edge_cases.cpp
+    # New game system tests
+    game/test_client_prediction.cpp
+    game/test_position_history.cpp
 )
 
 target_include_directories(test_game PRIVATE
     ${CMAKE_SOURCE_DIR}/game-lib/include
+    ${CMAKE_SOURCE_DIR}/client/include
 )
 
 target_link_libraries(test_game PRIVATE
@@ -95,7 +103,7 @@ target_link_libraries(test_game PRIVATE
     project_options
     project_warnings
 )
-# add_test(NAME GameTests COMMAND test_game)
+add_test(NAME GameTests COMMAND test_game)
 
 # ----------------------------------------------------------------------------
 # Rendering Tests
@@ -145,7 +153,7 @@ target_link_libraries(test_client_minimal PRIVATE
 add_test(NAME ClientMinimalTest COMMAND test_client_minimal)
 
 # ----------------------------------------------------------------------------
-# Client Unit Tests (Entity, SafeQueue)
+# Client Unit Tests (Entity, SafeQueue, Interpolation, Extrapolation)
 # ----------------------------------------------------------------------------
 add_executable(test_client_units
     client/test_main_client.cpp
@@ -153,6 +161,8 @@ add_executable(test_client_units
     client/test_safe_queue.cpp
     client/test_entity_advanced.cpp
     client/test_queue_advanced.cpp
+    client/test_interpolation.cpp
+    client/test_extrapolation.cpp
 )
 
 target_include_directories(test_client_units PRIVATE

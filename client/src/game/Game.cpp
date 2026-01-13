@@ -821,13 +821,14 @@ void Game::process_network_messages() {
                 if (msg.powerup_player_id == my_network_id_) {
                     if (msg.powerup_type != 0) {
                         powerup_type_ = msg.powerup_type;
+
+                        if (show_powerup_selection_) {
+                            show_powerup_selection_ = false;
+                            powerup_cards_.clear();
+                            std::cout << "[Game] Closing powerup selection screen (choice confirmed)" << std::endl;
+                        }
                     }
                     powerup_time_remaining_ = msg.powerup_time_remaining;
-                    if (show_powerup_selection_) {
-                        show_powerup_selection_ = false;
-                        powerup_cards_.clear();
-                        std::cout << "[Game] Closing powerup selection screen (choice confirmed)" << std::endl;
-                    }
                 }
                 break;
             case NetworkToGame::MessageType::ActivableSlots:
@@ -914,19 +915,19 @@ void Game::render() {
 void Game::update_powerup_card_sprites() {
     auto& texture_mgr = managers::TextureManager::instance();
     const auto& registry = powerup::PowerupRegistry::instance();
-    
+
     if (powerup_cards_.size() > 0) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
+
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card1_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
+
                 auto bounds = powerup_card1_sprite_.getLocalBounds();
                 powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card1_sprite_.setPosition(560.0f, 500.0f);
@@ -934,19 +935,19 @@ void Game::update_powerup_card_sprites() {
             }
         }
     }
-    
+
     if (powerup_cards_.size() > 1) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
+
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card2_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
+
                 auto bounds = powerup_card2_sprite_.getLocalBounds();
                 powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card2_sprite_.setPosition(960.0f, 500.0f);
@@ -954,19 +955,19 @@ void Game::update_powerup_card_sprites() {
             }
         }
     }
-    
+
     if (powerup_cards_.size() > 2) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
+
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card3_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
+
                 auto bounds = powerup_card3_sprite_.getLocalBounds();
                 powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card3_sprite_.setPosition(1360.0f, 500.0f);

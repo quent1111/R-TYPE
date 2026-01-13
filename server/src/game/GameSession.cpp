@@ -493,6 +493,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         }
     }
 
+    _input_handler.apply_buffered_inputs(_engine.get_registry(), _client_entity_ids);
+
     _engine.update(dt);
 
     _boss_manager.update_boss_behavior(
@@ -1206,6 +1208,9 @@ void GameSession::remove_player(int client_id) {
     _client_ready_status.erase(client_id);
 
     _players_who_chose_powerup.erase(client_id);
+
+    // ✅ Nettoyer le buffer d'inputs
+    _input_handler.clear_client_buffer(client_id);
 
     auto it = _client_entity_ids.find(client_id);
     if (it != _client_entity_ids.end()) {
