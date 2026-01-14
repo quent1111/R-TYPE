@@ -143,7 +143,7 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, collision_box{70.0f, 80.0f});
     reg.add_component(enemy, damage_on_contact{50, false});
     reg.add_component(enemy, enemy_tag{});
-    reg.add_component(enemy, entity_tag{RType::EntityType::Enemy3});
+    reg.add_component(enemy, entity_tag{RType::EntityType::FlyingEnemy});
 
     return enemy;
 }

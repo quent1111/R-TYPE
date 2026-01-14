@@ -620,6 +620,17 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(3.0F, 3.0F);
         }
+    } else if (entity.type == 0x1A) {
+        if (texture_mgr.has("assets/r-typesheet7.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet7.gif"));
+
+            entity.frames = {{66, 34, 33, 33}};
+
+            entity.frame_duration = 0.1F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+        }
     } else if (entity.type == 0x09) {
         if (texture_mgr.has("assets/weirdbaby.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/weirdbaby.gif"));

@@ -27,6 +27,12 @@ void movementSystem(registry& reg, float dt) {
                 pos.y += std::sin(wave_time * 3.0f + pos.x * 0.01f) * 100.0f * dt;
             }
             else if (i < entity_tags.size() && entity_tags[i].has_value() &&
+                     entity_tags[i]->type == RType::EntityType::FlyingEnemy) {
+                pos.x += vel.vx * dt;
+                float oscillation = std::sin(wave_time * 4.0f + static_cast<float>(i) * 0.3f) * 80.0f * dt;
+                pos.y += oscillation;
+            }
+            else if (i < entity_tags.size() && entity_tags[i].has_value() &&
                      entity_tags[i]->type == RType::EntityType::Enemy5) {
                 pos.x += vel.vx * dt;
                 float zigzag_phase = std::fmod(zigzag_timer + static_cast<float>(i) * 0.5f, 2.0f);

@@ -62,6 +62,7 @@ enum class EntityType : uint8_t {
     SerpentLaserSegment = 0x17,
     SerpentScream = 0x18,
     SerpentLaserCharge = 0x19,
+    FlyingEnemy = 0x1A,
     CompilerBoss = 0x20,
     CompilerPart1 = 0x21,
     CompilerPart2 = 0x22,
