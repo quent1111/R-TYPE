@@ -131,3 +131,25 @@ struct laser_damage_immunity {
     }
 };
 
+struct explosive_projectile {
+    float lifetime;
+    float max_lifetime;
+    float explosion_radius;
+    int explosion_damage;
+    bool has_exploded;
+
+    explosive_projectile(float life = 2.0f, float radius = 80.0f, int damage = 40)
+        : lifetime(life), max_lifetime(life), explosion_radius(radius),
+          explosion_damage(damage), has_exploded(false) {}
+
+    void update(float dt) {
+        if (!has_exploded) {
+            lifetime -= dt;
+        }
+    }
+
+    bool should_explode() const {
+        return !has_exploded && lifetime <= 0.0f;
+    }
+};
+

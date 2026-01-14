@@ -283,3 +283,49 @@ entity createEnemy5Projectile(registry& reg, float x, float y, float vx, float v
 
     return projectile;
 }
+
+entity createExplosiveGrenade(registry& reg, float x, float y, float vx, float vy, 
+                              float lifetime, float explosion_radius, int explosion_damage) {
+    entity grenade = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();
+    reg.register_component<enemy_tag>();
+    reg.register_component<explosive_projectile>();
+
+    std::vector<sf::IntRect> grenade_frames = {
+        {0, 0, 32, 32},
+        {33, 0, 32, 32},
+        {66, 0, 32, 32},
+        {33, 0, 32, 32}
+    };
+
+    int texture_x = 0;
+    int texture_y = 0;
+    int texture_w = 32;
+    int texture_h = 32;
+    float scale = 1.8f;
+    float collision_w = 40.0f;
+    float collision_h = 40.0f;
+
+    reg.add_component(grenade, position{x, y});
+    reg.add_component(grenade, velocity{vx, vy});
+    reg.add_component(grenade,
+                      sprite_component{"assets/r-typesheet16.gif", texture_x, texture_y, texture_w, texture_h, scale});
+    reg.add_component(grenade,
+                      animation_component{grenade_frames, 0.15f, true});
+    reg.add_component(grenade, collision_box{collision_w, collision_h});
+    reg.add_component(grenade, damage_on_contact{15, true});
+    reg.add_component(grenade, projectile_tag{});
+    reg.add_component(grenade, entity_tag{RType::EntityType::Projectile});
+    reg.add_component(grenade, enemy_tag{});
+    reg.add_component(grenade, explosive_projectile{lifetime, explosion_radius, explosion_damage});
+
+    return grenade;
+}
