@@ -33,36 +33,29 @@ void GameRenderer::init(sf::RenderWindow& window) {
     bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
     sf::Texture& ruins_bg_texture = texture_mgr.load("assets/ruins-background.png");
     ruins_bg_texture.setRepeated(true);
-    
     const float BG_SCALE = 1.5f;
-    
     ruins_bg_sprite1_.setTexture(ruins_bg_texture);
     ruins_bg_sprite1_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
     ruins_bg_sprite1_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg_sprite1_.setPosition(0, 0);
-    
     ruins_bg_sprite2_.setTexture(ruins_bg_texture);
     ruins_bg_sprite2_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
     ruins_bg_sprite2_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
-    
     sf::Texture& ruins_bg2_texture = texture_mgr.load("assets/ruins-background2.png");
     ruins_bg2_texture.setRepeated(true);
-    
     ruins_bg2_sprite1_.setTexture(ruins_bg2_texture);
     ruins_bg2_sprite1_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
     ruins_bg2_sprite1_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg2_sprite1_.setPosition(0, 0);
-    
     ruins_bg2_sprite2_.setTexture(ruins_bg2_texture);
     ruins_bg2_sprite2_.setTextureRect(
         sf::IntRect(0, 0, static_cast<int>(WINDOW_WIDTH / BG_SCALE), static_cast<int>(WINDOW_HEIGHT / BG_SCALE)));
     ruins_bg2_sprite2_.setScale(BG_SCALE, BG_SCALE);
     ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH), 0);
-    
     sf::Texture& boss_fight_texture = texture_mgr.load("assets/worm_bossfightbg.png");
     boss_fight_bg_sprite_.setTexture(boss_fight_texture);
     sf::Vector2u tex_size = boss_fight_texture.getSize();
@@ -70,7 +63,13 @@ void GameRenderer::init(sf::RenderWindow& window) {
     float scale_y = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size.y);
     boss_fight_bg_sprite_.setScale(scale_x, scale_y);
     boss_fight_bg_sprite_.setPosition(0, 0);
-    
+    sf::Texture& boss3_texture = texture_mgr.load("assets/background-boss3.png");
+    compiler_boss_bg_sprite_.setTexture(boss3_texture);
+    sf::Vector2u tex_size3 = boss3_texture.getSize();
+    float scale_x3 = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(tex_size3.x);
+    float scale_y3 = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size3.y);
+    compiler_boss_bg_sprite_.setScale(scale_x3, scale_y3);
+    compiler_boss_bg_sprite_.setPosition(0, 0);
     std::vector<std::string> top_files = {
         "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
         "assets/ruins-top4.png", "assets/ruins-top5.png"
@@ -153,7 +152,6 @@ void GameRenderer::init(sf::RenderWindow& window) {
 
 void GameRenderer::update(float dt) {
     bool is_boss_level = (current_bg_level_ == 5 || current_bg_level_ == 10 || current_bg_level_ == 15);
-    
     if (current_bg_level_ >= 6) {
         if (bg_fade_active_) {
             bg_fade_timer_ += dt;
@@ -162,14 +160,12 @@ void GameRenderer::update(float dt) {
                 bg_fade_timer_ = bg_fade_duration_;
             }
         }
-        
         if (!is_boss_level) {
             ruins_bg_scroll_offset_ += bg_scroll_speed_ * dt;
             if (ruins_bg_scroll_offset_ >= static_cast<float>(WINDOW_WIDTH)) {
                 ruins_bg_scroll_offset_ -= static_cast<float>(WINDOW_WIDTH);
             }
         }
-        
         if (current_bg_level_ >= 12) {
             ruins_bg2_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
@@ -177,7 +173,6 @@ void GameRenderer::update(float dt) {
             ruins_bg_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
         }
-        
         if (!is_boss_level) {
             const float RUIN_SPEED = 300.0f;
             ruins_top_offset_ += RUIN_SPEED * dt;
@@ -189,7 +184,6 @@ void GameRenderer::update(float dt) {
                 ruins_bottom_offset_ -= ruins_bottom_total_width_;
             }
         }
-        
         for (size_t i = 0; i < ruins_top_sprites_.size(); ++i) {
             float x = ruins_top_base_positions_[i] - ruins_top_offset_;
             float y = ruins_top_base_y_positions_[i];
@@ -221,6 +215,10 @@ void GameRenderer::update(float dt) {
 void GameRenderer::render_background(sf::RenderWindow& window) {
     if (current_bg_level_ == 10) {
         window.draw(boss_fight_bg_sprite_);
+        return;
+    }
+    if (current_bg_level_ == 15) {
+        window.draw(compiler_boss_bg_sprite_);
         return;
     }
     if (current_bg_level_ >= 12) {
@@ -474,7 +472,7 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setRotation(e.rotation);
         }
 
-        if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
+        if ((e.type == 0x08 || e.type == 0x21 || e.type == 0x22 || e.type == 0x23) && e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
         } else if (e.grayscale) {
             e.sprite.setColor(sf::Color(128, 128, 128, 255));
@@ -514,7 +512,6 @@ void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uin
     for (uint32_t id : to_remove) {
         laser_particle_systems_.erase(id);
     }
-    
     to_remove.clear();
     for (auto& [laser_id, system] : serpent_laser_systems_) {
         if (entities.find(laser_id) == entities.end()) {
@@ -524,22 +521,18 @@ void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uin
     for (uint32_t id : to_remove) {
         serpent_laser_systems_.erase(id);
     }
-    
     bool scream_active = false;
     float scream_x = 0.0f, scream_y = 0.0f;
     bool charge_active = false;
     float charge_x = 0.0f, charge_y = 0.0f, charge_progress = 0.0f;
-    
     for (auto& [entity_id, entity] : entities) {
         if (entity.type == 0x0B) {
             if (laser_particle_systems_.find(entity_id) == laser_particle_systems_.end()) {
                 laser_particle_systems_[entity_id] = LaserParticleSystem();
                 laser_particle_systems_[entity_id].set_active(true);
             }
-            
             auto& system = laser_particle_systems_[entity_id];
             system.set_active(true);
-            
             float laser_length = 2000.0f;
             system.update(dt, entity.x, entity.y, laser_length);
             system.render(window);
@@ -556,17 +549,14 @@ void GameRenderer::render_laser_particles(sf::RenderWindow& window, std::map<uin
             charge_progress = entity.vy / 100.0f;
         }
     }
-    
     serpent_effects_.update_scream(dt, scream_x, scream_y, scream_active);
     serpent_effects_.update_laser_charge(dt, charge_x, charge_y, charge_active, charge_progress);
     serpent_effects_.render(window);
-    
     for (auto& [entity_id, entity] : entities) {
         if (entity.type == 0x16) {
             if (serpent_laser_systems_.find(entity_id) == serpent_laser_systems_.end()) {
                 serpent_laser_systems_[entity_id] = SerpentLaserSystem();
             }
-            
             auto& system = serpent_laser_systems_[entity_id];
             system.set_active(true);
 

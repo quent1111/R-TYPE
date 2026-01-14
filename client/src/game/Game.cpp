@@ -63,6 +63,8 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/serpent_tail.png");
         texture_mgr.load("assets/serpent_nest.png");
         texture_mgr.load("assets/serpent_homing.png");
+        // Compiler boss textures (Level 15)
+        texture_mgr.load("assets/r-typesheet38-22.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
         std::cout << "[Game] Serpent boss textures loaded" << std::endl;
@@ -297,11 +299,27 @@ void Game::update() {
     }
 
     for (auto& [id, entity] : entities_) {
-        if (entity.type == 0x08 && entity.damage_flash_timer > 0.0f) {
+        // Gérer le flash de dégâts pour les boss et les parties du Compiler
+        if ((entity.type == 0x08 || entity.type == 0x11 || entity.type == 0x12 || 
+             entity.type == 0x21 || entity.type == 0x22 || entity.type == 0x23) && 
+            entity.damage_flash_timer > 0.0f) {
+            
+            // Spawn particles when boss just got hit (flash timer started)
+            float prev_timer = prev_boss_damage_timer_[id];
+            if (prev_timer <= 0.0f && entity.damage_flash_timer > 0.0f) {
+                sf::Vector2f boss_pos(entity.x, entity.y);
+                managers::EffectsManager::instance().spawn_explosion(boss_pos, 8);
+                managers::EffectsManager::instance().trigger_screen_shake(8.0f, 0.15f);
+            }
+            
+            prev_boss_damage_timer_[id] = entity.damage_flash_timer;
+            
             entity.damage_flash_timer -= dt;
             if (entity.damage_flash_timer < 0.0f) {
                 entity.damage_flash_timer = 0.0f;
             }
+        } else {
+            prev_boss_damage_timer_[id] = 0.0f;
         }
     }
 
@@ -443,15 +461,45 @@ void Game::init_entity_sprite(Entity& entity) {
             return;
         }
     } else if (entity.type == 0x03) {
-        bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
+        // Détection des grenades explosives (yeux) - vitesse entre 150-280, n'importe quelle direction
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
-        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && entity.vx > 0);
-        bool is_fast_projectile = (projectile_speed > 650.0f && entity.vx > 0);
-        bool is_enemy3_projectile = (entity.vx < 0 && std::abs(projectile_speed - 400.0f) < 20.0f);
-        bool is_enemy4_projectile = (entity.vx < 0 && std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
-        bool is_enemy5_projectile = (entity.vx < 0 && std::abs(projectile_speed - 450.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
+        bool is_explosive_grenade = (projectile_speed >= 180.0f && projectile_speed <= 320.0f && 
+                                      std::abs(entity.vy) > 50.0f);  // Les grenades ont toujours une composante verticale
+        
+        // Au niveau 15 (Compiler Boss), TOUS les projectiles avec vitesse < 450 sont ennemis (même vers la droite)
+        // Le boss tire dans toutes les directions avec des patterns variés - vitesses augmentées
+        bool is_compiler_boss_projectile = (current_level_ == 15 && projectile_speed < 450.0f);
+        
+        // Les projectiles joueurs ont vx > 0 ET ne sont pas du boss niveau 15
+        bool is_player_projectile = (entity.vx > 0 && !is_compiler_boss_projectile);
+        
+        bool is_enemy2_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(entity.vy) > 10.0f && !is_explosive_grenade);
+        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && is_player_projectile);
+        bool is_fast_projectile = (projectile_speed > 650.0f && is_player_projectile);
+        bool is_enemy3_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 400.0f) < 20.0f);
+        bool is_enemy4_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
+        bool is_enemy5_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 450.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
+        
+        // Projectiles normaux du boss (vitesse ~280-400, peut aller dans toutes les directions)
+        bool is_compiler_normal_projectile = (is_compiler_boss_projectile && 
+                                              projectile_speed >= 280.0f && projectile_speed <= 420.0f && 
+                                              !is_explosive_grenade);
 
-        if (is_enemy5_projectile && texture_mgr.has("assets/r-typesheet9-3.gif")) {
+        if (is_explosive_grenade && texture_mgr.has("assets/r-typesheet16.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet16.gif"));
+            entity.frames = {
+                {0, 0, 32, 32},
+                {33, 0, 32, 32},
+                {66, 0, 32, 32},
+                {33, 0, 32, 32}
+            };
+            entity.frame_duration = 0.15F;
+            entity.loop = true;
+            entity.ping_pong = false;
+            entity.forward = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(1.8F, 1.8F);
+        } else if (is_enemy5_projectile && texture_mgr.has("assets/r-typesheet9-3.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-3.gif"));
             entity.frames = {
                 {0, 0, 30, 12},
@@ -510,9 +558,18 @@ void Game::init_entity_sprite(Entity& entity) {
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
+        } else if (is_compiler_normal_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
+            // Projectiles normaux du boss Compiler - plus gros et plus visibles (3.0x au lieu de 2.0x)
+            entity.sprite.setTexture(*texture_mgr.get("assets/ennemi-projectile.png"));
+            entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
+            entity.frame_duration = 0.1F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(3.0F, 3.0F);
         } else {
-            std::string sprite_sheet =
-                (entity.vx < 0) ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+            // Déterminer si c'est un projectile ennemi ou joueur
+            bool is_enemy_proj = (entity.vx < 0 || is_compiler_boss_projectile);
+            std::string sprite_sheet = is_enemy_proj ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
             if (!texture_mgr.has(sprite_sheet)) {
                 sprite_sheet = "assets/r-typesheet1.png";
@@ -674,6 +731,45 @@ void Game::init_entity_sprite(Entity& entity) {
     } else if (entity.type == 0x19) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
+    } else if (entity.type == 0x20) {
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+    } else if (entity.type == 0x21) {
+        if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
+            entity.frames = {
+                {2, 31, 113, 69},
+                {2, 130, 114, 67}
+            };
+            entity.frame_duration = 0.5F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
+    } else if (entity.type == 0x22) {
+        if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
+            entity.frames = {
+                {115, 0, 99, 100},
+                {115, 100, 99, 100}
+            };
+            entity.frame_duration = 0.5F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
+    } else if (entity.type == 0x23) {
+        if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
+            entity.frames = {
+                {213, 17, 99, 83},
+                {213, 117, 99, 83}
+            };
+            entity.frame_duration = 0.5F;
+            entity.loop = true;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.0F, 2.0F);
+        }
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -705,7 +801,9 @@ void Game::process_network_messages() {
                             prev_player_health_ = incoming.health;
                         }
 
-                        if (incoming.type == 0x08 && it->second.type == 0x08) {
+                        if ((incoming.type == 0x08 || incoming.type == 0x11 || incoming.type == 0x12 ||
+                             incoming.type == 0x21 || incoming.type == 0x22 || incoming.type == 0x23) &&
+                            (it->second.type == incoming.type)) {
                             if (incoming.health < it->second.health) {
                                 incoming.damage_flash_timer = incoming.damage_flash_duration;
                             }
@@ -821,11 +919,8 @@ void Game::process_network_messages() {
             case NetworkToGame::MessageType::PowerUpCards:
                 powerup_cards_ = msg.powerup_cards;
                 show_powerup_selection_ = true;
-                
                 overlay_renderer_.update_powerup_cards(powerup_cards_);
-                
                 update_powerup_card_sprites();
-                
                 std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
@@ -881,7 +976,7 @@ void Game::render() {
     game_renderer_.apply_screen_shake(window_);
     game_renderer_.render_background(window_);
 
-    game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
+    game_renderer_.render_entities(window_, entities_, my_network_id_, dt,
                                     predicted_player_x_, predicted_player_y_);
 
     game_renderer_.render_laser_particles(window_, entities_, dt);
@@ -922,19 +1017,16 @@ void Game::render() {
 void Game::update_powerup_card_sprites() {
     auto& texture_mgr = managers::TextureManager::instance();
     const auto& registry = powerup::PowerupRegistry::instance();
-    
     if (powerup_cards_.size() > 0) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card1_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
                 auto bounds = powerup_card1_sprite_.getLocalBounds();
                 powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card1_sprite_.setPosition(560.0f, 500.0f);
@@ -942,19 +1034,16 @@ void Game::update_powerup_card_sprites() {
             }
         }
     }
-    
     if (powerup_cards_.size() > 1) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card2_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
                 auto bounds = powerup_card2_sprite_.getLocalBounds();
                 powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card2_sprite_.setPosition(960.0f, 500.0f);
@@ -962,19 +1051,16 @@ void Game::update_powerup_card_sprites() {
             }
         }
     }
-    
     if (powerup_cards_.size() > 2) {
         auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
-            
             texture_mgr.load(asset_path);
             if (texture_mgr.has(asset_path)) {
                 powerup_card3_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
                 powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
-                
                 auto bounds = powerup_card3_sprite_.getLocalBounds();
                 powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
                 powerup_card3_sprite_.setPosition(1360.0f, 500.0f);

@@ -242,7 +242,10 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                        type_val == 0x11 || 
                        type_val == 0x12 ||
                        type_val == 0x13 ||
-                       type_val == 0x14) {
+                       type_val == 0x14 ||
+                       type_val == 0x21 ||
+                       type_val == 0x22 ||
+                       type_val == 0x23) {
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
