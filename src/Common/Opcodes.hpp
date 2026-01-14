@@ -43,7 +43,10 @@ enum class EntityType : uint8_t {
     Powerup      = 0x04,
     Obstacle     = 0x05,
     Enemy2       = 0x06,
+    Enemy3       = 0x07,
     Boss         = 0x08,
+    Enemy4       = 0x0E,
+    Enemy5       = 0x0F,
     HomingEnemy  = 0x09,
     Ally         = 0x0A,
     LaserBeam    = 0x0B,
@@ -58,7 +61,11 @@ enum class EntityType : uint8_t {
     SerpentLaser  = 0x16,
     SerpentLaserSegment = 0x17,
     SerpentScream = 0x18,
-    SerpentLaserCharge = 0x19
+    SerpentLaserCharge = 0x19,
+    CompilerBoss = 0x20,
+    CompilerPart1 = 0x21,
+    CompilerPart2 = 0x22,
+    CompilerPart3 = 0x23
 };
 
 struct MagicNumber {
