@@ -34,12 +34,16 @@ void EntityBroadcaster::broadcast_entity_positions(
         auto pos_opt = reg.get_component<position>(player);
         auto vel_opt = reg.get_component<velocity>(player);
         auto health_opt = reg.get_component<health>(player);
+        auto player_idx_opt = reg.get_component<player_index_component>(player);
 
         if (pos_opt.has_value()) {
             const auto& pos = pos_opt.value();
 
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
+
+            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            broadcast_serializer_ << player_idx;
 
             broadcast_serializer_.write_position(pos.x, pos.y);
 
@@ -133,6 +137,110 @@ void EntityBroadcaster::broadcast_entity_positions(
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());
 }
 
+void EntityBroadcaster::send_full_game_state_to_client(
+    UDPServer& server, registry& reg,
+    const std::unordered_map<int, std::size_t>& client_entity_ids,
+    int client_id) {
+
+    std::cout << "[EntityBroadcaster] Sending full game state to client " << client_id << std::endl;
+
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::EntityPosition;
+
+    size_t count_position = serializer.data().size();
+    serializer << static_cast<uint8_t>(0);
+
+    size_t entity_count = 0;
+    auto& tags = reg.get_components<entity_tag>();
+    auto& positions = reg.get_components<position>();
+
+    for (const auto& [other_client_id, entity_id] : client_entity_ids) {
+        auto player = reg.entity_from_index(entity_id);
+        auto pos_opt = reg.get_component<position>(player);
+        auto vel_opt = reg.get_component<velocity>(player);
+        auto health_opt = reg.get_component<health>(player);
+        auto player_idx_opt = reg.get_component<player_index_component>(player);
+
+        if (pos_opt.has_value()) {
+            const auto& pos = pos_opt.value();
+            serializer << static_cast<uint32_t>(other_client_id);
+            serializer << static_cast<uint8_t>(RType::EntityType::Player);
+
+            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            serializer << player_idx;
+
+            serializer << pos.x;
+            serializer << pos.y;
+            float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
+            serializer << vx;
+            float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
+            serializer << vy;
+
+            int current_health = health_opt.has_value() ? health_opt->current : 100;
+            int max_health = health_opt.has_value() ? health_opt->maximum : 100;
+            serializer << static_cast<int32_t>(current_health);
+            serializer << static_cast<int32_t>(max_health);
+
+            entity_count++;
+        }
+    }
+
+    for (size_t i = 0; i < tags.size(); ++i) {
+        if (!tags[i].has_value())
+            continue;
+        if (i >= positions.size() || !positions[i].has_value())
+            continue;
+
+        if (tags[i]->type != RType::EntityType::Player) {
+            const auto& pos = positions[i].value();
+            auto entity_obj = reg.entity_from_index(i);
+            auto vel_opt = reg.get_component<velocity>(entity_obj);
+
+            uint32_t network_id;
+            if (tags[i]->type == RType::EntityType::Enemy ||
+                tags[i]->type == RType::EntityType::Enemy2) {
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::Boss) {
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::Projectile) {
+                network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
+            } else {
+                network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
+            }
+
+            serializer << network_id;
+            serializer << static_cast<uint8_t>(tags[i]->type);
+            serializer << pos.x;
+            serializer << pos.y;
+            float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
+            serializer << vx;
+            float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
+            serializer << vy;
+
+            if (tags[i]->type == RType::EntityType::Boss) {
+                auto health_opt = reg.get_component<health>(entity_obj);
+                int current_health = health_opt.has_value() ? health_opt->current : 100;
+                int max_health = health_opt.has_value() ? health_opt->maximum : 100;
+                serializer << static_cast<int32_t>(current_health);
+                serializer << static_cast<int32_t>(max_health);
+            }
+
+            entity_count++;
+        }
+    }
+
+    if (entity_count == 0) {
+        std::cout << "[EntityBroadcaster] No entities to send to client " << client_id << std::endl;
+        return;
+    }
+
+    serializer.data()[count_position] = static_cast<uint8_t>(entity_count);
+
+    std::cout << "[EntityBroadcaster] Sending " << entity_count << " entities to client " << client_id << std::endl;
+    server.send_to_client(client_id, serializer.data());
+}
+
 void EntityBroadcaster::print_compression_stats() const {
     const auto& stats = broadcast_serializer_.get_stats();
     std::cout << "\n=== EntityBroadcaster Compression Stats ===" << std::endl;
@@ -145,4 +253,4 @@ void EntityBroadcaster::print_compression_stats() const {
     std::cout << "==========================================\n" << std::endl;
 }
 
-}
+}  // namespace server

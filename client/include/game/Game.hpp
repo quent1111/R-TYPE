@@ -88,6 +88,7 @@ private:
     void process_network_messages();
     void setup_ui();
     void setup_input_handler();
+    void request_game_state();
 
     void init_entity_sprite(Entity& entity);
 

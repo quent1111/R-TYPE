@@ -4,17 +4,17 @@ namespace server {
 
 entity PlayerManager::create_player(registry& reg,
                                     std::unordered_map<int, std::size_t>& client_entity_ids,
-                                    int client_id, float start_x, float start_y) {
+                                    int client_id, float start_x, float start_y, int player_index) {
     if (client_entity_ids.find(client_id) != client_entity_ids.end()) {
         return reg.entity_from_index(client_entity_ids[client_id]);
     }
 
-    auto player = ::createPlayer(reg, start_x, start_y);
+    auto player = ::createPlayer(reg, start_x, start_y, player_index);
     reg.emplace_component<network_id>(player, client_id);
 
     client_entity_ids[client_id] = player.id();
-    std::cout << "[Game] Player created for client " << client_id << " (Entity ID: " << player.id()
-              << ")" << std::endl;
+    std::cout << "[Game] Player created for client " << client_id << " with color index " << player_index 
+              << " (Entity ID: " << player.id() << ")" << std::endl;
     return player;
 }
 

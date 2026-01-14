@@ -37,6 +37,34 @@ void InputHandler::handle_player_input(
         return;
     }
 
+    auto& buffer = client_input_buffers_[client_id];
+    if (!buffer.add_input(timestamp, input_mask)) {
+        std::cerr << "[InputHandler] Warning: Failed to buffer input for client " << client_id << std::endl;
+    }
+}
+
+void InputHandler::apply_buffered_inputs(
+    registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids) {
+
+    for (auto& [client_id, buffer] : client_input_buffers_) {
+        auto ready_inputs = buffer.get_ready_inputs();
+
+        if (ready_inputs.empty()) {
+            continue;
+        }
+
+        auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
+        if (!player_opt.has_value()) {
+            continue;
+        }
+
+        for (const auto& input : ready_inputs) {
+            apply_input_to_player(reg, player_opt.value(), input.input_mask);
+        }
+    }
+}
+
+void InputHandler::apply_input_to_player(registry& reg, entity player, uint8_t input_mask) {
     auto& pos_opt = reg.get_component<position>(player);
     auto& vel_opt = reg.get_component<velocity>(player);
     auto& wpn_opt = reg.get_component<weapon>(player);
@@ -67,10 +95,10 @@ void InputHandler::handle_player_input(
                         damage = power_cannon_opt->damage;
                         visual_type = WeaponUpgradeType::PowerShot;
                     }
-                    
+
                     auto& multishot_opt = reg.get_component<multishot>(player);
                     int total_projectiles = multishot_opt.has_value() ? multishot_opt->extra_projectiles : 1;
-                    
+
                     if (wpn.upgrade_type == WeaponUpgradeType::TripleShot && total_projectiles == 1) {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            0.0f, damage, visual_type, power_cannon_active);
@@ -83,20 +111,20 @@ void InputHandler::handle_player_input(
                         if (total_projectiles == 4) {
                             angle_step = 10.0f;
                         }
-                        
+
                         int half_count = total_projectiles / 2;
                         bool has_center = (total_projectiles % 2 == 1);
-                        
+
                         if (has_center) {
                             ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                                0.0f, damage, visual_type, power_cannon_active);
                         }
-                        
+
                         for (int i = 1; i <= half_count; ++i) {
                             float angle_deg = angle_step * static_cast<float>(i);
                             float angle_rad = angle_deg * 3.14159265f / 180.0f;
                             float vy = 500.0f * std::sin(angle_rad);
-                            
+
                             ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                                vy, damage, visual_type, power_cannon_active);
                             ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
@@ -112,6 +140,15 @@ void InputHandler::handle_player_input(
                 ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f, 0.0f, 10);
             }
         }
+    }
+}
+
+void InputHandler::clear_client_buffer(int client_id) {
+    auto it = client_input_buffers_.find(client_id);
+    if (it != client_input_buffers_.end()) {
+        it->second.clear();
+        client_input_buffers_.erase(it);
+        std::cout << "[InputHandler] Cleared input buffer for client " << client_id << std::endl;
     }
 }
 

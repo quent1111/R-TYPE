@@ -34,7 +34,7 @@ target_link_libraries(r-type_client PRIVATE
     project_options
     project_warnings
     sfml::sfml
-    asio::asio
+    Boost::boost
     game_logic
     LZ4::lz4_static
 )

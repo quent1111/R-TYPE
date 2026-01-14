@@ -103,11 +103,17 @@ struct damage_flash_component {
 struct homing_component {
     float speed;
     float turn_rate;
-    
+
     homing_component(float homing_speed = 250.0f, float homing_turn_rate = 3.0f)
         : speed(homing_speed), turn_rate(homing_turn_rate) {}
 };
 
+struct player_index_component {
+    int index;
+
+    player_index_component(int player_idx = 0)
+        : index(player_idx) {}
+};
 struct laser_damage_immunity {
     float immunity_timer;
     float immunity_duration;

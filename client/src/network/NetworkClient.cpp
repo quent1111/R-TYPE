@@ -8,7 +8,8 @@ NetworkClient::NetworkClient(const std::string& host, unsigned short port,
       socket_(io_context_),
       running_(true),
       game_to_network_queue_(game_to_net),
-      network_to_game_queue_(net_to_game) {
+      network_to_game_queue_(net_to_game),
+      start_time_(std::chrono::steady_clock::now()) {
     try {
         asio::ip::udp::resolver resolver(io_context_);
         auto endpoints = resolver.resolve(asio::ip::udp::v4(), host, std::to_string(port));
@@ -222,16 +223,24 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
 
             deserializer >> entity_id >> type_val;
 
-            deserializer.read_position(x, y);
-            deserializer.read_velocity(vx, vy);
-
             Entity entity;
             entity.id = entity_id;
             entity.type = type_val;
+
+            if (type_val == 0x01) {
+                uint8_t player_idx;
+                deserializer >> player_idx;
+                entity.player_index = player_idx;
+            }
+
+            deserializer.read_position(x, y);
+            deserializer.read_velocity(vx, vy);
+
             entity.x = x;
             entity.y = y;
             entity.vx = vx;
             entity.vy = vy;
+            entity.curr_time = std::chrono::steady_clock::now();
 
             if (type_val == 0x01) {
                 int current_health, max_health;
@@ -298,11 +307,15 @@ void NetworkClient::send_login() {
 }
 
 void NetworkClient::send_input(uint8_t input_mask) {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time_);
+    uint32_t timestamp = static_cast<uint32_t>(elapsed.count());
+
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::Input;
     serializer << input_mask;
-    serializer << static_cast<uint32_t>(0);
+    serializer << timestamp;
     serializer.compress();
 
     socket_.async_send_to(asio::buffer(serializer.raw_data(), serializer.size()), server_endpoint_,

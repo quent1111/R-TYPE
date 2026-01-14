@@ -7,7 +7,8 @@
 #include "network/Messages.hpp"
 
 #include <SFML/Graphics.hpp>
-#include <asio.hpp>
+#include <boost/asio.hpp>
+namespace asio = boost::asio;
 #include <cstdint>
 
 #include <atomic>
@@ -32,6 +33,7 @@ private:
     ThreadSafeQueue<NetworkToGame::Message>& network_to_game_queue_;
 
     uint32_t my_network_id_ = 0;
+    std::chrono::steady_clock::time_point start_time_;
 
     void start_receive();
     void handle_receive(std::error_code ec, std::size_t bytes_received);

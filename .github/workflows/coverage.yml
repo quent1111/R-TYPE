@@ -36,7 +36,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.conan2
-        key: ${{ runner.os }}-conan-coverage-${{ hashFiles('conanfile.txt') }}
+        key: ${{ runner.os }}-conan-coverage-${{ hashFiles('conanfile.py') }}
         restore-keys: |
           ${{ runner.os }}-conan-coverage-
           ${{ runner.os }}-conan-

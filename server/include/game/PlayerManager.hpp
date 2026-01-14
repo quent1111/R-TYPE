@@ -19,7 +19,7 @@ public:
     ~PlayerManager() = default;
 
     entity create_player(registry& reg, std::unordered_map<int, std::size_t>& client_entity_ids,
-                         int client_id, float start_x = 100.0f, float start_y = 100.0f);
+                         int client_id, float start_x = 100.0f, float start_y = 100.0f, int player_index = 1);
 
     std::optional<entity>
     get_player_entity(registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids,

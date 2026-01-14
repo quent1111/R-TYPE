@@ -33,7 +33,12 @@ void LobbyState::on_enter() {
     m_title.reset();
     m_footer.reset();
 
+    m_total_players = 1;
+    m_ready_players = 0;
+
     setup_ui();
+
+    request_lobby_status();
 }
 
 void LobbyState::on_exit() {
@@ -123,6 +128,15 @@ void LobbyState::on_back_clicked() {
     std::cout << "[LobbyState] Leave lobby button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
 
+    // Envoyer la requête de quitter le lobby au serveur
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << RType::OpCode::LeaveLobby;
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+
     m_next_state = "lobby_list";
 }
 
@@ -139,13 +153,34 @@ void LobbyState::send_start_game_request() {
     m_game_to_network_queue->push(msg);
 }
 
+void LobbyState::send_keepalive() {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << static_cast<uint8_t>(RType::OpCode::Keepalive);
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+}
+
+void LobbyState::request_lobby_status() {
+    RType::BinarySerializer serializer;
+    serializer << RType::MagicNumber::VALUE;
+    serializer << static_cast<uint8_t>(RType::OpCode::PlayerReady);
+    serializer << static_cast<uint8_t>(0);
+
+    GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
+    msg.raw_data = serializer.data();
+    m_game_to_network_queue->push(msg);
+}
+
 void LobbyState::process_network_messages() {
     NetworkToGame::Message msg(NetworkToGame::MessageType::EntityUpdate);
 
     while (m_network_to_game_queue->try_pop(msg)) {
         switch (msg.type) {
             case NetworkToGame::MessageType::LobbyStatus:
-                std::cout << "[LobbyState] Received LobbyStatus: total=" << msg.total_players 
+                std::cout << "[LobbyState] Received LobbyStatus: total=" << msg.total_players
                           << ", ready=" << msg.ready_players << std::endl;
                 m_total_players = msg.total_players;
                 m_ready_players = msg.ready_players;
@@ -202,6 +237,12 @@ void LobbyState::handle_event(const sf::Event& event) {
 
 void LobbyState::update(float dt) {
     process_network_messages();
+
+    m_keepalive_timer += dt;
+    if (m_keepalive_timer >= KEEPALIVE_INTERVAL) {
+        send_keepalive();
+        m_keepalive_timer = 0.0f;
+    }
 
     if (m_background) {
         m_background->update(dt);
