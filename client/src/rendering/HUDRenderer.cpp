@@ -148,7 +148,12 @@ void HUDRenderer::render_timer(sf::RenderWindow& window) {
 
 void HUDRenderer::render_health_bar(sf::RenderWindow& window,
                                     const std::map<uint32_t, Entity>& entities,
-                                    uint32_t my_network_id) {
+                                    uint32_t my_network_id,
+                                    bool show_level_intro) {
+    if (show_level_intro) {
+        return;
+    }
+
     for (const auto& [id, entity] : entities) {
         if (entity.type == 0x01 && id == my_network_id) {
             float health_percentage =

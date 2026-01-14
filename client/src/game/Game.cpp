@@ -889,7 +889,7 @@ void Game::render() {
 
     hud_renderer_.render_timer(window_);
     hud_renderer_.render_score(window_);
-    hud_renderer_.render_health_bar(window_, entities_, my_network_id_);
+    hud_renderer_.render_health_bar(window_, entities_, my_network_id_, show_level_intro_);
     hud_renderer_.render_level_hud(window_, show_level_intro_);
     hud_renderer_.render_combo_bar(window_);
     hud_renderer_.render_boss_health_bar(window_, entities_);
