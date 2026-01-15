@@ -434,6 +434,9 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
     int client_mode = static_cast<int>(Settings::instance().colorblind_mode);
     accessibility_mgr.setColorBlindMode(accessibility::fromClientColorBlindMode(client_mode));
 
+    // Clear sprite batches
+    sprite_batches_.clear();
+
     Entity* serpent_nest = nullptr;
 
     for (auto& pair : entities) {
@@ -530,35 +533,81 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
-        // Rendu spécial pour les projectiles (player vs enemy)
         bool is_projectile = (e.type == 0x03 || e.type == 0x04 || e.type == 0x05 || e.type == 0x06);
-        bool is_player_projectile = (e.type == 0x03 || e.type == 0x04); // Projectiles joueur
-        bool is_enemy_projectile = (e.type == 0x05 || e.type == 0x06);  // Projectiles ennemis
+        bool is_player_projectile = (e.type == 0x03 || e.type == 0x04);
+        bool is_enemy_projectile = (e.type == 0x05 || e.type == 0x06);
         
-        if (is_projectile && client_mode != 0) { // Si mode daltonien activé
+        if (is_projectile && client_mode != 0) {
             sf::FloatRect bounds = e.sprite.getGlobalBounds();
             float size = std::max(bounds.width, bounds.height);
             
             if (is_player_projectile) {
-                // Cercle pour projectiles joueur (vert)
                 sf::Color player_color = accessibility_mgr.transformColor(sf::Color(0, 255, 0));
                 projectile_shape_renderer_.drawPlayerProjectile(window, draw_x, draw_y, size, player_color);
             } else if (is_enemy_projectile) {
-                // Diamant pour projectiles ennemis (rouge)
                 sf::Color enemy_color = accessibility_mgr.transformColor(sf::Color(255, 0, 0));
                 projectile_shape_renderer_.drawEnemyProjectile(window, draw_x, draw_y, size, enemy_color);
             }
+        } else if (is_projectile) {
+            const sf::Texture* tex = e.sprite.getTexture();
+            if (tex != nullptr) {
+                auto& batch = sprite_batches_[tex];
+                if (batch.texture == nullptr) {
+                    batch.texture = tex;
+                    batch.states.texture = tex;
+                }
+
+                sf::FloatRect bounds = e.sprite.getLocalBounds();
+                sf::IntRect texRect = e.sprite.getTextureRect();
+                sf::Vector2f pos(draw_x, draw_y);
+                sf::Vector2f scale = e.sprite.getScale();
+                float rotation = e.sprite.getRotation();
+                sf::Color color = e.sprite.getColor();
+
+                float width = std::abs(texRect.width) * scale.x;
+                float height = std::abs(texRect.height) * scale.y;
+
+                sf::Transform transform;
+                transform.translate(pos);
+                transform.rotate(rotation);
+
+                sf::Vector2f corners[4] = {
+                    transform.transformPoint(0.f, 0.f),
+                    transform.transformPoint(width, 0.f),
+                    transform.transformPoint(width, height),
+                    transform.transformPoint(0.f, height)
+                };
+
+                float left = static_cast<float>(texRect.left);
+                float top = static_cast<float>(texRect.top);
+                float right = left + static_cast<float>(texRect.width);
+                float bottom = top + static_cast<float>(texRect.height);
+
+                batch.vertices.append(sf::Vertex(corners[0], color, sf::Vector2f(left, top)));
+                batch.vertices.append(sf::Vertex(corners[1], color, sf::Vector2f(right, top)));
+                batch.vertices.append(sf::Vertex(corners[2], color, sf::Vector2f(right, bottom)));
+                batch.vertices.append(sf::Vertex(corners[3], color, sf::Vector2f(left, bottom)));
+            }
         } else {
-            // Rendu normal du sprite
             window.draw(e.sprite);
         }
     }
+
+    flush_sprite_batches(window);
 
     if (serpent_nest != nullptr) {
         serpent_nest->update_animation(dt);
         serpent_nest->sprite.setPosition(serpent_nest->x, serpent_nest->y);
         serpent_nest->sprite.setColor(sf::Color(255, 255, 255, 255));
         window.draw(serpent_nest->sprite);
+    }
+}
+
+void GameRenderer::flush_sprite_batches(sf::RenderWindow& window) {
+    for (auto& [texture, batch] : sprite_batches_) {
+        if (batch.vertices.getVertexCount() > 0) {
+            window.draw(batch.vertices, batch.states);
+        }
     }
 }
 

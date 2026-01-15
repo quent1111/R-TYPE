@@ -56,6 +56,19 @@ private:
     void update_ship_tilt(Entity& entity, float dt);
     void update_ally_tilt(Entity& entity, float dt);
 
+    struct SpriteBatch {
+        const sf::Texture* texture;
+        sf::VertexArray vertices;
+        sf::RenderStates states;
+
+        SpriteBatch() : texture(nullptr), vertices(sf::Quads) {
+            vertices.clear();
+        }
+    };
+
+    void flush_sprite_batches(sf::RenderWindow& window);
+    std::map<const sf::Texture*, SpriteBatch> sprite_batches_;
+
     sf::Sprite bg_sprite1_;
     sf::Sprite bg_sprite2_;
     float bg_scroll_offset_ = 0.0f;
