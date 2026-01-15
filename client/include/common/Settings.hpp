@@ -16,6 +16,7 @@ struct Settings {
     bool fullscreen = false;
     ColorBlindMode colorblind_mode = ColorBlindMode::Normal;
     bool screen_shake_enabled = true;
+    bool auto_fire_enabled = false;
     std::vector<std::pair<int, int>> resolutions{{1280, 720}, {1600, 900}, {1920, 1080}};
     size_t resolution_index = 2;
 

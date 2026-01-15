@@ -346,6 +346,21 @@ void SettingsPanel::create_buttons() {
         shake_btn->update(0.0f);
         m_buttons.push_back(std::move(shake_btn));
 
+        float af_x = bx + 270.0f;
+        auto autofire_btn = std::make_unique<Button>(
+            sf::Vector2f(af_x, ss_y), sf::Vector2f(250.0f, 45.0f), "Tir Automatique");
+        autofire_btn->set_callback([this]() {
+            m_temp_auto_fire = !m_temp_auto_fire;
+            create_buttons();
+        });
+        if (m_temp_auto_fire) {
+            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+        } else {
+            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        }
+        autofire_btn->update(0.0f);
+        m_buttons.push_back(std::move(autofire_btn));
+
         sf::FloatRect bounds = m_resolution_text.getLocalBounds();
         m_resolution_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
         m_resolution_text.setPosition(bx + 105.0f, by - 25.0f);
@@ -419,6 +434,7 @@ void SettingsPanel::apply_settings() {
     s.fullscreen = m_temp_fullscreen;
     s.colorblind_mode = m_temp_colorblind;
     s.screen_shake_enabled = m_temp_screen_shake;
+    s.auto_fire_enabled = m_temp_auto_fire;
 
     if (changed) {
         m_needs_window_recreate = true;
