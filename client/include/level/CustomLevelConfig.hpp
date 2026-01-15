@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <algorithm>
 #include <map>
 #include <optional>
-#include <algorithm>
+#include <string>
+#include <vector>
 
 namespace level {
 
@@ -62,18 +62,19 @@ struct CustomLevelConfig {
     EnvironmentConfig environment;
     std::map<std::string, EnemyDefinition> enemy_definitions;
     std::optional<BossDefinition> boss_definition;
-    
+
     bool is_loaded() const { return !id.empty(); }
-    
+
     const EnemyDefinition* get_enemy_by_index(size_t index) const {
-        if (enemy_definitions.empty()) return nullptr;
-        
+        if (enemy_definitions.empty())
+            return nullptr;
+
         std::vector<std::string> keys;
         for (const auto& [key, _] : enemy_definitions) {
             keys.push_back(key);
         }
         std::sort(keys.begin(), keys.end());
-        
+
         size_t actual_index = index % keys.size();
         auto it = enemy_definitions.find(keys[actual_index]);
         if (it != enemy_definitions.end()) {
@@ -81,7 +82,7 @@ struct CustomLevelConfig {
         }
         return nullptr;
     }
-    
+
     const std::vector<std::string> get_all_texture_paths() const {
         std::vector<std::string> paths;
         paths.push_back(environment.background_texture);
@@ -101,4 +102,4 @@ struct CustomLevelConfig {
     }
 };
 
-}
+}  // namespace level

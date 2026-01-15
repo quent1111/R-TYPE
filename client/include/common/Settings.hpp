@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <SFML/Window.hpp>
+
+#include <vector>
 
 struct Settings {
     int master_volume = 50;

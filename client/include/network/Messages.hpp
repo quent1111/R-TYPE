@@ -110,13 +110,13 @@ struct Message {
     bool lobby_join_success{false};
     int lobby_joined_id{-1};
     std::string custom_level_id;
-    
+
     struct PowerUpCard {
         uint8_t id;
         uint8_t level;
     };
     std::vector<PowerUpCard> powerup_cards;
-    
+
     struct ActivableSlotData {
         bool has_powerup;
         uint8_t powerup_id;

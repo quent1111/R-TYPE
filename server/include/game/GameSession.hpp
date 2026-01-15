@@ -11,10 +11,10 @@
 #include "../../game-lib/include/entities/enemy_factory.hpp"
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
-#include "../../game-lib/include/systems/system_wrappers.hpp"
-#include "../../game-lib/include/systems/custom_wave_system.hpp"
 #include "../../game-lib/include/level/CustomLevelManager.hpp"
 #include "../../game-lib/include/level/LevelConfig.hpp"
+#include "../../game-lib/include/systems/custom_wave_system.hpp"
+#include "../../game-lib/include/systems/system_wrappers.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 #include "common/GameConstants.hpp"
@@ -85,12 +85,12 @@ private:
     int _boss_shoot_counter = 0;
 
     std::optional<entity> _serpent_controller_entity;
-    
+
     std::string _lobby_name;
     int _starting_level = 1;
     std::string _custom_level_id;
     std::string _current_custom_level_id;
-    
+
     bool _is_custom_level = false;
     custom_wave_state _custom_wave_state;
     std::optional<rtype::level::LevelConfig> _loaded_custom_level;
@@ -104,7 +104,7 @@ private:
     void advance_level(UDPServer& server);
     void reset_game(UDPServer& server);
 
-    std::function<void()> _game_reset_callback = [](){};
+    std::function<void()> _game_reset_callback = []() {};
 
 public:
     void set_game_reset_callback(std::function<void()> callback) {
@@ -128,7 +128,7 @@ public:
     void process_inputs(UDPServer& server);
     void handle_packet(UDPServer& server, int client_id, const std::vector<uint8_t>& data);
     registry& getRegistry() { return _engine.get_registry(); }
-    
+
     void set_custom_level_id(const std::string& id) { _custom_level_id = id; }
     const std::string& get_custom_level_id() const { return _custom_level_id; }
     bool is_custom_level() const { return _is_custom_level; }

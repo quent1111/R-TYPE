@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 #include "game/Entity.hpp"
 #include "managers/TextureManager.hpp"
 #include "network/Messages.hpp"
-#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -34,12 +34,12 @@ public:
                                const std::map<uint32_t, Entity>& entities,
                                const std::map<uint32_t, int>& player_shield_frame,
                                uint32_t my_network_id);
-    
-    void render_activable_slots(sf::RenderWindow& window, 
-                                const std::vector<std::pair<std::optional<powerup::PowerupId>, uint8_t>>& slots,
-                                const std::vector<float>& slot_timers,
-                                const std::vector<float>& slot_cooldowns,
-                                const std::vector<bool>& slot_active);
+
+    void render_activable_slots(
+        sf::RenderWindow& window,
+        const std::vector<std::pair<std::optional<powerup::PowerupId>, uint8_t>>& slots,
+        const std::vector<float>& slot_timers, const std::vector<float>& slot_cooldowns,
+        const std::vector<bool>& slot_active);
 
     void render_game_over(sf::RenderWindow& window, bool show);
 
@@ -90,7 +90,7 @@ private:
 
     sf::Sprite game_over_sprite_;
     sf::RectangleShape game_over_overlay_;
-    
+
     sf::Sprite activable_slot1_sprite_;
     sf::Sprite activable_slot2_sprite_;
     sf::Texture activable_slot1_texture_;

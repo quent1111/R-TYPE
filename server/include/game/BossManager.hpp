@@ -10,8 +10,8 @@
 
 #include <iostream>
 #include <optional>
-#include <unordered_map>
 #include <random>
+#include <unordered_map>
 
 namespace server {
 
@@ -38,12 +38,11 @@ public:
 
     void spawn_boss_level_10(registry& reg, std::optional<entity>& serpent_controller_entity);
 
-    void update_serpent_boss(registry& reg, 
-                             std::optional<entity>& serpent_controller_entity,
+    void update_serpent_boss(registry& reg, std::optional<entity>& serpent_controller_entity,
                              const std::unordered_map<int, std::size_t>& client_entity_ids,
                              float dt);
 
-    std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity, 
+    std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity,
                                         std::optional<entity>& serpent_controller);
 
 private:
@@ -53,19 +52,20 @@ private:
     void boss_spawn_homing_enemy(registry& reg, std::optional<entity>& boss_entity);
 
     void spawn_serpent_nest(registry& reg, serpent_boss_controller& controller);
-    void spawn_serpent_part(registry& reg, serpent_boss_controller& controller, 
+    void spawn_serpent_part(registry& reg, serpent_boss_controller& controller,
                             SerpentPartType type, int index, float x, float y,
                             std::optional<entity> parent);
     void spawn_serpent_scale_on_body(registry& reg, serpent_boss_controller& controller,
                                      entity body_entity, float x, float y, int scale_index);
-    void update_serpent_spawn_animation(registry& reg, serpent_boss_controller& controller, float dt);
+    void update_serpent_spawn_animation(registry& reg, serpent_boss_controller& controller,
+                                        float dt);
     void update_serpent_movement(registry& reg, serpent_boss_controller& controller, float dt);
     void update_serpent_parts_follow(registry& reg, serpent_boss_controller& controller, float dt);
     void update_serpent_rotations(registry& reg, serpent_boss_controller& controller,
                                   const std::unordered_map<int, std::size_t>& client_entity_ids);
-    void handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller, 
+    void handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller,
                                     entity part_entity, int damage);
-    
+
     void update_serpent_attacks(registry& reg, serpent_boss_controller& controller,
                                 const std::unordered_map<int, std::size_t>& client_entity_ids,
                                 float dt);
@@ -76,7 +76,7 @@ private:
     void serpent_laser_attack(registry& reg, serpent_boss_controller& controller,
                               const std::unordered_map<int, std::size_t>& client_entity_ids,
                               float dt);
-    
+
     std::mt19937 rng_{std::random_device{}()};
 };
 

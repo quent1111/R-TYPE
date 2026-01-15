@@ -1,12 +1,12 @@
 #include "states/LobbyState.hpp"
 
-#include "managers/AudioManager.hpp"
-#include "level/CustomLevelLoader.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "level/CustomLevelLoader.hpp"
+#include "managers/AudioManager.hpp"
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
 
 namespace rtype {
 
@@ -37,10 +37,10 @@ void LobbyState::on_enter() {
 
     m_total_players = 1;
     m_ready_players = 0;
-    
+
     m_available_levels = {"Standard Game"};
     m_available_level_ids = {""};
-    
+
     std::filesystem::path custom_dir = "levels/custom";
     if (std::filesystem::exists(custom_dir)) {
         for (const auto& entry : std::filesystem::directory_iterator(custom_dir)) {
@@ -49,12 +49,13 @@ void LobbyState::on_enter() {
                 if (config) {
                     m_available_levels.push_back(config->name);
                     m_available_level_ids.push_back(config->id);
-                    std::cout << "[LobbyState] Found custom level: " << config->name << " (id: " << config->id << ")" << std::endl;
+                    std::cout << "[LobbyState] Found custom level: " << config->name
+                              << " (id: " << config->id << ")" << std::endl;
                 }
             }
         }
     }
-    
+
     m_selected_level_index = 0;
     m_use_custom_level = false;
 
@@ -74,13 +75,12 @@ void LobbyState::setup_ui() {
 
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
-    m_title =
-        std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, 50.0f), 72);
+    m_title = std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, 50.0f), 72);
 
     m_footer = std::make_unique<ui::MenuFooter>(window_size);
 
-    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(30.0f, 30.0f), false, false));
+    m_corners.push_back(
+        std::make_unique<ui::CornerDecoration>(sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
@@ -93,7 +93,9 @@ void LobbyState::setup_ui() {
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
         sf::Vector2f(50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), false));
+        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f,
+                     static_cast<float>(window_size.y) / 2.0f - 50.0f),
+        false));
 
     m_info_text.setFont(m_font);
     m_info_text.setCharacterSize(20);
@@ -125,9 +127,9 @@ void LobbyState::setup_ui() {
     const float button_spacing = 70.0f;
     const float start_y = center.y + 50.0f;
 
-    auto level_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(center.x - button_width / 2.0f, start_y),
-        sf::Vector2f(button_width, button_height), "< SELECT LEVEL >");
+    auto level_btn =
+        std::make_unique<ui::Button>(sf::Vector2f(center.x - button_width / 2.0f, start_y),
+                                     sf::Vector2f(button_width, button_height), "< SELECT LEVEL >");
     level_btn->set_colors(sf::Color(80, 80, 150, 220), sf::Color(100, 100, 200, 255),
                           sf::Color(60, 60, 120, 255));
     level_btn->set_callback([this]() { on_level_select_clicked(); });
@@ -152,7 +154,8 @@ void LobbyState::setup_ui() {
 
 void LobbyState::on_start_game_clicked() {
     std::cout << "[LobbyState] Start game button clicked\n";
-    std::cout << "[LobbyState] Selected level: " << m_available_levels[static_cast<size_t>(m_selected_level_index)] << "\n";
+    std::cout << "[LobbyState] Selected level: "
+              << m_available_levels[static_cast<size_t>(m_selected_level_index)] << "\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
 
     send_start_game_request();
@@ -162,13 +165,15 @@ void LobbyState::on_start_game_clicked() {
 
 void LobbyState::on_level_select_clicked() {
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
-    
-    m_selected_level_index = (m_selected_level_index + 1) % static_cast<int>(m_available_levels.size());
+
+    m_selected_level_index =
+        (m_selected_level_index + 1) % static_cast<int>(m_available_levels.size());
     m_use_custom_level = (m_selected_level_index > 0);
-    
+
     update_level_display();
-    
-    std::cout << "[LobbyState] Level selected: " << m_available_levels[static_cast<size_t>(m_selected_level_index)] 
+
+    std::cout << "[LobbyState] Level selected: "
+              << m_available_levels[static_cast<size_t>(m_selected_level_index)]
               << " (custom: " << (m_use_custom_level ? "yes" : "no") << ")\n";
 }
 
@@ -176,7 +181,7 @@ void LobbyState::update_level_display() {
     auto window_size = m_window.getSize();
     sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
                         static_cast<float>(window_size.y) / 2.0f);
-    
+
     std::string level_name = m_available_levels[static_cast<size_t>(m_selected_level_index)];
     m_level_text.setString("Level: " + level_name);
     auto level_bounds = m_level_text.getLocalBounds();
@@ -201,7 +206,8 @@ void LobbyState::on_back_clicked() {
 
 void LobbyState::send_start_game_request() {
     std::string level_id;
-    if (m_selected_level_index >= 0 && m_selected_level_index < static_cast<int>(m_available_level_ids.size())) {
+    if (m_selected_level_index >= 0 &&
+        m_selected_level_index < static_cast<int>(m_available_level_ids.size())) {
         level_id = m_available_level_ids[m_selected_level_index];
     }
     std::cout << "[LobbyState] Sending StartGame request with level_id: " << level_id << "\n";
@@ -329,7 +335,8 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    std::string status_info = "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
+    std::string status_info =
+        "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
     m_status_text.setString(status_info);
 
     auto status_bounds = m_status_text.getLocalBounds();

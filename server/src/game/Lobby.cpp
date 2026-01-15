@@ -12,13 +12,11 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players)
       _max_players(max_players),
       _state(LobbyState::Waiting),
       _last_activity(std::chrono::steady_clock::now()) {
-    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name
-              << " (max " << _max_players << " players)" << std::endl;
+    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name << " (max " << _max_players
+              << " players)" << std::endl;
 
-    _game_session->set_game_reset_callback([this]() {
-        this->reset_after_game_over();
-    });
-    
+    _game_session->set_game_reset_callback([this]() { this->reset_after_game_over(); });
+
     // Pass lobby name to game session for level skip feature (e.g., "lvl9" starts at level 9)
     if (_game_session) {
         _game_session->set_lobby_name(_lobby_name);
@@ -37,8 +35,8 @@ bool Lobby::add_player(int client_id, UDPServer& server) {
     }
 
     if (has_player(client_id)) {
-        std::cout << "[Lobby " << _lobby_id << "] Player " << client_id
-                  << " already in lobby" << std::endl;
+        std::cout << "[Lobby " << _lobby_id << "] Player " << client_id << " already in lobby"
+                  << std::endl;
         return false;
     }
 
@@ -49,7 +47,7 @@ bool Lobby::add_player(int client_id, UDPServer& server) {
         _game_session->set_lobby_clients(_player_ids);
 
         if (_state == LobbyState::InGame) {
-            std::cout << "[Lobby " << _lobby_id << "] Player " << client_id 
+            std::cout << "[Lobby " << _lobby_id << "] Player " << client_id
                       << " joining game in progress" << std::endl;
 
             float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
@@ -128,7 +126,8 @@ void Lobby::start_game(UDPServer& server) {
         return;
     }
 
-    std::cout << "[Lobby " << _lobby_id << "] Starting game with " << _player_ids.size() << " players" << std::endl;
+    std::cout << "[Lobby " << _lobby_id << "] Starting game with " << _player_ids.size()
+              << " players" << std::endl;
 
     _game_session->set_lobby_clients(_player_ids);
 

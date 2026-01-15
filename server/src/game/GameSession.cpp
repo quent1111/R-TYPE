@@ -1,11 +1,11 @@
 #include "game/GameSession.hpp"
 
 #include <chrono>
+#include <filesystem>
 #include <iostream>
-#include <thread>
 #include <memory>
 #include <set>
-#include <filesystem>
+#include <thread>
 
 extern std::atomic<bool> server_running;
 
@@ -76,7 +76,8 @@ void GameSession::set_lobby_name(const std::string& name) {
             int level = std::stoi(lower_name.substr(3));
             if (level >= 1 && level <= 15) {
                 _starting_level = level;
-                std::cout << "[Game] Lobby name '" << name << "' detected - Starting level set to " << _starting_level << std::endl;
+                std::cout << "[Game] Lobby name '" << name << "' detected - Starting level set to "
+                          << _starting_level << std::endl;
             }
         } catch (...) {}
     }
@@ -88,11 +89,11 @@ void GameSession::handle_player_ready(int client_id, bool ready) {
             int assigned_slot = *_available_player_slots.begin();
             _available_player_slots.erase(_available_player_slots.begin());
             _client_player_index[client_id] = assigned_slot;
-            std::cout << "[GameSession] Assigned player slot " << assigned_slot
-                      << " to client " << client_id << std::endl;
-        } else {
-            std::cout << "[GameSession] WARNING: No player slots available for client "
+            std::cout << "[GameSession] Assigned player slot " << assigned_slot << " to client "
                       << client_id << std::endl;
+        } else {
+            std::cout << "[GameSession] WARNING: No player slots available for client " << client_id
+                      << std::endl;
         }
     }
 
@@ -123,7 +124,7 @@ void GameSession::check_start_game(UDPServer& server) {
 
 void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Starting game at level " << _starting_level << "..." << std::endl;
-    
+
     if (!_custom_level_id.empty()) {
         std::cout << "[Game] Custom level selected: " << _custom_level_id << std::endl;
         load_custom_level();
@@ -150,7 +151,8 @@ void GameSession::start_game(UDPServer& server) {
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
         int player_index = _client_player_index[client_id];
-        _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, 300.0f, player_index);
+        _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id,
+                                      start_x, 300.0f, player_index);
         start_x += 50.0f;
     }
 
@@ -160,18 +162,20 @@ void GameSession::start_game(UDPServer& server) {
     if (!_is_custom_level) {
         if (_starting_level == 5) {
             std::cout << "[SERVER] *** Starting at Level 5 - Spawning BOSS! ***" << std::endl;
-            _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
-                                             _boss_shoot_timer, _boss_animation_complete,
-                                             _boss_entrance_complete, _boss_target_x);
+            _boss_manager.spawn_boss_level_5(
+                _engine.get_registry(), _boss_entity, _boss_animation_timer, _boss_shoot_timer,
+                _boss_animation_complete, _boss_entrance_complete, _boss_target_x);
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         } else if (_starting_level == 10) {
-            std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
+            std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***"
+                      << std::endl;
             _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
 
-    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level), _current_custom_level_id, _lobby_client_ids);
+    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level),
+                                            _current_custom_level_id, _lobby_client_ids);
 }
 
 void GameSession::broadcast_lobby_status(UDPServer& server) {
@@ -186,17 +190,18 @@ void GameSession::create_player_for_client(int client_id, float start_x, float s
             int assigned_slot = *_available_player_slots.begin();
             _available_player_slots.erase(_available_player_slots.begin());
             _client_player_index[client_id] = assigned_slot;
-            std::cout << "[GameSession] Late-join: Assigned player slot " << assigned_slot 
+            std::cout << "[GameSession] Late-join: Assigned player slot " << assigned_slot
                       << " to client " << client_id << std::endl;
         } else {
-            std::cout << "[GameSession] WARNING: No player slots available for late-joining client " 
+            std::cout << "[GameSession] WARNING: No player slots available for late-joining client "
                       << client_id << std::endl;
             _client_player_index[client_id] = 1;
         }
     }
 
     int player_index = _client_player_index[client_id];
-    _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x, start_y, player_index);
+    _player_manager.create_player(_engine.get_registry(), _client_entity_ids, client_id, start_x,
+                                  start_y, player_index);
 }
 
 void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
@@ -210,20 +215,22 @@ void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
     _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                   _client_entity_ids, {client_id});
 
-    auto player_opt = _player_manager.get_player_entity(_engine.get_registry(),
-                                                        _client_entity_ids, client_id);
+    auto player_opt =
+        _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
     if (player_opt.has_value()) {
         auto player = player_opt.value();
-        auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+        auto& powerups_opt =
+            _engine.get_registry().get_component<player_powerups_component>(player);
         if (powerups_opt.has_value()) {
             _powerup_broadcaster.broadcast_activable_slots(server, client_id,
-                                                          powerups_opt->activable_slots);
+                                                           powerups_opt->activable_slots);
         }
     }
 }
 
 void GameSession::notify_game_started(UDPServer& server, int client_id) {
-    std::cout << "[GameSession] Notifying client " << client_id << " that game has started" << std::endl;
+    std::cout << "[GameSession] Notifying client " << client_id << " that game has started"
+              << std::endl;
     _game_broadcaster.broadcast_start_game(server, {client_id});
 }
 
@@ -257,8 +264,8 @@ void GameSession::process_network_events(UDPServer& server) {
                     if (_waiting_for_powerup_choice) {
                         break;
                     }
-                    auto player_opt =
-                        _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
+                    auto player_opt = _player_manager.get_player_entity(
+                        _engine.get_registry(), _client_entity_ids, client_id);
                     if (!player_opt.has_value()) {
                         // Assign player index if not already assigned
                         if (_client_player_index.find(client_id) == _client_player_index.end()) {
@@ -266,8 +273,9 @@ void GameSession::process_network_events(UDPServer& server) {
                                 int assigned_slot = *_available_player_slots.begin();
                                 _available_player_slots.erase(_available_player_slots.begin());
                                 _client_player_index[client_id] = assigned_slot;
-                                std::cout << "[GameSession] Reconnect: Assigned player slot " << assigned_slot
-                                          << " to client " << client_id << std::endl;
+                                std::cout << "[GameSession] Reconnect: Assigned player slot "
+                                          << assigned_slot << " to client " << client_id
+                                          << std::endl;
                             } else {
                                 _client_player_index[client_id] = 1;
                             }
@@ -275,25 +283,27 @@ void GameSession::process_network_events(UDPServer& server) {
                         int player_index = _client_player_index[client_id];
                         float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                         float start_y = 300.0f;
-                        auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
-                                                                    client_id, start_x, start_y, player_index);
+                        auto player = _player_manager.create_player(_engine.get_registry(),
+                                                                    _client_entity_ids, client_id,
+                                                                    start_x, start_y, player_index);
                         std::cout << "[Game] New player connected (Implicit): Client " << client_id
-                                  << " (Entity " << player.id() << ", Index " << player_index << ")" << std::endl;
+                                  << " (Entity " << player.id() << ", Index " << player_index << ")"
+                                  << std::endl;
                     }
 
                     std::vector<uint8_t> payload(
                         deserializer.data().begin() +
                             static_cast<std::ptrdiff_t>(deserializer.read_position()),
                         deserializer.data().end());
-                    _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids, client_id,
-                                                       payload);
+                    _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids,
+                                                       client_id, payload);
                     break;
                 }
                 case RType::OpCode::Login: {
                     std::cout << "[Game] Login request received from client " << client_id
                               << std::endl;
-                    auto player_opt =
-                        _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
+                    auto player_opt = _player_manager.get_player_entity(
+                        _engine.get_registry(), _client_entity_ids, client_id);
                     if (!player_opt.has_value()) {
                         _client_ready_status[client_id] = false;
                         std::cout << "[Game] Client " << client_id << " joined lobby" << std::endl;
@@ -343,17 +353,21 @@ void GameSession::process_network_events(UDPServer& server) {
                     try {
                         deserializer >> powerup_choice;
 
-                        if (_players_who_chose_powerup.find(client_id) != _players_who_chose_powerup.end()) {
-                            std::cout << "[Game] Client " << client_id << " already chose, ignoring duplicate" << std::endl;
+                        if (_players_who_chose_powerup.find(client_id) !=
+                            _players_who_chose_powerup.end()) {
+                            std::cout << "[Game] Client " << client_id
+                                      << " already chose, ignoring duplicate" << std::endl;
                             break;
                         }
                         if (!_waiting_for_powerup_choice) {
-                            std::cout << "[Game] Not waiting for powerup choices, ignoring choice from " << client_id << std::endl;
+                            std::cout
+                                << "[Game] Not waiting for powerup choices, ignoring choice from "
+                                << client_id << std::endl;
                             break;
                         }
-                        _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
-                                                               _players_who_chose_powerup,
-                                                               client_id, powerup_choice);
+                        _powerup_handler.handle_powerup_choice(
+                            _engine.get_registry(), _client_entity_ids, _players_who_chose_powerup,
+                            client_id, powerup_choice);
 
                         int alive_players = 0;
                         for (int lobby_client_id : _lobby_client_ids) {
@@ -374,8 +388,9 @@ void GameSession::process_network_events(UDPServer& server) {
                             _level_complete_waiting = false;
                             _players_who_chose_powerup.clear();
 
-                            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                          _client_entity_ids, _lobby_client_ids);
+                            _powerup_broadcaster.broadcast_powerup_status(
+                                server, _engine.get_registry(), _client_entity_ids,
+                                _lobby_client_ids);
                             advance_level(server);
                         }
                     } catch (...) {
@@ -386,31 +401,34 @@ void GameSession::process_network_events(UDPServer& server) {
                 case RType::OpCode::PowerUpActivate: {
                     uint8_t powerup_type = 0;
                     deserializer >> powerup_type;
-                    _powerup_handler.handle_powerup_activate(_engine.get_registry(), _client_entity_ids,
-                                                             client_id, powerup_type);
-                    _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                  _client_entity_ids, _lobby_client_ids);
+                    _powerup_handler.handle_powerup_activate(
+                        _engine.get_registry(), _client_entity_ids, client_id, powerup_type);
+                    _powerup_broadcaster.broadcast_powerup_status(
+                        server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
                     break;
                 }
                 case RType::OpCode::RequestGameState: {
-                    std::cout << "[Game] Client " << client_id << " requested full game state" << std::endl;
+                    std::cout << "[Game] Client " << client_id << " requested full game state"
+                              << std::endl;
 
-                    _entity_broadcaster.send_full_game_state_to_client(server, _engine.get_registry(), 
-                                                                       _client_entity_ids, client_id);
+                    _entity_broadcaster.send_full_game_state_to_client(
+                        server, _engine.get_registry(), _client_entity_ids, client_id);
 
-                    _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
+                    _game_broadcaster.broadcast_level_info(server, _engine.get_registry(),
+                                                           {client_id});
 
-                    auto player_opt = _player_manager.get_player_entity(_engine.get_registry(), 
-                                                                        _client_entity_ids, client_id);
+                    auto player_opt = _player_manager.get_player_entity(
+                        _engine.get_registry(), _client_entity_ids, client_id);
                     if (player_opt.has_value()) {
-                        _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                      _client_entity_ids, {client_id});
+                        _powerup_broadcaster.broadcast_powerup_status(
+                            server, _engine.get_registry(), _client_entity_ids, {client_id});
 
                         auto player = player_opt.value();
-                        auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+                        auto& powerups_opt =
+                            _engine.get_registry().get_component<player_powerups_component>(player);
                         if (powerups_opt.has_value()) {
-                            _powerup_broadcaster.broadcast_activable_slots(server, client_id,
-                                                                          powerups_opt->activable_slots);
+                            _powerup_broadcaster.broadcast_activable_slots(
+                                server, client_id, powerups_opt->activable_slots);
                         }
                     }
 
@@ -466,7 +484,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _powerup_choice_timer += dt;
 
         if (_powerup_choice_timer >= 20.0f) {
-            std::cout << "[Game] Powerup choice timeout - auto-selecting for remaining players" << std::endl;
+            std::cout << "[Game] Powerup choice timeout - auto-selecting for remaining players"
+                      << std::endl;
 
             for (int lobby_client_id : _lobby_client_ids) {
                 auto it = _client_entity_ids.find(lobby_client_id);
@@ -475,20 +494,24 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     auto health_opt = _engine.get_registry().get_component<health>(player);
 
                     if (health_opt.has_value() && health_opt->current > 0) {
-                        if (_players_who_chose_powerup.find(lobby_client_id) == _players_who_chose_powerup.end()) {
-                            std::cout << "[Game] Auto-selecting powerup for client " << lobby_client_id << std::endl;
-                            _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
-                                                                   _players_who_chose_powerup,
-                                                                   lobby_client_id, 0);
+                        if (_players_who_chose_powerup.find(lobby_client_id) ==
+                            _players_who_chose_powerup.end()) {
+                            std::cout << "[Game] Auto-selecting powerup for client "
+                                      << lobby_client_id << std::endl;
+                            _powerup_handler.handle_powerup_choice(
+                                _engine.get_registry(), _client_entity_ids,
+                                _players_who_chose_powerup, lobby_client_id, 0);
 
-                            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                          _client_entity_ids, {lobby_client_id});
+                            _powerup_broadcaster.broadcast_powerup_status(
+                                server, _engine.get_registry(), _client_entity_ids,
+                                {lobby_client_id});
                         }
                     }
                 }
             }
 
-            std::cout << "[Game] All players have chosen (some forced)! Advancing level..." << std::endl;
+            std::cout << "[Game] All players have chosen (some forced)! Advancing level..."
+                      << std::endl;
             _waiting_for_powerup_choice = false;
             _level_complete_waiting = false;
             _players_who_chose_powerup.clear();
@@ -520,11 +543,12 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
 
     if (!_is_custom_level) {
         _boss_manager.update_boss_behavior(
-            _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
-            _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
-            _boss_shoot_counter, dt);
+            _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer,
+            _boss_shoot_timer, _boss_shoot_cooldown, _boss_animation_complete,
+            _boss_entrance_complete, _boss_target_x, _boss_shoot_counter, dt);
 
-        _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity, _client_entity_ids, dt);
+        _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity,
+                                          _client_entity_ids, dt);
     }
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
@@ -557,8 +581,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                 if (!laser.laser_entity.has_value()) {
                     entity laser_ent = _engine.get_registry().spawn_entity();
 
-                    _engine.get_registry().add_component(laser_ent,
-                        position{player_pos.x + 50.0f, player_pos.y});
+                    _engine.get_registry().add_component(
+                        laser_ent, position{player_pos.x + 50.0f, player_pos.y});
 
                     _engine.get_registry().add_component(laser_ent, velocity{0.0f, 0.0f});
 
@@ -571,13 +595,14 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     sprite.scale = 1.0f;
                     _engine.get_registry().add_component(laser_ent, sprite);
 
-                    _engine.get_registry().add_component(laser_ent, 
-                        entity_tag{RType::EntityType::LaserBeam});
+                    _engine.get_registry().add_component(laser_ent,
+                                                         entity_tag{RType::EntityType::LaserBeam});
 
                     laser.laser_entity = laser_ent;
                 }
 
-                auto& laser_pos_opt = _engine.get_registry().get_component<position>(laser.laser_entity.value());
+                auto& laser_pos_opt =
+                    _engine.get_registry().get_component<position>(laser.laser_entity.value());
                 if (laser_pos_opt.has_value()) {
                     laser_pos_opt->x = player_pos.x + 50.0f;
                     laser_pos_opt->y = player_pos.y;
@@ -589,15 +614,14 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     auto& healths = _engine.get_registry().get_components<health>();
 
                     for (std::size_t j = 0; j < enemies.size(); ++j) {
-                        if (enemies[j].has_value() && j < enemy_positions.size() && 
-                            enemy_positions[j].has_value() && j < healths.size() && healths[j].has_value()) {
-
+                        if (enemies[j].has_value() && j < enemy_positions.size() &&
+                            enemy_positions[j].has_value() && j < healths.size() &&
+                            healths[j].has_value()) {
                             auto& enemy_pos = enemy_positions[j].value();
 
-                            if (enemy_pos.x >= player_pos.x && 
+                            if (enemy_pos.x >= player_pos.x &&
                                 enemy_pos.x <= player_pos.x + 2000.0f &&
                                 std::abs(enemy_pos.y - player_pos.y) <= 50.0f) {
-
                                 int damage = static_cast<int>(laser.damage_per_second * 0.1f);
                                 healths[j]->current -= damage;
                             }
@@ -634,7 +658,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     while (lf.friend_entities.size() > static_cast<size_t>(lf.num_drones)) {
                         if (lf.friend_entities.back().has_value()) {
                             try {
-                                _engine.get_registry().kill_entity(lf.friend_entities.back().value());
+                                _engine.get_registry().kill_entity(
+                                    lf.friend_entities.back().value());
                             } catch (...) {}
                         }
                         lf.friend_entities.pop_back();
@@ -644,12 +669,13 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     }
                 }
 
-                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(lf.num_drones); ++drone_idx) {
+                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(lf.num_drones);
+                     ++drone_idx) {
                     if (!lf.friend_entities[drone_idx].has_value()) {
                         entity friend_ent = _engine.get_registry().spawn_entity();
 
-                        _engine.get_registry().add_component(friend_ent, 
-                            position{-200.0f, player_pos.y + 5.0f});
+                        _engine.get_registry().add_component(
+                            friend_ent, position{-200.0f, player_pos.y + 5.0f});
 
                         _engine.get_registry().add_component(friend_ent, velocity{0.0f, 0.0f});
 
@@ -662,8 +688,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                         sprite.scale = 2.5f;
                         _engine.get_registry().add_component(friend_ent, sprite);
 
-                        _engine.get_registry().add_component(friend_ent, 
-                            entity_tag{RType::EntityType::SupportDrone});
+                        _engine.get_registry().add_component(
+                            friend_ent, entity_tag{RType::EntityType::SupportDrone});
 
                         lf.friend_entities[drone_idx] = friend_ent;
                     }
@@ -671,14 +697,20 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
             }
 
             if (lf.is_active()) {
-                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(lf.num_drones); ++drone_idx) {
-                    if (drone_idx >= lf.friend_entities.size() || !lf.friend_entities[drone_idx].has_value()) {
+                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(lf.num_drones);
+                     ++drone_idx) {
+                    if (drone_idx >= lf.friend_entities.size() ||
+                        !lf.friend_entities[drone_idx].has_value()) {
                         continue;
                     }
 
-                    auto& friend_pos_opt = _engine.get_registry().get_component<position>(lf.friend_entities[drone_idx].value());
-                    auto& friend_vel_opt = _engine.get_registry().get_component<velocity>(lf.friend_entities[drone_idx].value());
-                    auto& friend_sprite_opt = _engine.get_registry().get_component<sprite_component>(lf.friend_entities[drone_idx].value());
+                    auto& friend_pos_opt = _engine.get_registry().get_component<position>(
+                        lf.friend_entities[drone_idx].value());
+                    auto& friend_vel_opt = _engine.get_registry().get_component<velocity>(
+                        lf.friend_entities[drone_idx].value());
+                    auto& friend_sprite_opt =
+                        _engine.get_registry().get_component<sprite_component>(
+                            lf.friend_entities[drone_idx].value());
 
                     float vertical_offset = 0.0f;
                     if (lf.num_drones == 2) {
@@ -686,7 +718,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     }
 
                     float final_target_x = player_pos.x - 100.0f;
-                    float final_target_y = player_pos.y + 5.0f + lf.get_vertical_offset() + vertical_offset;
+                    float final_target_y =
+                        player_pos.y + 5.0f + lf.get_vertical_offset() + vertical_offset;
 
                     float target_x, target_y;
 
@@ -710,17 +743,19 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                         target_x = final_target_x;
                         target_y = final_target_y;
                     }
-                    
+
                     if (friend_pos_opt.has_value() && friend_vel_opt.has_value()) {
                         float old_x = friend_pos_opt->x;
                         float old_y = friend_pos_opt->y;
-                        
+
                         float vx = (target_x - old_x) / dt;
                         float vy = (target_y - old_y) / dt;
-                        
+
                         const float max_vel = 1000.0f;
-                        if (std::abs(vx) > max_vel) vx = (vx > 0 ? max_vel : -max_vel);
-                        if (std::abs(vy) > max_vel) vy = (vy > 0 ? max_vel : -max_vel);
+                        if (std::abs(vx) > max_vel)
+                            vx = (vx > 0 ? max_vel : -max_vel);
+                        if (std::abs(vy) > max_vel)
+                            vy = (vy > 0 ? max_vel : -max_vel);
 
                         friend_vel_opt->vx = vx;
                         friend_vel_opt->vy = vy;
@@ -740,79 +775,80 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     }
 
                     if (lf.can_shoot() && friend_pos_opt.has_value()) {
-                    float nearest_dist = -1.0f;
-                    float enemy_target_x = -1.0f;
-                    float enemy_target_y = -1.0f;
-                    bool found_enemy = false;
+                        float nearest_dist = -1.0f;
+                        float enemy_target_x = -1.0f;
+                        float enemy_target_y = -1.0f;
+                        bool found_enemy = false;
 
-                    auto& enemy_tags = _engine.get_registry().get_components<enemy_tag>();
-                    auto& enemy_positions = _engine.get_registry().get_components<position>();
+                        auto& enemy_tags = _engine.get_registry().get_components<enemy_tag>();
+                        auto& enemy_positions = _engine.get_registry().get_components<position>();
 
-                    for (std::size_t j = 0; j < enemy_tags.size(); ++j) {
-                        if (enemy_tags[j].has_value() && j < enemy_positions.size() && 
-                            enemy_positions[j].has_value()) {
-                            auto& enemy_pos = enemy_positions[j].value();
+                        for (std::size_t j = 0; j < enemy_tags.size(); ++j) {
+                            if (enemy_tags[j].has_value() && j < enemy_positions.size() &&
+                                enemy_positions[j].has_value()) {
+                                auto& enemy_pos = enemy_positions[j].value();
 
-                            float dx = enemy_pos.x - friend_pos_opt->x;
-                            float dy = enemy_pos.y - friend_pos_opt->y;
+                                float dx = enemy_pos.x - friend_pos_opt->x;
+                                float dy = enemy_pos.y - friend_pos_opt->y;
 
-                            if (dx > 0) {
-                                if (std::abs(dy) < dx * 1.5f) {
+                                if (dx > 0) {
+                                    if (std::abs(dy) < dx * 1.5f) {
+                                        float dist = std::sqrt(dx * dx + dy * dy);
+
+                                        if (nearest_dist < 0.0f || dist < nearest_dist) {
+                                            nearest_dist = dist;
+                                            enemy_target_x = enemy_pos.x;
+                                            enemy_target_y = enemy_pos.y;
+                                            found_enemy = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        auto& boss_tags = _engine.get_registry().get_components<boss_tag>();
+                        auto& boss_positions = _engine.get_registry().get_components<position>();
+
+                        for (std::size_t j = 0; j < boss_tags.size(); ++j) {
+                            if (boss_tags[j].has_value() && j < boss_positions.size() &&
+                                boss_positions[j].has_value()) {
+                                auto& boss_pos = boss_positions[j].value();
+
+                                float dx = boss_pos.x - friend_pos_opt->x;
+                                float dy = boss_pos.y - friend_pos_opt->y;
+
+                                if (dx > 0 && std::abs(dy) < dx * 1.5f) {
                                     float dist = std::sqrt(dx * dx + dy * dy);
 
                                     if (nearest_dist < 0.0f || dist < nearest_dist) {
                                         nearest_dist = dist;
-                                        enemy_target_x = enemy_pos.x;
-                                        enemy_target_y = enemy_pos.y;
+                                        enemy_target_x = boss_pos.x;
+                                        enemy_target_y = boss_pos.y;
                                         found_enemy = true;
                                     }
                                 }
                             }
                         }
-                    }
 
-                    auto& boss_tags = _engine.get_registry().get_components<boss_tag>();
-                    auto& boss_positions = _engine.get_registry().get_components<position>();
+                        if (found_enemy) {
+                            float dx = enemy_target_x - friend_pos_opt->x;
+                            float dy = enemy_target_y - friend_pos_opt->y;
+                            float magnitude = std::sqrt(dx * dx + dy * dy);
 
-                    for (std::size_t j = 0; j < boss_tags.size(); ++j) {
-                        if (boss_tags[j].has_value() && j < boss_positions.size() && 
-                            boss_positions[j].has_value()) {
-                            auto& boss_pos = boss_positions[j].value();
-
-                            float dx = boss_pos.x - friend_pos_opt->x;
-                            float dy = boss_pos.y - friend_pos_opt->y;
-
-                            if (dx > 0 && std::abs(dy) < dx * 1.5f) {
-                                float dist = std::sqrt(dx * dx + dy * dy);
-
-                                if (nearest_dist < 0.0f || dist < nearest_dist) {
-                                    nearest_dist = dist;
-                                    enemy_target_x = boss_pos.x;
-                                    enemy_target_y = boss_pos.y;
-                                    found_enemy = true;
-                                }
+                            if (magnitude > 0.0f) {
+                                float projectile_speed = 500.0f;
+                                float vx = (dx / magnitude) * projectile_speed;
+                                float vy = (dy / magnitude) * projectile_speed;
+                                ::createProjectile(_engine.get_registry(),
+                                                   friend_pos_opt->x + 20.0f, friend_pos_opt->y, vx,
+                                                   vy, lf.damage, WeaponUpgradeType::AllyMissile,
+                                                   false);
                             }
                         }
-                    }
 
-                    if (found_enemy) {
-                        float dx = enemy_target_x - friend_pos_opt->x;
-                        float dy = enemy_target_y - friend_pos_opt->y;
-                        float magnitude = std::sqrt(dx * dx + dy * dy);
-
-                        if (magnitude > 0.0f) {
-                            float projectile_speed = 500.0f;
-                            float vx = (dx / magnitude) * projectile_speed;
-                            float vy = (dy / magnitude) * projectile_speed;
-                            ::createProjectile(_engine.get_registry(), 
-                                friend_pos_opt->x + 20.0f, friend_pos_opt->y, 
-                                vx, vy, lf.damage, WeaponUpgradeType::AllyMissile, false);
+                        if (drone_idx == static_cast<std::size_t>(lf.num_drones) - 1) {
+                            lf.reset_shoot_timer();
                         }
-                    }
-
-                    if (drone_idx == static_cast<std::size_t>(lf.num_drones) - 1) {
-                        lf.reset_shoot_timer();
-                    }
                     }
                 }
             }
@@ -822,7 +858,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     if (friend_entity_opt.has_value()) {
                         try {
                             _engine.get_registry().kill_entity(friend_entity_opt.value());
-                            std::cout << "[LittleFriend] Despawned ally ship for player " << i << std::endl;
+                            std::cout << "[LittleFriend] Despawned ally ship for player " << i
+                                      << std::endl;
                         } catch (...) {}
                         friend_entity_opt = std::nullopt;
                     }
@@ -844,7 +881,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     while (md.drone_entities.size() > static_cast<size_t>(md.num_drones)) {
                         if (md.drone_entities.back().has_value()) {
                             try {
-                                _engine.get_registry().kill_entity(md.drone_entities.back().value());
+                                _engine.get_registry().kill_entity(
+                                    md.drone_entities.back().value());
                             } catch (...) {}
                         }
                         md.drone_entities.pop_back();
@@ -854,12 +892,13 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     }
                 }
 
-                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(md.num_drones); ++drone_idx) {
+                for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(md.num_drones);
+                     ++drone_idx) {
                     if (!md.drone_entities[drone_idx].has_value()) {
                         entity drone_ent = _engine.get_registry().spawn_entity();
 
-                        _engine.get_registry().add_component(drone_ent, 
-                            position{-200.0f, player_pos.y + 5.0f});
+                        _engine.get_registry().add_component(
+                            drone_ent, position{-200.0f, player_pos.y + 5.0f});
 
                         _engine.get_registry().add_component(drone_ent, velocity{0.0f, 0.0f});
 
@@ -873,13 +912,14 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                         sprite.grayscale = true;
                         _engine.get_registry().add_component(drone_ent, sprite);
 
-                        _engine.get_registry().add_component(drone_ent, 
-                            entity_tag{RType::EntityType::MissileDrone});
+                        _engine.get_registry().add_component(
+                            drone_ent, entity_tag{RType::EntityType::MissileDrone});
 
                         md.drone_entities[drone_idx] = drone_ent;
                     }
 
-                    auto& drone_pos_opt = _engine.get_registry().get_component<position>(md.drone_entities[drone_idx].value());
+                    auto& drone_pos_opt = _engine.get_registry().get_component<position>(
+                        md.drone_entities[drone_idx].value());
 
                     if (drone_pos_opt.has_value()) {
                         float vertical_offset = md.get_vertical_offset();
@@ -912,18 +952,24 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                 }
 
                 if (md.can_shoot()) {
-                    for (std::size_t drone_idx = 0; drone_idx < static_cast<std::size_t>(md.num_drones); ++drone_idx) {
+                    for (std::size_t drone_idx = 0;
+                         drone_idx < static_cast<std::size_t>(md.num_drones); ++drone_idx) {
                         if (md.drone_entities[drone_idx].has_value()) {
-                            auto& drone_pos_opt = _engine.get_registry().get_component<position>(md.drone_entities[drone_idx].value());
+                            auto& drone_pos_opt = _engine.get_registry().get_component<position>(
+                                md.drone_entities[drone_idx].value());
 
                             if (drone_pos_opt.has_value()) {
                                 auto& enemies = _engine.get_registry().get_components<enemy_tag>();
-                                auto& enemy_positions = _engine.get_registry().get_components<position>();
+                                auto& enemy_positions =
+                                    _engine.get_registry().get_components<position>();
 
                                 std::vector<std::pair<float, float>> targets;
 
-                                for (std::size_t j = 0; j < enemies.size() && targets.size() < static_cast<size_t>(md.missiles_per_volley); ++j) {
-                                    if (enemies[j].has_value() && j < enemy_positions.size() && 
+                                for (std::size_t j = 0;
+                                     j < enemies.size() &&
+                                     targets.size() < static_cast<size_t>(md.missiles_per_volley);
+                                     ++j) {
+                                    if (enemies[j].has_value() && j < enemy_positions.size() &&
                                         enemy_positions[j].has_value()) {
                                         auto& enemy_pos = enemy_positions[j].value();
 
@@ -934,10 +980,14 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                 }
 
                                 auto& boss_tags = _engine.get_registry().get_components<boss_tag>();
-                                auto& boss_positions = _engine.get_registry().get_components<position>();
+                                auto& boss_positions =
+                                    _engine.get_registry().get_components<position>();
 
-                                for (std::size_t j = 0; j < boss_tags.size() && targets.size() < static_cast<size_t>(md.missiles_per_volley); ++j) {
-                                    if (boss_tags[j].has_value() && j < boss_positions.size() && 
+                                for (std::size_t j = 0;
+                                     j < boss_tags.size() &&
+                                     targets.size() < static_cast<size_t>(md.missiles_per_volley);
+                                     ++j) {
+                                    if (boss_tags[j].has_value() && j < boss_positions.size() &&
                                         boss_positions[j].has_value()) {
                                         auto& boss_pos = boss_positions[j].value();
 
@@ -956,9 +1006,10 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                         float projectile_speed = 600.0f;
                                         float vx = (dx / magnitude) * projectile_speed;
                                         float vy = (dy / magnitude) * projectile_speed;
-                                        ::createProjectile(_engine.get_registry(), 
-                                            drone_pos_opt->x + 20.0f, drone_pos_opt->y, 
-                                            vx, vy, 20, WeaponUpgradeType::AllyMissile, false);
+                                        ::createProjectile(_engine.get_registry(),
+                                                           drone_pos_opt->x + 20.0f,
+                                                           drone_pos_opt->y, vx, vy, 20,
+                                                           WeaponUpgradeType::AllyMissile, false);
                                     }
                                 }
                             }
@@ -997,7 +1048,6 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
             explosion_tags[i].value().elapsed += dt;
         }
     }
-
 }
 
 void GameSession::send_periodic_updates(UDPServer& server, float dt) {
@@ -1013,30 +1063,36 @@ void GameSession::send_periodic_updates(UDPServer& server, float dt) {
     if (_game_phase == GamePhase::Lobby) {
         _lobby_broadcast_accumulator += dt;
         if (_lobby_broadcast_accumulator >= lobby_broadcast_interval) {
-            _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
+            _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status,
+                                                      _lobby_client_ids);
             _lobby_broadcast_accumulator -= lobby_broadcast_interval;
         }
     } else {
         _pos_broadcast_accumulator += dt;
         if (_pos_broadcast_accumulator >= position_broadcast_interval) {
-            _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
+            _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(),
+                                                           _client_entity_ids, _lobby_client_ids);
             _pos_broadcast_accumulator -= position_broadcast_interval;
         }
         _level_broadcast_accumulator += dt;
         if (_level_broadcast_accumulator >= level_broadcast_interval) {
-            _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), _lobby_client_ids);
+            _game_broadcaster.broadcast_level_info(server, _engine.get_registry(),
+                                                   _lobby_client_ids);
             _level_broadcast_accumulator -= level_broadcast_interval;
         }
         check_level_completion(server);
         _powerup_broadcast_accumulator += dt;
         if (_powerup_broadcast_accumulator >= 0.2f) {
-            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
+            _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
+                                                          _client_entity_ids, _lobby_client_ids);
 
             for (const auto& [client_id, entity_id] : _client_entity_ids) {
                 auto player = _engine.get_registry().entity_from_index(entity_id);
-                auto& powerups_opt = _engine.get_registry().get_component<player_powerups_component>(player);
+                auto& powerups_opt =
+                    _engine.get_registry().get_component<player_powerups_component>(player);
                 if (powerups_opt.has_value()) {
-                    _powerup_broadcaster.broadcast_activable_slots(server, client_id, powerups_opt->activable_slots);
+                    _powerup_broadcaster.broadcast_activable_slots(server, client_id,
+                                                                   powerups_opt->activable_slots);
                 }
             }
 
@@ -1068,7 +1124,8 @@ void GameSession::check_level_completion(UDPServer& server) {
                 _players_who_chose_powerup.clear();
                 _level_manager.clear_enemies_and_projectiles(_engine.get_registry(), _boss_entity);
 
-                _game_broadcaster.broadcast_level_complete(server, _engine.get_registry(), _lobby_client_ids);
+                _game_broadcaster.broadcast_level_complete(server, _engine.get_registry(),
+                                                           _lobby_client_ids);
                 for (const auto& [client_id, entity_id] : _client_entity_ids) {
                     auto player = _engine.get_registry().entity_from_index(entity_id);
                     auto health_opt = _engine.get_registry().get_component<health>(player);
@@ -1101,7 +1158,8 @@ void GameSession::advance_level(UDPServer& server) {
 
     _player_manager.respawn_dead_players(_engine.get_registry(), _client_entity_ids);
 
-    _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
+    _entity_broadcaster.broadcast_entity_positions(server, _engine.get_registry(),
+                                                   _client_entity_ids, _lobby_client_ids);
 
     uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
 
@@ -1109,9 +1167,9 @@ void GameSession::advance_level(UDPServer& server) {
     if (!_is_custom_level) {
         if (current_level == 5) {
             std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
-            _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
-                                             _boss_shoot_timer, _boss_animation_complete,
-                                             _boss_entrance_complete, _boss_target_x);
+            _boss_manager.spawn_boss_level_5(
+                _engine.get_registry(), _boss_entity, _boss_animation_timer, _boss_shoot_timer,
+                _boss_animation_complete, _boss_entrance_complete, _boss_target_x);
 
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         } else if (current_level == 10) {
@@ -1122,12 +1180,14 @@ void GameSession::advance_level(UDPServer& server) {
         }
     }
 
-    _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id, _lobby_client_ids);
+    _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id,
+                                            _lobby_client_ids);
 }
 
 void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
     auto& level_managers = _engine.get_registry().get_components<level_manager>();
-    std::optional<size_t> level_mgr_idx = _level_manager.get_level_manager_index(_engine.get_registry());
+    std::optional<size_t> level_mgr_idx =
+        _level_manager.get_level_manager_index(_engine.get_registry());
 
     _client_entity_ids.clear();
 
@@ -1270,11 +1330,13 @@ void GameSession::remove_player(int client_id) {
         _engine.get_registry().kill_entity(entity);
         _client_entity_ids.erase(it);
 
-        std::cout << "[GameSession] Player " << client_id << " and associated entities removed" << std::endl;
+        std::cout << "[GameSession] Player " << client_id << " and associated entities removed"
+                  << std::endl;
     }
 }
 
-void GameSession::handle_packet(UDPServer& server, int client_id, const std::vector<uint8_t>& data) {
+void GameSession::handle_packet(UDPServer& server, int client_id,
+                                const std::vector<uint8_t>& data) {
     if (data.empty() || data.size() < 3) {
         return;
     }
@@ -1286,7 +1348,8 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
         deserializer >> magic;
 
         if (!RType::MagicNumber::is_valid(magic)) {
-            std::cerr << "[GameSession] Invalid magic number from client " << client_id << std::endl;
+            std::cerr << "[GameSession] Invalid magic number from client " << client_id
+                      << std::endl;
             return;
         }
 
@@ -1301,16 +1364,16 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
                 if (_waiting_for_powerup_choice) {
                     break;
                 }
-                auto player_opt =
-                    _player_manager.get_player_entity(_engine.get_registry(), _client_entity_ids, client_id);
+                auto player_opt = _player_manager.get_player_entity(_engine.get_registry(),
+                                                                    _client_entity_ids, client_id);
                 if (!player_opt.has_value()) {
                     if (_client_player_index.find(client_id) == _client_player_index.end()) {
                         if (!_available_player_slots.empty()) {
                             int assigned_slot = *_available_player_slots.begin();
                             _available_player_slots.erase(_available_player_slots.begin());
                             _client_player_index[client_id] = assigned_slot;
-                            std::cout << "[GameSession] Reconnect: Assigned player slot " << assigned_slot
-                                      << " to client " << client_id << std::endl;
+                            std::cout << "[GameSession] Reconnect: Assigned player slot "
+                                      << assigned_slot << " to client " << client_id << std::endl;
                         } else {
                             _client_player_index[client_id] = 1;
                         }
@@ -1318,18 +1381,20 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
                     int player_index = _client_player_index[client_id];
                     float start_x = 100.0f + (static_cast<float>(client_id) * 50.0f);
                     float start_y = 300.0f;
-                    auto player = _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
-                                                                client_id, start_x, start_y, player_index);
-                    std::cout << "[GameSession] New player connected (Implicit): Client " << client_id
-                              << " (Entity " << player.id() << ", Index " << player_index << ")" << std::endl;
+                    auto player =
+                        _player_manager.create_player(_engine.get_registry(), _client_entity_ids,
+                                                      client_id, start_x, start_y, player_index);
+                    std::cout << "[GameSession] New player connected (Implicit): Client "
+                              << client_id << " (Entity " << player.id() << ", Index "
+                              << player_index << ")" << std::endl;
                 }
 
                 std::vector<uint8_t> payload(
                     deserializer.data().begin() +
                         static_cast<std::ptrdiff_t>(deserializer.read_position()),
                     deserializer.data().end());
-                _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids, client_id,
-                                                   payload);
+                _input_handler.handle_player_input(_engine.get_registry(), _client_entity_ids,
+                                                   client_id, payload);
                 break;
             }
             case RType::OpCode::PlayerReady: {
@@ -1337,35 +1402,38 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
                 deserializer >> ready_val;
                 bool ready = (ready_val != 0);
                 handle_player_ready(client_id, ready);
-                _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status, _lobby_client_ids);
+                _lobby_broadcaster.broadcast_lobby_status(server, _client_ready_status,
+                                                          _lobby_client_ids);
                 check_start_game(server);
                 break;
             }
             case RType::OpCode::WeaponUpgradeChoice: {
                 uint8_t choice;
                 deserializer >> choice;
-                std::cout << "[GameSession] Client " << client_id << " chose weapon upgrade: "
-                          << static_cast<int>(choice) << std::endl;
-                _weapon_handler.handle_weapon_upgrade_choice(_engine.get_registry(), _client_entity_ids,
-                                                            client_id, choice);
+                std::cout << "[GameSession] Client " << client_id
+                          << " chose weapon upgrade: " << static_cast<int>(choice) << std::endl;
+                _weapon_handler.handle_weapon_upgrade_choice(_engine.get_registry(),
+                                                             _client_entity_ids, client_id, choice);
                 break;
             }
             case RType::OpCode::PowerUpChoice: {
                 uint8_t choice;
                 deserializer >> choice;
-                std::cout << "[GameSession] Client " << client_id << " chose powerup: "
-                          << static_cast<int>(choice) << std::endl;
-                _powerup_handler.handle_powerup_choice(_engine.get_registry(),
-                                                      _client_entity_ids,
-                                                      _players_who_chose_powerup, client_id, choice);
-                int alive_players = _powerup_handler.count_alive_players(_engine.get_registry(), _client_entity_ids);
+                std::cout << "[GameSession] Client " << client_id
+                          << " chose powerup: " << static_cast<int>(choice) << std::endl;
+                _powerup_handler.handle_powerup_choice(_engine.get_registry(), _client_entity_ids,
+                                                       _players_who_chose_powerup, client_id,
+                                                       choice);
+                int alive_players = _powerup_handler.count_alive_players(_engine.get_registry(),
+                                                                         _client_entity_ids);
                 if (static_cast<int>(_players_who_chose_powerup.size()) >= alive_players) {
-                    std::cout << "[GameSession] All players have chosen! Advancing level..." << std::endl;
+                    std::cout << "[GameSession] All players have chosen! Advancing level..."
+                              << std::endl;
                     _waiting_for_powerup_choice = false;
                     _level_complete_waiting = false;
                     _players_who_chose_powerup.clear();
-                    _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
-                                                                  _client_entity_ids, _lobby_client_ids);
+                    _powerup_broadcaster.broadcast_powerup_status(
+                        server, _engine.get_registry(), _client_entity_ids, _lobby_client_ids);
                     advance_level(server);
                 }
                 break;
@@ -1373,10 +1441,10 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
             case RType::OpCode::PowerUpActivate: {
                 uint8_t powerup_type;
                 deserializer >> powerup_type;
-                std::cout << "[GameSession] Client " << client_id << " activated powerup: "
-                          << static_cast<int>(powerup_type) << std::endl;
-                _powerup_handler.handle_powerup_activate(_engine.get_registry(),
-                                                        _client_entity_ids, client_id, powerup_type);
+                std::cout << "[GameSession] Client " << client_id
+                          << " activated powerup: " << static_cast<int>(powerup_type) << std::endl;
+                _powerup_handler.handle_powerup_activate(_engine.get_registry(), _client_entity_ids,
+                                                         client_id, powerup_type);
                 break;
             }
             default:
@@ -1393,44 +1461,47 @@ void GameSession::load_custom_level() {
     _loaded_custom_level = std::nullopt;
     _current_custom_level_id.clear();
     resetCustomWaveState(_custom_wave_state);
-    
+
     std::cout << "[Game] Loading custom level with id: " << _custom_level_id << std::endl;
-    
+
     auto& level_mgr = rtype::level::CustomLevelManager::instance();
     std::filesystem::path custom_dir = "levels/custom";
-    std::cout << "[Game] Looking for levels in: " << std::filesystem::absolute(custom_dir) << std::endl;
-    
+    std::cout << "[Game] Looking for levels in: " << std::filesystem::absolute(custom_dir)
+              << std::endl;
+
     if (!std::filesystem::exists(custom_dir)) {
         std::cout << "[Game] ERROR: Directory does not exist: " << custom_dir << std::endl;
         return;
     }
-    
+
     level_mgr.setCustomLevelsDirectory(custom_dir);
     level_mgr.reloadAllLevels();
-    
+
     auto available_before = level_mgr.getAvailableLevelIds();
     std::cout << "[Game] Available levels after reload (" << available_before.size() << "): ";
     for (const auto& id : available_before) {
         std::cout << "'" << id << "' ";
     }
     std::cout << std::endl;
-    
+
     _current_custom_level_id = _custom_level_id;
-    
+
     std::cout << "[Game] Looking for level with ID: " << _current_custom_level_id << std::endl;
-    
+
     const auto* loaded = level_mgr.getLevel(_current_custom_level_id);
     if (!loaded) {
-        std::cout << "[Game] Failed to load custom level: " << _current_custom_level_id << std::endl;
+        std::cout << "[Game] Failed to load custom level: " << _current_custom_level_id
+                  << std::endl;
         _current_custom_level_id.clear();
         return;
     }
-    
+
     _loaded_custom_level = loaded->config;
     _is_custom_level = true;
     initCustomWaveState(_custom_wave_state, _current_custom_level_id);
-    
-    std::cout << "[Game] Successfully loaded custom level: " << loaded->config.metadata.name << std::endl;
+
+    std::cout << "[Game] Successfully loaded custom level: " << loaded->config.metadata.name
+              << std::endl;
     std::cout << "[Game] - Author: " << loaded->config.metadata.author << std::endl;
     std::cout << "[Game] - Waves: " << loaded->config.waves.size() << std::endl;
     std::cout << "[Game] - Enemy types: " << loaded->config.enemy_definitions.size() << std::endl;
@@ -1440,9 +1511,9 @@ void GameSession::update_custom_level(float dt) {
     if (!_is_custom_level || !_loaded_custom_level.has_value()) {
         return;
     }
-    
-    updateCustomWaveSystem(_engine.get_registry(), _custom_wave_state, 
-                           _loaded_custom_level.value(), dt);
+
+    updateCustomWaveSystem(_engine.get_registry(), _custom_wave_state, _loaded_custom_level.value(),
+                           dt);
 }
 
 }  // namespace server

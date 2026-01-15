@@ -1,10 +1,10 @@
 #include "game/Game.hpp"
 
+#include "../../src/Common/BinarySerializer.hpp"
+#include "../../src/Common/Opcodes.hpp"
 #include "common/Settings.hpp"
 #include "input/InputKey.hpp"
 #include "level/CustomLevelLoader.hpp"
-#include "../../src/Common/BinarySerializer.hpp"
-#include "../../src/Common/Opcodes.hpp"
 
 #include <SFML/Graphics.hpp>
 #include <cmath>
@@ -28,7 +28,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     enemies_killed_ = 0;
     show_level_intro_ = true;
     level_intro_timer_ = 0.0f;
-    
+
     my_activable_slots_.resize(2, {std::nullopt, 0});
     my_slot_timers_.resize(2, 0.0f);
     my_slot_cooldowns_.resize(2, 0.0f);
@@ -66,7 +66,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     } catch (const std::exception& e) {
         std::cerr << "[Game] Failed to load textures: " << e.what() << std::endl;
     }
-    
+
     game_renderer_.init(window_);
     hud_renderer_.init(font_);
     overlay_renderer_.init(font_);
@@ -76,14 +76,14 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     auto& audio = managers::AudioManager::instance();
     audio.load_sounds();
     audio.play_music("assets/sounds/game-loop.ogg", true);
-    
+
     // Nettoyer les anciennes entités en cas de reconnexion
     entities_.clear();
     has_server_position_ = false;
     boss_spawn_triggered_ = false;
     show_game_over_ = false;
     game_over_timer_ = 0.0f;
-    
+
     // Demander l'état complet du jeu au serveur
     request_game_state();
 }
@@ -94,11 +94,11 @@ Game::~Game() {
 
 void Game::request_game_state() {
     std::cout << "[Game] Requesting full game state from server..." << std::endl;
-    
+
     RType::BinarySerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::RequestGameState;
-    
+
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
     game_to_network_queue_.push(msg);
 }
@@ -197,7 +197,8 @@ void Game::handle_event(const sf::Event& event) {
         }
         int connected = 0;
         for (const auto& [id, e] : entities_) {
-            if (e.type == 0x01) ++connected;
+            if (e.type == 0x01)
+                ++connected;
         }
         m_settings_panel->open(true, connected);
         m_settings_panel->set_quit_callback([this]() { this->request_return_to_menu(); });
@@ -277,10 +278,14 @@ void Game::update() {
         float vx = 0.0f;
         float vy = 0.0f;
 
-        if (last_input_mask_ & 0x01) vy = -speed;
-        if (last_input_mask_ & 0x02) vy = speed;
-        if (last_input_mask_ & 0x04) vx = -speed;
-        if (last_input_mask_ & 0x08) vx = speed;
+        if (last_input_mask_ & 0x01)
+            vy = -speed;
+        if (last_input_mask_ & 0x02)
+            vy = speed;
+        if (last_input_mask_ & 0x04)
+            vx = -speed;
+        if (last_input_mask_ & 0x08)
+            vx = speed;
 
         predicted_player_x_ += vx * dt;
         predicted_player_y_ += vy * dt;
@@ -432,7 +437,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                     entity.frames.clear();
                     int fw = enemy_def.sprite.frame_width;
                     int fh = enemy_def.sprite.frame_height;
-                    
+
                     // Hardcoded special frame handling
                     if (enemy_def.id == "fairy2") {
                         for (int i = 0; i < 5; ++i) {
@@ -451,20 +456,23 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                             entity.frames.push_back({i * fw, 0, fw, fh});
                         }
                     }
-                    
+
                     entity.frame_duration = enemy_def.sprite.frame_duration;
                     entity.loop = true;
                     entity.sprite.setTextureRect(entity.frames[0]);
-                    float sx = enemy_def.sprite.mirror_x ? -enemy_def.sprite.scale_x : enemy_def.sprite.scale_x;
-                    float sy = enemy_def.sprite.mirror_y ? -enemy_def.sprite.scale_y : enemy_def.sprite.scale_y;
+                    float sx = enemy_def.sprite.mirror_x ? -enemy_def.sprite.scale_x
+                                                         : enemy_def.sprite.scale_x;
+                    float sy = enemy_def.sprite.mirror_y ? -enemy_def.sprite.scale_y
+                                                         : enemy_def.sprite.scale_y;
                     entity.sprite.setScale(sx, sy);
-                    entity.sprite.setRotation(enemy_def.sprite.rotation);  // Apply rotation from config
+                    entity.sprite.setRotation(
+                        enemy_def.sprite.rotation);  // Apply rotation from config
                 } else {
-                    std::cerr << "[Game] Error: Texture not loaded for custom enemy ID: " 
+                    std::cerr << "[Game] Error: Texture not loaded for custom enemy ID: "
                               << entity.custom_entity_id << std::endl;
                 }
             } else {
-                std::cerr << "[Game] Error: Custom enemy definition not found for ID: " 
+                std::cerr << "[Game] Error: Custom enemy definition not found for ID: "
                           << entity.custom_entity_id << std::endl;
             }
         }
@@ -488,10 +496,12 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
         // Standard game projectiles
         bool is_enemy2_projectile = (entity.vx < 0 && std::abs(entity.vy) > 10.0f);
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
-        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && entity.vx > 0);
+        bool is_missile_drone_projectile =
+            (projectile_speed >= 580.0f && projectile_speed <= 620.0f && entity.vx > 0);
         bool is_fast_projectile = (projectile_speed > 650.0f && entity.vx > 0);
 
-        if (is_missile_drone_projectile && !is_fast_projectile && texture_mgr.has("assets/missile.png")) {
+        if (is_missile_drone_projectile && !is_fast_projectile &&
+            texture_mgr.has("assets/missile.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/missile.png"));
             entity.frames = {{0, 0, 18, 17}};
             entity.frame_duration = 0.1F;
@@ -534,12 +544,13 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
         if (!entity.custom_entity_id.empty() && texture_mgr.has(entity.custom_entity_id)) {
             // Try to find projectile definition to get proper sprite config
             bool found_projectile = false;
-            
+
             if (custom_level_config_) {
                 // Search in enemy projectiles
                 for (const auto& pair : custom_level_config_->enemy_definitions) {
                     const auto& enemy_def = pair.second;
-                    if (enemy_def.projectile && enemy_def.projectile->sprite.texture_path == entity.custom_entity_id) {
+                    if (enemy_def.projectile &&
+                        enemy_def.projectile->sprite.texture_path == entity.custom_entity_id) {
                         const auto& proj = *enemy_def.projectile;
                         entity.sprite.setTexture(*texture_mgr.get(proj.sprite.texture_path));
                         entity.frames.clear();
@@ -552,16 +563,18 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                         entity.loop = true;
                         entity.sprite.setTextureRect(entity.frames[0]);
                         entity.sprite.setScale(proj.sprite.scale_x, proj.sprite.scale_y);
-                        entity.sprite.setRotation(proj.sprite.rotation);  // Apply rotation from config
+                        entity.sprite.setRotation(
+                            proj.sprite.rotation);  // Apply rotation from config
                         found_projectile = true;
                         break;
                     }
                 }
-                
+
                 // Search in boss projectile
-                if (!found_projectile && custom_level_config_->boss_definition && 
+                if (!found_projectile && custom_level_config_->boss_definition &&
                     custom_level_config_->boss_definition->projectile &&
-                    custom_level_config_->boss_definition->projectile->sprite.texture_path == entity.custom_entity_id) {
+                    custom_level_config_->boss_definition->projectile->sprite.texture_path ==
+                        entity.custom_entity_id) {
                     const auto& proj = *custom_level_config_->boss_definition->projectile;
                     entity.sprite.setTexture(*texture_mgr.get(proj.sprite.texture_path));
                     entity.frames.clear();
@@ -578,9 +591,9 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                     found_projectile = true;
                 }
             }
-            
+
             if (!found_projectile) {
-                std::cerr << "[Game] Warning: Custom projectile definition not found for texture: " 
+                std::cerr << "[Game] Warning: Custom projectile definition not found for texture: "
                           << entity.custom_entity_id << std::endl;
             }
         }
@@ -612,7 +625,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
         }
     } else if (entity.type == 0x21) {
         // Custom level boss - use custom_entity_id for direct lookup
-        if (custom_level_config_ && custom_level_config_->boss_definition && 
+        if (custom_level_config_ && custom_level_config_->boss_definition &&
             !entity.custom_entity_id.empty()) {
             const auto& boss = *custom_level_config_->boss_definition;
             if (texture_mgr.has(boss.sprite.texture_path)) {
@@ -631,7 +644,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                 entity.sprite.setScale(sx, sy);
                 entity.sprite.setRotation(boss.sprite.rotation);  // Apply rotation from config
             } else {
-                std::cerr << "[Game] Error: Texture not loaded for custom boss ID: " 
+                std::cerr << "[Game] Error: Texture not loaded for custom boss ID: "
                           << entity.custom_entity_id << std::endl;
             }
         }
@@ -657,13 +670,13 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-        
+
     } else if (entity.type == 0x0B) {
         // LaserBeam entity - Rendered using particle system (no sprite)
         entity.sprite.setTexture(sf::Texture());
         entity.frames = {{0, 0, 1, 1}};
         entity.loop = false;
-        
+
     } else if (entity.type == 0x0C) {
         if (texture_mgr.has("assets/r-typesheet5.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet5.gif"));
@@ -675,7 +688,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(2.5F, 2.5F);
             entity.grayscale = false;
         }
-        
+
     } else if (entity.type == 0x0D) {
         if (texture_mgr.has("assets/drone.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/drone.png"));
@@ -687,10 +700,11 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(1.0F, 1.0F);
             entity.grayscale = false;
         }
-        
+
     } else if (entity.type == 0x0A) {
-        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
-        
+        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A"
+                  << std::endl;
+
     } else if (entity.type == 0x10) {
         if (texture_mgr.has("assets/serpent_nest.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_nest.png"));
@@ -701,7 +715,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(4.0F, 4.0F);
         }
-        
+
     } else if (entity.type == 0x11) {
         if (texture_mgr.has("assets/serpent_head.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_head.png"));
@@ -712,7 +726,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-        
+
     } else if (entity.type == 0x12) {
         if (texture_mgr.has("assets/serpent_body.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_body.png"));
@@ -723,7 +737,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-        
+
     } else if (entity.type == 0x13) {
         if (texture_mgr.has("assets/serpent_scale.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_scale.png"));
@@ -734,7 +748,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-        
+
     } else if (entity.type == 0x14) {
         if (texture_mgr.has("assets/serpent_tail.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_tail.png"));
@@ -745,7 +759,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
         }
-        
+
     } else if (entity.type == 0x15) {
         if (texture_mgr.has("assets/serpent_homing.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_homing.png"));
@@ -756,19 +770,19 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
-        
+
     } else if (entity.type == 0x16) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
-        
+
     } else if (entity.type == 0x17) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
-        
+
     } else if (entity.type == 0x18) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
-        
+
     } else if (entity.type == 0x19) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
@@ -817,7 +831,8 @@ void Game::process_network_messages() {
                         } else {
                             bool needs_sprite_reset = false;
 
-                            if (incoming.type == 0x01 && it->second.player_index != incoming.player_index) {
+                            if (incoming.type == 0x01 &&
+                                it->second.player_index != incoming.player_index) {
                                 needs_sprite_reset = true;
                             }
 
@@ -931,8 +946,7 @@ void Game::process_network_messages() {
                     if (custom_level_config_) {
                         game_renderer_.set_custom_background(
                             custom_level_config_->environment.background_texture,
-                            custom_level_config_->environment.background_static
-                        );
+                            custom_level_config_->environment.background_static);
                     }
                 } else {
                     custom_level_config_ = std::nullopt;
@@ -955,7 +969,8 @@ void Game::process_network_messages() {
 
                 update_powerup_card_sprites();
 
-                std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards" << std::endl;
+                std::cout << "[Game] Received " << powerup_cards_.size() << " power-up cards"
+                          << std::endl;
                 break;
             case NetworkToGame::MessageType::PowerUpStatus:
                 player_powerups_[{msg.powerup_player_id, msg.powerup_type}] =
@@ -971,7 +986,8 @@ void Game::process_network_messages() {
                         if (i < msg.activable_slots.size()) {
                             const auto& slot = msg.activable_slots[i];
                             if (slot.has_powerup) {
-                                my_activable_slots_[i] = {static_cast<powerup::PowerupId>(slot.powerup_id), slot.level};
+                                my_activable_slots_[i] = {
+                                    static_cast<powerup::PowerupId>(slot.powerup_id), slot.level};
                                 my_slot_timers_[i] = slot.time_remaining;
                                 my_slot_cooldowns_[i] = slot.cooldown_remaining;
                                 my_slot_active_[i] = slot.is_active;
@@ -1008,8 +1024,8 @@ void Game::render() {
     game_renderer_.apply_screen_shake(window_);
     game_renderer_.render_background(window_);
 
-    game_renderer_.render_entities(window_, entities_, my_network_id_, dt, 
-                                    predicted_player_x_, predicted_player_y_);
+    game_renderer_.render_entities(window_, entities_, my_network_id_, dt, predicted_player_x_,
+                                   predicted_player_y_);
 
     game_renderer_.render_laser_particles(window_, entities_, dt);
 
@@ -1051,7 +1067,8 @@ void Game::update_powerup_card_sprites() {
     const auto& registry = powerup::PowerupRegistry::instance();
 
     if (powerup_cards_.size() > 0) {
-        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
+        auto powerup_def =
+            registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[0].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
@@ -1060,7 +1077,8 @@ void Game::update_powerup_card_sprites() {
             if (texture_mgr.has(asset_path)) {
                 powerup_card1_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
-                powerup_card1_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                powerup_card1_sprite_.setTextureRect(
+                    sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
 
                 auto bounds = powerup_card1_sprite_.getLocalBounds();
                 powerup_card1_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -1071,7 +1089,8 @@ void Game::update_powerup_card_sprites() {
     }
 
     if (powerup_cards_.size() > 1) {
-        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
+        auto powerup_def =
+            registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[1].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
@@ -1080,7 +1099,8 @@ void Game::update_powerup_card_sprites() {
             if (texture_mgr.has(asset_path)) {
                 powerup_card2_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
-                powerup_card2_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                powerup_card2_sprite_.setTextureRect(
+                    sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
 
                 auto bounds = powerup_card2_sprite_.getLocalBounds();
                 powerup_card2_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -1091,7 +1111,8 @@ void Game::update_powerup_card_sprites() {
     }
 
     if (powerup_cards_.size() > 2) {
-        auto powerup_def = registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
+        auto powerup_def =
+            registry.get_powerup(static_cast<powerup::PowerupId>(powerup_cards_[2].id));
         if (powerup_def) {
             const auto& def = *powerup_def;
             std::string asset_path = def.asset_path;
@@ -1100,7 +1121,8 @@ void Game::update_powerup_card_sprites() {
             if (texture_mgr.has(asset_path)) {
                 powerup_card3_sprite_.setTexture(*texture_mgr.get(asset_path));
                 auto tex_size = texture_mgr.get(asset_path)->getSize();
-                powerup_card3_sprite_.setTextureRect(sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
+                powerup_card3_sprite_.setTextureRect(
+                    sf::IntRect(0, 0, static_cast<int>(tex_size.x), static_cast<int>(tex_size.y)));
 
                 auto bounds = powerup_card3_sprite_.getLocalBounds();
                 powerup_card3_sprite_.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -1117,13 +1139,14 @@ void Game::load_custom_level(const std::string& level_id) {
         current_custom_level_id_.clear();
         return;
     }
-    
+
     auto loaded = level::CustomLevelLoader::load(level_id);
     if (loaded) {
         custom_level_config_ = std::move(loaded);
         current_custom_level_id_ = level_id;
         load_custom_level_textures();
-        std::cout << "[Game] Loaded custom level config: " << custom_level_config_->name << std::endl;
+        std::cout << "[Game] Loaded custom level config: " << custom_level_config_->name
+                  << std::endl;
     } else {
         std::cerr << "[Game] Failed to load custom level: " << level_id << std::endl;
         custom_level_config_ = std::nullopt;
@@ -1132,17 +1155,19 @@ void Game::load_custom_level(const std::string& level_id) {
 }
 
 void Game::load_custom_level_textures() {
-    if (!custom_level_config_) return;
-    
+    if (!custom_level_config_)
+        return;
+
     auto& texture_mgr = managers::TextureManager::instance();
-    
+
     for (const auto& path : custom_level_config_->get_all_texture_paths()) {
         if (!path.empty() && !texture_mgr.has(path)) {
             try {
                 texture_mgr.load(path);
                 std::cout << "[Game] Loaded custom texture: " << path << std::endl;
             } catch (const std::exception& e) {
-                std::cerr << "[Game] Failed to load custom texture " << path << ": " << e.what() << std::endl;
+                std::cerr << "[Game] Failed to load custom texture " << path << ": " << e.what()
+                          << std::endl;
             }
         }
     }

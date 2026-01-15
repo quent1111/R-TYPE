@@ -1,6 +1,7 @@
 #include "rendering/HUDRenderer.hpp"
 
 #include "managers/EffectsManager.hpp"
+
 #include <iostream>
 
 namespace rendering {
@@ -86,21 +87,21 @@ void HUDRenderer::init(const sf::Font& font) {
     const float boss_bar_height = 30.0f;
     const float boss_bar_x = (WINDOW_WIDTH - boss_bar_width) / 2.0f;
     const float boss_bar_y = 90.0f;
-    
+
     boss_health_bar_border_.setSize(sf::Vector2f(boss_bar_width + 6.0f, boss_bar_height + 6.0f));
     boss_health_bar_border_.setPosition(boss_bar_x - 3.0f, boss_bar_y - 3.0f);
     boss_health_bar_border_.setFillColor(sf::Color(80, 0, 0, 255));
     boss_health_bar_border_.setOutlineColor(sf::Color(200, 50, 50));
     boss_health_bar_border_.setOutlineThickness(3.0f);
-    
+
     boss_health_bar_bg_.setSize(sf::Vector2f(boss_bar_width, boss_bar_height));
     boss_health_bar_bg_.setPosition(boss_bar_x, boss_bar_y);
     boss_health_bar_bg_.setFillColor(sf::Color(30, 30, 30, 220));
-    
+
     boss_health_bar_fill_.setSize(sf::Vector2f(boss_bar_width, boss_bar_height));
     boss_health_bar_fill_.setPosition(boss_bar_x, boss_bar_y);
     boss_health_bar_fill_.setFillColor(sf::Color(200, 0, 0));
-    
+
     boss_name_text_.setFont(font);
     boss_name_text_.setCharacterSize(28);
     boss_name_text_.setFillColor(sf::Color(255, 200, 50));
@@ -177,13 +178,15 @@ void HUDRenderer::render_health_bar(sf::RenderWindow& window,
     }
 }
 
-void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro, bool is_custom_level) {
+void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro,
+                                   bool is_custom_level) {
     if (show_level_intro) {
         return;
     }
 
     // Only show boss wave styling for standard game, not custom levels
-    bool is_boss_wave = !is_custom_level && (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
+    bool is_boss_wave =
+        !is_custom_level && (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
 
     if (is_boss_wave) {
         level_text_.setFillColor(sf::Color(255, 50, 50));
@@ -266,17 +269,18 @@ void HUDRenderer::render_combo_bar(sf::RenderWindow& window) {
     window.draw(combo_text_);
 }
 
-void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::map<uint32_t, Entity>& entities) {
+void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window,
+                                         const std::map<uint32_t, Entity>& entities) {
     bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
     if (!is_boss_wave) {
         return;
     }
-    
+
     int boss_current_hp = 0;
     int boss_max_hp = 0;
     bool boss_found = false;
     std::string boss_name = "BOSS";
-    
+
     for (const auto& [id, entity] : entities) {
         if (entity.type == 0x08 && current_level_ == 5) {
             boss_current_hp = entity.health;
@@ -293,23 +297,23 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
             break;
         }
     }
-    
+
     if (!boss_found || boss_max_hp <= 0) {
         return;
     }
-    
+
     boss_name_text_.setString(boss_name);
     sf::FloatRect name_bounds = boss_name_text_.getLocalBounds();
     boss_name_text_.setOrigin(name_bounds.width / 2.0f, name_bounds.height / 2.0f);
     boss_name_text_.setPosition(WINDOW_WIDTH / 2.0f, 70.0f);
     window.draw(boss_name_text_);
-    
+
     window.draw(boss_health_bar_border_);
     window.draw(boss_health_bar_bg_);
-    
+
     float health_pct = static_cast<float>(boss_current_hp) / static_cast<float>(boss_max_hp);
     health_pct = std::max(0.0f, std::min(1.0f, health_pct));
-    
+
     sf::Color bar_color;
     if (health_pct > 0.6f) {
         bar_color = sf::Color(200, 50, 50);
@@ -318,9 +322,10 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
     } else {
         bar_color = sf::Color(255, 50, 50);
     }
-    
+
     const float boss_bar_width = 800.0f;
-    boss_health_bar_fill_.setSize(sf::Vector2f(boss_bar_width * health_pct, boss_health_bar_fill_.getSize().y));
+    boss_health_bar_fill_.setSize(
+        sf::Vector2f(boss_bar_width * health_pct, boss_health_bar_fill_.getSize().y));
     boss_health_bar_fill_.setFillColor(bar_color);
     window.draw(boss_health_bar_fill_);
 }

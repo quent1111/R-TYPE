@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <unordered_map>
 
 namespace server {
 
@@ -41,8 +41,7 @@ public:
     }
 
     static std::string get(const std::unordered_map<std::string, std::string>& env_vars,
-                          const std::string& key,
-                          const std::string& default_value = "") {
+                           const std::string& key, const std::string& default_value = "") {
         auto it = env_vars.find(key);
         if (it != env_vars.end()) {
             return it->second;

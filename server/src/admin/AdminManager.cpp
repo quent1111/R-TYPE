@@ -1,17 +1,17 @@
 #include "admin/AdminManager.hpp"
-#include "network/UDPServer.hpp"
-#include "game/LobbyManager.hpp"
 
-#include <sstream>
+#include "game/LobbyManager.hpp"
+#include "network/UDPServer.hpp"
+
+#include <algorithm>
 #include <iomanip>
 #include <random>
-#include <algorithm>
+#include <sstream>
 
 namespace server {
 
 AdminManager::AdminManager(const std::string& password_hash)
-    : _password_hash(password_hash),
-      _server_start_time(std::chrono::steady_clock::now()) {
+    : _password_hash(password_hash), _server_start_time(std::chrono::steady_clock::now()) {
     std::cout << "[AdminManager] Initialized with authentication" << std::endl;
 }
 
@@ -37,7 +37,8 @@ bool AdminManager::authenticate(int client_id, const std::string& password) {
     std::string hashed = hash_password(password);
 
     if (hashed != _password_hash) {
-        std::cout << "[AdminManager] Failed authentication attempt from client " << client_id << std::endl;
+        std::cout << "[AdminManager] Failed authentication attempt from client " << client_id
+                  << std::endl;
         return false;
     }
 
@@ -70,7 +71,8 @@ void AdminManager::cleanup_inactive_sessions() {
     auto now = std::chrono::steady_clock::now();
 
     for (auto it = _sessions.begin(); it != _sessions.end();) {
-        auto elapsed = std::chrono::duration_cast<std::chrono::minutes>(now - it->second.last_activity);
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::minutes>(now - it->second.last_activity);
         if (elapsed.count() > 30) {
             std::cout << "[AdminManager] Session timeout for client " << it->first << std::endl;
             it = _sessions.erase(it);
@@ -127,7 +129,7 @@ AdminCommand AdminManager::parse_command(const std::string& command_str) {
 }
 
 std::string AdminManager::execute_command(int client_id, const std::string& command_str,
-                                         UDPServer& server, LobbyManager& lobby_manager) {
+                                          UDPServer& server, LobbyManager& lobby_manager) {
     if (!is_authenticated(client_id)) {
         return "ERROR: Not authenticated";
     }
@@ -169,15 +171,14 @@ std::string AdminManager::execute_list_players(UDPServer& server) {
     ss << "PLAYERS|" << clients.size() << "|";
 
     for (const auto& [client_id, endpoint] : clients) {
-        ss << client_id << ";"
-           << endpoint.address().to_string() << ";"
-           << endpoint.port() << "|";
+        ss << client_id << ";" << endpoint.address().to_string() << ";" << endpoint.port() << "|";
     }
 
     return ss.str();
 }
 
-std::string AdminManager::execute_kick_player(const std::vector<std::string>& args, UDPServer& server, LobbyManager& lobby_manager) {
+std::string AdminManager::execute_kick_player(const std::vector<std::string>& args,
+                                              UDPServer& server, LobbyManager& lobby_manager) {
     if (args.empty()) {
         return "ERROR: Usage: kick <client_id>";
     }
@@ -206,17 +207,15 @@ std::string AdminManager::execute_list_lobbies(LobbyManager& lobby_manager) {
     ss << "LOBBIES|" << lobbies.size() << "|";
 
     for (const auto& lobby : lobbies) {
-        ss << lobby.lobby_id << ";"
-           << lobby.name << ";"
-           << lobby.current_players << ";"
-           << lobby.max_players << ";"
-           << static_cast<int>(lobby.state) << "|";
+        ss << lobby.lobby_id << ";" << lobby.name << ";" << lobby.current_players << ";"
+           << lobby.max_players << ";" << static_cast<int>(lobby.state) << "|";
     }
 
     return ss.str();
 }
 
-std::string AdminManager::execute_close_lobby(const std::vector<std::string>& args, LobbyManager& lobby_manager) {
+std::string AdminManager::execute_close_lobby(const std::vector<std::string>& args,
+                                              LobbyManager& lobby_manager) {
     if (args.empty()) {
         return "ERROR: Usage: close-lobby <lobby_id>";
     }
@@ -246,15 +245,14 @@ std::string AdminManager::execute_server_status(UDPServer& server, LobbyManager&
     auto lobbies = lobby_manager.get_lobby_list();
 
     std::stringstream ss;
-    ss << "STATUS|"
-       << hours << "h " << minutes << "m " << seconds << "s|"
-       << clients.size() << "|"
+    ss << "STATUS|" << hours << "h " << minutes << "m " << seconds << "s|" << clients.size() << "|"
        << lobbies.size();
 
     return ss.str();
 }
 
-std::string AdminManager::execute_announce(const std::vector<std::string>& args, UDPServer& server) {
+std::string AdminManager::execute_announce(const std::vector<std::string>& args,
+                                           UDPServer& server) {
     (void)server;  // Unused parameter
     if (args.empty()) {
         return "ERROR: Usage: announce <message>";
@@ -262,7 +260,8 @@ std::string AdminManager::execute_announce(const std::vector<std::string>& args,
 
     std::string message;
     for (size_t i = 0; i < args.size(); ++i) {
-        if (i > 0) message += " ";
+        if (i > 0)
+            message += " ";
         message += args[i];
     }
 

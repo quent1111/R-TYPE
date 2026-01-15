@@ -13,9 +13,12 @@ public:
     GameBroadcaster() = default;
     ~GameBroadcaster() = default;
 
-    void broadcast_level_info(UDPServer& server, registry& reg, const std::vector<int>& lobby_client_ids);
-    void broadcast_level_complete(UDPServer& server, registry& reg, const std::vector<int>& lobby_client_ids);
-    void broadcast_level_start(UDPServer& server, uint8_t level, const std::string& custom_level_id, const std::vector<int>& lobby_client_ids);
+    void broadcast_level_info(UDPServer& server, registry& reg,
+                              const std::vector<int>& lobby_client_ids);
+    void broadcast_level_complete(UDPServer& server, registry& reg,
+                                  const std::vector<int>& lobby_client_ids);
+    void broadcast_level_start(UDPServer& server, uint8_t level, const std::string& custom_level_id,
+                               const std::vector<int>& lobby_client_ids);
     void broadcast_boss_spawn(UDPServer& server, const std::vector<int>& lobby_client_ids);
     void broadcast_start_game(UDPServer& server, const std::vector<int>& lobby_client_ids);
     void broadcast_game_over(UDPServer& server, const std::vector<int>& lobby_client_ids);

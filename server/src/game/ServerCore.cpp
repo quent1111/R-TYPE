@@ -2,8 +2,8 @@
 
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
-#include "common/NetworkPacket.hpp"
 #include "common/EnvLoader.hpp"
+#include "common/NetworkPacket.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -14,9 +14,7 @@ extern std::atomic<bool> server_running;
 namespace server {
 
 ServerCore::ServerCore()
-    : _lobby_manager(4),
-      _lobby_command_handler(_lobby_manager),
-      _admin_manager(nullptr) {
+    : _lobby_manager(4), _lobby_command_handler(_lobby_manager), _admin_manager(nullptr) {
     auto env_vars = EnvLoader::load(".env");
     std::string admin_password = EnvLoader::get(env_vars, "ADMIN_PASSWORD", "admin123");
 
@@ -40,7 +38,7 @@ void ServerCore::process_network_events(UDPServer& server) {
             deserializer >> magic;
 
             if (!RType::MagicNumber::is_valid(magic)) {
-                std::cerr << "[ServerCore] Invalid magic number from " << packet.sender 
+                std::cerr << "[ServerCore] Invalid magic number from " << packet.sender
                           << " (first bytes: ";
                 for (size_t i = 0; i < std::min(packet.data.size(), size_t(10)); ++i) {
                     std::cerr << std::hex << static_cast<int>(packet.data[i]) << " ";
@@ -55,7 +53,8 @@ void ServerCore::process_network_events(UDPServer& server) {
 
             switch (opcode) {
                 case RType::OpCode::Login: {
-                    std::cout << "[ServerCore] Login request from client " << client_id << std::endl;
+                    std::cout << "[ServerCore] Login request from client " << client_id
+                              << std::endl;
                     RType::CompressionSerializer ack_serializer;
                     ack_serializer << RType::MagicNumber::VALUE;
                     ack_serializer << static_cast<uint8_t>(RType::OpCode::LoginAck);
@@ -79,7 +78,8 @@ void ServerCore::process_network_events(UDPServer& server) {
                     _lobby_command_handler.handle_leave_lobby(server, client_id);
                     continue;
                 case RType::OpCode::StartGame: {
-                    std::cout << "[ServerCore] StartGame received from client " << client_id << std::endl;
+                    std::cout << "[ServerCore] StartGame received from client " << client_id
+                              << std::endl;
                     std::string level_id;
                     if (deserializer.remaining() > 0) {
                         uint8_t id_len = 0;
@@ -109,9 +109,10 @@ void ServerCore::process_network_events(UDPServer& server) {
                     RType::BinarySerializer response;
                     response << RType::MagicNumber::VALUE;
                     response << RType::OpCode::AdminLoginAck;
-                    response << (success ? std::string("OK: Authenticated") : std::string("ERROR: Authentication failed"));
+                    response << (success ? std::string("OK: Authenticated")
+                                         : std::string("ERROR: Authentication failed"));
                     server.send_to_client(client_id, response.data());
-                    std::cout << "[ServerCore] Admin login attempt from client " << client_id 
+                    std::cout << "[ServerCore] Admin login attempt from client " << client_id
                               << ": " << (success ? "SUCCESS" : "FAILED") << std::endl;
                     continue;
                 }
@@ -119,7 +120,8 @@ void ServerCore::process_network_events(UDPServer& server) {
                     std::string command;
                     deserializer >> command;
 
-                    std::string result = _admin_manager->execute_command(client_id, command, server, _lobby_manager);
+                    std::string result =
+                        _admin_manager->execute_command(client_id, command, server, _lobby_manager);
 
                     RType::BinarySerializer response;
                     response << RType::MagicNumber::VALUE;
@@ -131,7 +133,8 @@ void ServerCore::process_network_events(UDPServer& server) {
                 }
                 case RType::OpCode::AdminLogout: {
                     _admin_manager->logout(client_id);
-                    std::cout << "[ServerCore] Admin client " << client_id << " logged out" << std::endl;
+                    std::cout << "[ServerCore] Admin client " << client_id << " logged out"
+                              << std::endl;
                     continue;
                 }
                 default:
@@ -141,8 +144,8 @@ void ServerCore::process_network_events(UDPServer& server) {
             Lobby* client_lobby = _lobby_manager.get_client_lobby_ptr(client_id);
             if (!client_lobby) {
                 std::cerr << "[ServerCore] Client " << client_id
-                          << " not in a lobby, ignoring opcode "
-                          << RType::opcode_to_string(opcode) << std::endl;
+                          << " not in a lobby, ignoring opcode " << RType::opcode_to_string(opcode)
+                          << std::endl;
                 continue;
             }
 
@@ -161,8 +164,8 @@ void ServerCore::process_network_events(UDPServer& server) {
                     game_session->handle_packet(server, client_id, packet.data);
                     break;
                 default:
-                    std::cout << "[ServerCore] Unknown opcode from client " << client_id
-                              << ": " << RType::opcode_to_string(opcode)
+                    std::cout << "[ServerCore] Unknown opcode from client " << client_id << ": "
+                              << RType::opcode_to_string(opcode)
                               << " (packet size: " << packet.data.size() << ", bytes: ";
                     for (size_t i = 0; i < std::min(packet.data.size(), size_t(15)); ++i) {
                         std::cout << std::hex << static_cast<int>(packet.data[i]) << " ";
@@ -192,7 +195,7 @@ void ServerCore::periodic_cleanup(UDPServer& server, float dt) {
             std::cout << "[ServerCore] Removing inactive client " << client_id << std::endl;
             _lobby_manager.handle_client_disconnect(client_id, server);
         }
-        _lobby_manager.cleanup_inactive_lobbies(std::chrono::seconds(300)); // 5 minutes
+        _lobby_manager.cleanup_inactive_lobbies(std::chrono::seconds(300));  // 5 minutes
     }
     if (_broadcast_accumulator >= 2.0f) {
         _broadcast_accumulator = 0.0f;

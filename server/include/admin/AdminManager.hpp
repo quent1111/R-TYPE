@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-#include <unordered_map>
 #include <chrono>
 #include <mutex>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace server {
@@ -48,8 +48,8 @@ public:
     void logout(int client_id);
     void cleanup_inactive_sessions();
 
-    std::string execute_command(int client_id, const std::string& command_str,
-                                UDPServer& server, LobbyManager& lobby_manager);
+    std::string execute_command(int client_id, const std::string& command_str, UDPServer& server,
+                                LobbyManager& lobby_manager);
 
 private:
     std::string _password_hash;
@@ -60,9 +60,11 @@ private:
 
     AdminCommand parse_command(const std::string& command_str);
     std::string execute_list_players(UDPServer& server);
-    std::string execute_kick_player(const std::vector<std::string>& args, UDPServer& server, LobbyManager& lobby_manager);
+    std::string execute_kick_player(const std::vector<std::string>& args, UDPServer& server,
+                                    LobbyManager& lobby_manager);
     std::string execute_list_lobbies(LobbyManager& lobby_manager);
-    std::string execute_close_lobby(const std::vector<std::string>& args, LobbyManager& lobby_manager);
+    std::string execute_close_lobby(const std::vector<std::string>& args,
+                                    LobbyManager& lobby_manager);
     std::string execute_server_status(UDPServer& server, LobbyManager& lobby_manager);
     std::string execute_announce(const std::vector<std::string>& args, UDPServer& server);
     std::string execute_help();

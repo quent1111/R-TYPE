@@ -1,7 +1,8 @@
 #include "input/InputHandler.hpp"
 
-#include <iostream>
 #include "common/Settings.hpp"
+
+#include <iostream>
 
 namespace input {
 

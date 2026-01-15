@@ -1,21 +1,21 @@
 #pragma once
 
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 #include "common/SafeQueue.hpp"
 #include "input/InputHandler.hpp"
+#include "level/CustomLevelConfig.hpp"
 #include "managers/Managers.hpp"
 #include "network/Messages.hpp"
 #include "network/NetworkClient.hpp"
 #include "rendering/Rendering.hpp"
-#include "level/CustomLevelConfig.hpp"
+#include "ui/SettingsPanel.hpp"
 
 #include <SFML/Graphics.hpp>
 
 #include <map>
 #include <memory>
-#include <string>
 #include <optional>
-#include "ui/SettingsPanel.hpp"
-#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
+#include <string>
 
 class Game {
 private:

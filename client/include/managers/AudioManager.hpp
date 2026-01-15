@@ -4,13 +4,14 @@
 
 // Audio disabled on Windows due to openal-soft incompatibility with GCC 15
 #ifdef _WIN32
-    #define RTYPE_NO_AUDIO 1
+#define RTYPE_NO_AUDIO 1
 #else
-    #define RTYPE_NO_AUDIO 0
+#define RTYPE_NO_AUDIO 0
 #endif
 
 #if !RTYPE_NO_AUDIO
 #include <SFML/Audio.hpp>
+
 #include <map>
 #include <vector>
 #endif

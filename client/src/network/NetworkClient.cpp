@@ -1,4 +1,5 @@
 #include "network/NetworkClient.hpp"
+
 #include "../../src/Common/CompressionSerializer.hpp"
 
 NetworkClient::NetworkClient(const std::string& host, unsigned short port,
@@ -35,8 +36,7 @@ void NetworkClient::start_receive() {
 
 void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received >= 4) {
-        std::vector<uint8_t> buffer(recv_buffer_.begin(),
-                                    recv_buffer_.begin() + bytes_received);
+        std::vector<uint8_t> buffer(recv_buffer_.begin(), recv_buffer_.begin() + bytes_received);
 
         try {
             RType::CompressionSerializer decompressor(buffer);
@@ -53,8 +53,7 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
             return;
         }
 
-        uint16_t magic =
-            static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
+        uint16_t magic = static_cast<uint16_t>(buffer[0]) | (static_cast<uint16_t>(buffer[1]) << 8);
 
         if (magic == MAGIC_NUMBER) {
             uint8_t opcode = buffer[2];
@@ -69,13 +68,14 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
                 std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
-                         << ", buffer.size()=" << buffer.size() << std::endl;
+                          << ", buffer.size()=" << buffer.size() << std::endl;
                 std::cout << "[NetworkClient] Packet data: ";
                 for (size_t i = 0; i < bytes_received && i < buffer.size(); ++i) {
                     std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
                 }
                 std::cout << std::dec << std::endl;
-                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(bytes_received));
+                std::vector<uint8_t> data(
+                    buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(bytes_received));
                 NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
                 msg.raw_lobby_data = data;
                 network_to_game_queue_.push(msg);
@@ -89,13 +89,16 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                     int32_t lobby_id = -1;
                     deserializer >> success;
                     deserializer >> lobby_id;
-                    std::cout << "[NetworkClient] LobbyJoined received (success=" << static_cast<int>(success) << ", id=" << lobby_id << ")" << std::endl;
+                    std::cout << "[NetworkClient] LobbyJoined received (success="
+                              << static_cast<int>(success) << ", id=" << lobby_id << ")"
+                              << std::endl;
                     NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyJoined);
                     msg.lobby_join_success = (success != 0);
                     msg.lobby_joined_id = static_cast<int>(lobby_id);
                     network_to_game_queue_.push(msg);
                 } catch (const std::exception& e) {
-                    std::cerr << "[NetworkClient] Error decoding LobbyJoined: " << e.what() << std::endl;
+                    std::cerr << "[NetworkClient] Error decoding LobbyJoined: " << e.what()
+                              << std::endl;
                 }
             } else if (opcode == 0x28) {
                 std::cout << "[NetworkClient] LobbyLeft received" << std::endl;
@@ -167,7 +170,7 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::RawPacket:
                 if (!msg.raw_data.empty()) {
-                    std::cout << "[NetworkClient] Sending RawPacket, size=" << msg.raw_data.size() 
+                    std::cout << "[NetworkClient] Sending RawPacket, size=" << msg.raw_data.size()
                               << ", first bytes: ";
                     for (size_t i = 0; i < std::min(msg.raw_data.size(), size_t(10)); ++i) {
                         std::cout << std::hex << static_cast<int>(msg.raw_data[i]) << " ";
@@ -265,26 +268,22 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08 ||
-                       type_val == 0x11 || 
-                       type_val == 0x12 ||
-                       type_val == 0x13 ||
-                       type_val == 0x14 ||
-                       type_val == 0x21) {  // CustomBoss
+            } else if (type_val == 0x08 || type_val == 0x11 || type_val == 0x12 ||
+                       type_val == 0x13 || type_val == 0x14 || type_val == 0x21) {  // CustomBoss
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
-                
+
                 uint8_t grayscale_flag;
                 deserializer >> grayscale_flag;
                 entity.grayscale = (grayscale_flag != 0);
-                
+
                 if (type_val == 0x11 || type_val == 0x12 || type_val == 0x13 || type_val == 0x14) {
                     float rotation;
                     deserializer >> rotation;
                     entity.rotation = rotation;
-                    
+
                     if (type_val == 0x13) {
                         uint32_t attached_id;
                         deserializer >> attached_id;
@@ -400,7 +399,7 @@ void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, std::
 
         uint8_t level;
         deserializer >> level;
-        
+
         std::string custom_level_id;
         if (deserializer.remaining() >= 1) {
             uint8_t id_len;
@@ -486,8 +485,7 @@ void NetworkClient::decode_powerup_selection([[maybe_unused]] const std::vector<
     }
 }
 
-void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
-                                         std::size_t received) {
+void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer, std::size_t received) {
     if (received < 4)
         return;
 
@@ -519,8 +517,8 @@ void NetworkClient::decode_powerup_cards(const std::vector<uint8_t>& buffer,
         msg.show_powerup_selection = true;
         network_to_game_queue_.push(msg);
 
-        std::cout << "[NetworkClient] Received " << static_cast<int>(count) 
-                  << " power-up cards" << std::endl;
+        std::cout << "[NetworkClient] Received " << static_cast<int>(count) << " power-up cards"
+                  << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "[NetworkClient] Error decoding power-up cards: " << e.what() << std::endl;

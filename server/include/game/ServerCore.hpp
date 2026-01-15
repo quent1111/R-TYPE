@@ -1,8 +1,8 @@
 #pragma once
 
+#include "admin/AdminManager.hpp"
 #include "game/LobbyManager.hpp"
 #include "handlers/LobbyCommandHandler.hpp"
-#include "admin/AdminManager.hpp"
 #include "network/UDPServer.hpp"
 
 #include <atomic>

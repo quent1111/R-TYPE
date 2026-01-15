@@ -10,8 +10,8 @@ namespace server {
 
 LobbyManager::LobbyManager(int default_max_players)
     : _next_lobby_id(1), _default_max_players(default_max_players) {
-    std::cout << "[LobbyManager] Initialized (default max players: "
-              << default_max_players << ")" << std::endl;
+    std::cout << "[LobbyManager] Initialized (default max players: " << default_max_players << ")"
+              << std::endl;
 }
 
 int LobbyManager::create_lobby(const std::string& name, int max_players) {
@@ -90,8 +90,8 @@ bool LobbyManager::join_lobby(int lobby_id, int client_id, UDPServer& server) {
 
     Lobby* lobby = get_lobby(lobby_id);
     if (!lobby) {
-        std::cout << "[LobbyManager] Cannot join lobby " << lobby_id
-                  << ": lobby not found" << std::endl;
+        std::cout << "[LobbyManager] Cannot join lobby " << lobby_id << ": lobby not found"
+                  << std::endl;
         return false;
     }
 
@@ -179,8 +179,8 @@ void LobbyManager::cleanup_inactive_lobbies(std::chrono::seconds timeout) {
     for (auto it = _lobbies.begin(); it != _lobbies.end();) {
         if (it->second->get_state() == LobbyState::Finished ||
             (it->second->is_inactive(timeout) && it->second->get_state() != LobbyState::InGame)) {
-            std::cout << "[LobbyManager] Removing lobby " << it->first
-                      << " (state: " << (it->second->get_state() == LobbyState::Finished ? "Finished" : "Inactive")
+            std::cout << "[LobbyManager] Removing lobby " << it->first << " (state: "
+                      << (it->second->get_state() == LobbyState::Finished ? "Finished" : "Inactive")
                       << ")" << std::endl;
             it = _lobbies.erase(it);
         } else {

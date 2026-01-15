@@ -5,9 +5,9 @@
 
 #include <SFML/Graphics.hpp>
 
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace rtype::ui {
 
@@ -77,7 +77,16 @@ private:
     bool m_temp_screen_shake{true};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};
-    enum class ControlAction { Up = 0, Down = 1, Left = 2, Right = 3, Shoot = 4, Power1 = 5, Power2 = 6 };
+    enum class ControlAction {
+        Up = 0,
+        Down = 1,
+        Left = 2,
+        Right = 3,
+        Shoot = 4,
+        Power1 = 5,
+        Power2 = 6
+    };
+
 public:
     void set_quit_callback(std::function<void()> cb) { m_quit_callback = std::move(cb); }
 };

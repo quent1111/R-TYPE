@@ -1,7 +1,8 @@
 #pragma once
 
-#include <chrono>
 #include <cstdint>
+
+#include <chrono>
 #include <deque>
 #include <map>
 #include <set>
@@ -28,8 +29,11 @@ struct PendingPacket {
     int retry_count;
 
     PendingPacket(uint32_t seq, uint8_t op, std::vector<uint8_t> d)
-        : sequence_id(seq), opcode(op), data(std::move(d)),
-          sent_time(std::chrono::steady_clock::now()), retry_count(0) {}
+        : sequence_id(seq),
+          opcode(op),
+          data(std::move(d)),
+          sent_time(std::chrono::steady_clock::now()),
+          retry_count(0) {}
 
     bool should_retry(const std::chrono::steady_clock::time_point& now) const {
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - sent_time);
@@ -41,9 +45,7 @@ struct PendingPacket {
         retry_count++;
     }
 
-    bool max_retries_reached() const {
-        return retry_count >= ReliabilityConfig::MAX_RETRIES;
-    }
+    bool max_retries_reached() const { return retry_count >= ReliabilityConfig::MAX_RETRIES; }
 };
 
 struct BufferedPacket {
@@ -52,8 +54,7 @@ struct BufferedPacket {
     std::chrono::steady_clock::time_point received_time;
 
     BufferedPacket(uint32_t seq, std::vector<uint8_t> d)
-        : sequence_id(seq), data(std::move(d)),
-          received_time(std::chrono::steady_clock::now()) {}
+        : sequence_id(seq), data(std::move(d)), received_time(std::chrono::steady_clock::now()) {}
 
     bool is_expired(const std::chrono::steady_clock::time_point& now) const {
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - received_time);
@@ -82,9 +83,7 @@ struct ClientReliabilityState {
     std::set<uint32_t> duplicate_cache;
     std::map<uint32_t, DuplicateCacheEntry> cache_timestamps;
 
-    uint32_t get_next_send_sequence() {
-        return next_send_sequence++;
-    }
+    uint32_t get_next_send_sequence() { return next_send_sequence++; }
 
     bool is_duplicate(uint32_t seq_id) {
         cleanup_duplicate_cache();
@@ -115,7 +114,8 @@ struct ClientReliabilityState {
         return true;
     }
 
-    std::vector<std::vector<uint8_t>> process_received_packet(uint32_t seq_id, std::vector<uint8_t> data) {
+    std::vector<std::vector<uint8_t>> process_received_packet(uint32_t seq_id,
+                                                              std::vector<uint8_t> data) {
         std::vector<std::vector<uint8_t>> ready_packets;
 
         if (is_duplicate(seq_id)) {

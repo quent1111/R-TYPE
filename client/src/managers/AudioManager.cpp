@@ -24,7 +24,8 @@ void AudioManager::play_sound([[maybe_unused]] SoundType type) {
     // No-op: audio disabled
 }
 
-void AudioManager::play_music([[maybe_unused]] const std::string& music_path, [[maybe_unused]] bool loop) {
+void AudioManager::play_music([[maybe_unused]] const std::string& music_path,
+                              [[maybe_unused]] bool loop) {
     // No-op: audio disabled
 }
 

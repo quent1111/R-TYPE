@@ -6,7 +6,7 @@ namespace engine {
 
 /**
  * @brief Pure interface for game systems in the ECS architecture.
- * 
+ *
  * Systems contain logic (no data) and operate on components via the registry.
  * This enforces separation: Components are POD (data), Systems are behavior.
  */
