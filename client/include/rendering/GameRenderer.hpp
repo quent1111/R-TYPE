@@ -11,6 +11,9 @@
 
 #include <map>
 
+#include <AccessibilityManager.hpp>
+#include <ProjectileShapeRenderer.hpp>
+
 namespace rendering {
 
 class GameRenderer {
@@ -86,12 +89,13 @@ private:
     sf::RectangleShape transition_overlay_;
     sf::Text transition_text_;
     sf::Font transition_font_;
-
     sf::View game_view_;
 
     std::map<uint32_t, LaserParticleSystem> laser_particle_systems_;
     std::map<uint32_t, SerpentLaserSystem> serpent_laser_systems_;
     SerpentEffectsSystem serpent_effects_;
+
+    accessibility::ProjectileShapeRenderer projectile_shape_renderer_;
 };
 
 }  // namespace rendering

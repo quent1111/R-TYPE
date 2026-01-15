@@ -42,6 +42,7 @@ GameSession::GameSession() {
     reg.register_component<little_friend>();
     reg.register_component<missile_drone>();
     reg.register_component<damage_flash_component>();
+    reg.register_component<game_settings>();
     reg.register_component<explosive_projectile>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
@@ -120,12 +121,29 @@ void GameSession::check_start_game(UDPServer& server) {
 }
 
 void GameSession::start_game(UDPServer& server) {
-    std::cout << "[Game] Starting game at level " << _starting_level << "..." << std::endl;
+    std::cout << "[Game] Starting game at level " << _starting_level 
+              << " (Friendly Fire: " << (_friendly_fire ? "ON" : "OFF")
+              << ", Difficulty: " << static_cast<int>(_difficulty) << ")..." << std::endl;
 
     _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
     _game_phase = GamePhase::InGame;
 
-    auto& level_managers = _engine.get_registry().get_components<level_manager>();
+    auto& reg = _engine.get_registry();
+    
+    // Create game settings entity with difficulty multiplier
+    // Easy = 1.0x, Normal = 2.0x, Hard = 4.0x
+    float difficulty_multiplier = 1.0f;
+    switch (_difficulty) {
+        case 0: difficulty_multiplier = 1.0f; break;  // Easy
+        case 1: difficulty_multiplier = 2.0f; break;  // Normal
+        case 2: difficulty_multiplier = 4.0f; break;  // Hard
+        default: difficulty_multiplier = 1.0f; break;
+    }
+    
+    auto settings_entity = reg.spawn_entity();
+    reg.emplace_component<game_settings>(settings_entity, _friendly_fire, difficulty_multiplier);
+
+    auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
             level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
@@ -789,9 +807,11 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                             float projectile_speed = 500.0f;
                             float vx = (dx / magnitude) * projectile_speed;
                             float vy = (dy / magnitude) * projectile_speed;
-                            ::createProjectile(_engine.get_registry(), 
+                            auto proj = ::createProjectile(_engine.get_registry(), 
                                 friend_pos_opt->x + 20.0f, friend_pos_opt->y, 
                                 vx, vy, lf.damage, WeaponUpgradeType::AllyMissile, false);
+                            _engine.get_registry().register_component<ally_projectile_tag>();
+                            _engine.get_registry().add_component(proj, ally_projectile_tag{});
                         }
                     }
 
@@ -941,9 +961,11 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                         float projectile_speed = 600.0f;
                                         float vx = (dx / magnitude) * projectile_speed;
                                         float vy = (dy / magnitude) * projectile_speed;
-                                        ::createProjectile(_engine.get_registry(), 
+                                        auto proj = ::createProjectile(_engine.get_registry(), 
                                             drone_pos_opt->x + 20.0f, drone_pos_opt->y, 
                                             vx, vy, 20, WeaponUpgradeType::AllyMissile, false);
+                                        _engine.get_registry().register_component<ally_projectile_tag>();
+                                        _engine.get_registry().add_component(proj, ally_projectile_tag{});
                                     }
                                 }
                             }

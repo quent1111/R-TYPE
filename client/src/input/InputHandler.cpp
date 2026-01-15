@@ -140,7 +140,9 @@ void InputHandler::handle_input(float dt) {
             was_activating_friend_ = false;
         }
 
-        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot))) {
+        bool is_shooting = sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot)) || s.auto_fire_enabled;
+        
+        if (is_shooting) {
             input_mask |= KEY_SPACE;
 
             if (!was_shooting_) {

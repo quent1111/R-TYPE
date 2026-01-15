@@ -1075,12 +1075,13 @@ void Game::render() {
     overlay_renderer_.render_game_over(window_, show_game_over_);
 
     game_renderer_.render_damage_flash(window_);
-    game_renderer_.render_colorblind_overlay(window_);
     game_renderer_.render_level_transition(window_);
 
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
     }
+
+    game_renderer_.render_colorblind_overlay(window_);
 }
 
 void Game::update_powerup_card_sprites() {

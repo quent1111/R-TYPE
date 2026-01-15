@@ -86,6 +86,8 @@ private:
 
     std::string _lobby_name;
     int _starting_level = 1;
+    bool _friendly_fire = false;
+    uint8_t _difficulty = 0;
 
     void process_network_events(UDPServer& server);
     void update_game_state(UDPServer& server, float dt);
@@ -107,6 +109,10 @@ public:
     void start_game(UDPServer& server);
     void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
     void set_lobby_name(const std::string& name);
+    void set_friendly_fire(bool enabled) { _friendly_fire = enabled; }
+    bool get_friendly_fire() const { return _friendly_fire; }
+    void set_difficulty(uint8_t difficulty) { _difficulty = difficulty; }
+    uint8_t get_difficulty() const { return _difficulty; }
     void broadcast_lobby_status(UDPServer& server);
     void remove_player(int client_id);
     void create_player_for_client(int client_id, float start_x, float start_y);

@@ -438,6 +438,7 @@ struct player_tag {};
 struct enemy_tag {};
 struct boss_tag {};
 struct projectile_tag {};
+struct ally_projectile_tag {};
 struct explosion_tag {
     float lifetime;
     float elapsed;
@@ -671,3 +672,11 @@ struct position_history {
     }
 };
 
+struct game_settings {
+    bool friendly_fire_enabled = false;
+    float difficulty_multiplier = 1.0f;
+    
+    constexpr game_settings() noexcept = default;
+    constexpr explicit game_settings(bool ff_enabled, float diff_mult = 1.0f) noexcept 
+        : friendly_fire_enabled(ff_enabled), difficulty_multiplier(diff_mult) {}
+};
