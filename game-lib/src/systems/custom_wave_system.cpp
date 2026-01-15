@@ -51,7 +51,7 @@ void spawnCustomEnemy(registry& reg, const rtype::level::EnemyConfig& enemy_def,
     
     entity enemy = reg.spawn_entity();
     
-    float spawn_x = 2000.0f + spawn_config.spawn_point.offset_x;
+    float spawn_x = 1950.0f + spawn_config.spawn_point.offset_x;
     float y_pos = spawn_y + spawn_config.spawn_point.offset_y;
     
     if (spawn_config.spawn_point.position_type == "absolute") {
@@ -61,7 +61,7 @@ void spawnCustomEnemy(registry& reg, const rtype::level::EnemyConfig& enemy_def,
     
     std::uniform_real_distribution<float> dis_y(100.0f, 900.0f);
     if (spawn_config.spawn_point.position_type == "screen_right") {
-        spawn_x = 2000.0f + spawn_config.spawn_point.offset_x;
+        spawn_x = 1950.0f + spawn_config.spawn_point.offset_x;
         if (spawn_config.spawn_point.offset_y == 0) {
             y_pos = dis_y(gen);
         } else {
@@ -138,7 +138,7 @@ void spawnCustomEnemy(registry& reg, const rtype::level::EnemyConfig& enemy_def,
 void spawnCustomBoss(registry& reg, const rtype::level::EnemyConfig& boss_def) {
     entity boss = reg.spawn_entity();
     
-    float spawn_x = 1600.0f;
+    float spawn_x = 1950.0f;
     float spawn_y = 540.0f;
     
     reg.add_component(boss, position{spawn_x, spawn_y});

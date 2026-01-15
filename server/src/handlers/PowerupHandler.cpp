@@ -288,7 +288,7 @@ void PowerupHandler::apply_stat_powerup(registry& reg, entity player, powerup::P
     } else if (id == powerup::PowerupId::FireRate) {
         auto& weapon_opt = reg.get_component<weapon>(player);
         if (weapon_opt.has_value()) {
-            float base_fire_rate = 5.0f;
+            float base_fire_rate = 1.8f;
             weapon_opt->fire_rate = base_fire_rate * effect.value;
             std::cout << "[Game] Fire rate increased by " << ((effect.value - 1.0f) * 100.0f)
                       << "% (new rate: " << weapon_opt->fire_rate << " shots/s)" << std::endl;

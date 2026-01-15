@@ -71,7 +71,7 @@ void cleanupSystem(registry& reg, float dt) {
             bool is_enemy = (i < enemy_tags.size() && enemy_tags[i]);
 
             if (is_projectile || is_enemy) {
-                if (pos.x < -200.0f || pos.x > 2200.0f || pos.y < -200.0f || pos.y > 1300.0f) {
+                if (pos.x < -200.0f || pos.x > 2000.0f || pos.y < -200.0f || pos.y > 1300.0f) {
                     entities_to_kill.push_back(reg.entity_from_index(i));
                 }
             }

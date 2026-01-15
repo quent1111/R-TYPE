@@ -262,7 +262,7 @@ void spawnEnemyWave(registry& reg, int count, int level) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
-    std::uniform_real_distribution<float> dis_x(2000.0f, 2300.0f);
+    std::uniform_real_distribution<float> dis_x(1950.0f, 2050.0f);
     std::uniform_real_distribution<float> dis_type(0.0f, 1.0f);
 
     for (int i = 0; i < count; ++i) {
