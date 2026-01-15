@@ -1,0 +1,27 @@
+{
+  "image": "ruins-top5.png",
+  "image_size": {
+    "width": 252,
+    "height": 76
+  },
+  "rects": [
+    {
+      "x": 4,
+      "y": 2,
+      "width": 243,
+      "height": 6
+    },
+    {
+      "x": 4,
+      "y": 8,
+      "width": 147,
+      "height": 65
+    },
+    {
+      "x": 152,
+      "y": 8,
+      "width": 92,
+      "height": 1
+    }
+  ]
+}

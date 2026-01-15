@@ -1061,20 +1061,20 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
             float seg_y = tail_pos->y + sin_angle * dist;
             if (seg_x < -100 || seg_x > 2020 || seg_y < -100 || seg_y > 1200) continue;
             
-            // Create laser segment for collision
+            
             entity laser_seg = reg.spawn_entity();
             reg.add_component(laser_seg, position{seg_x, seg_y});
-            reg.add_component(laser_seg, velocity{0.0f, 0.0f});  // Stationary
+            reg.add_component(laser_seg, velocity{0.0f, 0.0f});  
             reg.add_component(laser_seg, collision_box{40.0f, 40.0f});
-            reg.add_component(laser_seg, damage_on_contact{10, false});  // Reduced damage
+            reg.add_component(laser_seg, damage_on_contact{10, false});  
             reg.add_component(laser_seg, projectile_tag{});
             reg.add_component(laser_seg, enemy_tag{});
-            // Use same laser type - segments won't render as beam, just for collision
-            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});  // Hidden collision type
-            reg.add_component(laser_seg, explosion_tag{0.05f});  // Auto-destroy after 0.05s
+            
+            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});  
+            reg.add_component(laser_seg, explosion_tag{0.05f});  
         }
         
-        // End laser after duration
+        
         if (controller.laser_elapsed >= controller.laser_fire_duration) {
             controller.laser_firing = false;
             std::cout << "[BOSS] Serpent laser attack finished." << std::endl;
@@ -1082,25 +1082,816 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
     }
 }
 
+
+void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity) {
+    std::cout << "[BOSS] Spawning Compiler Boss (Level 15)..." << std::endl;
+
+    entity controller_ent = reg.spawn_entity();
+
+    float spawn_x = -500.0f;
+    float spawn_y = -500.0f;
+
+    reg.add_component(controller_ent, position{spawn_x, spawn_y});
+    compiler_boss_controller controller(3000);
+    controller.entrance_target_x = 1150.0f;
+    controller.target_x = 1150.0f;
+    controller.target_y = 450.0f;
+    controller.entrance_complete = true;
+    controller.state = CompilerState::Assembled;
+    controller.state_timer = 0.0f;
+
+    reg.add_component(controller_ent, controller);
+    reg.add_component(controller_ent, entity_tag{RType::EntityType::CompilerBoss});
+    reg.add_component(controller_ent, boss_tag{});
+    reg.add_component(controller_ent, health{3000, 3000});
+    reg.add_component(controller_ent, damage_on_contact{40, false});
+    reg.add_component(controller_ent, collision_box{180.0f, 150.0f, 0.0f, 0.0f});
+
+    compiler_controller_entity = controller_ent;
+
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+    std::size_t ctrl_idx = static_cast<std::size_t>(controller_ent);
+
+    if (ctrl_idx < controllers.size() && controllers[ctrl_idx].has_value()) {
+        auto& ctrl = controllers[ctrl_idx].value();
+
+        float center_x = 1150.0f;
+        float center_y = 450.0f;
+        spawn_compiler_part(reg, ctrl, 1, center_x - 50.0f, center_y - 40.0f);
+        spawn_compiler_part(reg, ctrl, 2, center_x, center_y + 60.0f);
+        spawn_compiler_part(reg, ctrl, 3, center_x + 90.0f, center_y - 40.0f);
+
+        std::cout << "[BOSS] Compiler Boss spawned (invisible) with 3 parts in Assembled state at ("
+                  << center_x << ", " << center_y << ")" << std::endl;
+    }
+}
+
+void BossManager::spawn_compiler_part(registry& reg, compiler_boss_controller& controller,
+                                       int part_index, float x, float y) {
+    entity part = reg.spawn_entity();
+
+    RType::EntityType part_type;
+    switch (part_index) {
+        case 1: part_type = RType::EntityType::CompilerPart1; break;
+        case 2: part_type = RType::EntityType::CompilerPart2; break;
+        case 3: part_type = RType::EntityType::CompilerPart3; break;
+        default: part_type = RType::EntityType::CompilerPart1; break;
+    }
+
+    reg.add_component(part, position{x, y});
+    reg.add_component(part, velocity{0.0f, 0.0f});
+    reg.add_component(part, entity_tag{part_type});
+    reg.add_component(part, compiler_part_tag{part_index});
+    reg.add_component(part, collision_box{100.0f, 60.0f, 0.0f, 0.0f});
+    reg.add_component(part, damage_on_contact{30, false});
+    reg.add_component(part, health{1000, 1000});
+    reg.add_component(part, enemy_tag{});
+    reg.add_component(part, damage_flash_component{0.15f});
+
+    switch (part_index) {
+        case 1: controller.part1_entity = part; break;
+        case 2: controller.part2_entity = part; break;
+        case 3: controller.part3_entity = part; break;
+    }
+
+    std::cout << "[BOSS] Compiler Part " << part_index << " spawned at (" << x << ", " << y << ")" << std::endl;
+}
+
+void BossManager::update_compiler_boss(registry& reg,
+                                        std::optional<entity>& compiler_controller_entity,
+                                        const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                        float dt) {
+    if (!compiler_controller_entity.has_value()) {
+        return;
+    }
+
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+    std::size_t entity_idx = static_cast<std::size_t>(compiler_controller_entity.value());
+
+    if (entity_idx >= controllers.size() || !controllers[entity_idx].has_value()) {
+        std::cout << "[BOSS ERROR] Compiler controller component not found!" << std::endl;
+        return;
+    }
+
+    auto& controller = controllers[entity_idx].value();
+
+    static float debug_log_timer = 0.0f;
+    debug_log_timer += dt;
+    if (debug_log_timer >= 1.0f) {
+        std::cout << "[BOSS DEBUG] update_compiler_boss called - State: " << (int)controller.state 
+                  << " Timer: " << controller.state_timer << std::endl;
+        debug_log_timer = 0.0f;
+    }
+
+    auto health_opt = reg.get_component<health>(compiler_controller_entity.value());
+    if (health_opt.has_value()) {
+        controller.current_health = health_opt->current;
+    }
+
+    auto& healths = reg.get_components<health>();
+    auto& positions = reg.get_components<position>();
+    auto& projectile_tags = reg.get_components<projectile_tag>();
+    auto& entity_tags = reg.get_components<entity_tag>();
+    auto& collision_boxes = reg.get_components<collision_box>();
+
+    if (controller.part1_entity.has_value()) {
+        std::size_t idx = static_cast<std::size_t>(controller.part1_entity.value());
+        if (idx < healths.size() && healths[idx].has_value() && healths[idx]->current <= 0) {
+            if (idx < collision_boxes.size() && collision_boxes[idx].has_value()) {
+                collision_boxes[idx]->enabled = false;
+            }
+
+            if (idx < positions.size() && positions[idx].has_value()) {
+                float part_x = positions[idx]->x;
+                float part_y = positions[idx]->y;
+                spawn_boss_explosions(reg, part_x, part_y, 5);
+
+                for (std::size_t p = 0; p < positions.size(); ++p) {
+                    if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
+                        positions[p].has_value()) {
+                        float dx = positions[p]->x - part_x;
+                        float dy = positions[p]->y - part_y;
+                        float dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist < 200.0f) {
+                            auto proj = reg.entity_from_index(p);
+                            reg.kill_entity(proj);
+                        }
+                    }
+                }
+
+                positions[idx]->x = -9999.0f;
+                positions[idx]->y = -9999.0f;
+            }
+
+            reg.remove_component<entity_tag>(controller.part1_entity.value());
+            reg.remove_component<health>(controller.part1_entity.value());
+            reg.remove_component<collision_box>(controller.part1_entity.value());
+            reg.kill_entity(controller.part1_entity.value());
+            controller.part1_entity = std::nullopt;
+            std::cout << "[BOSS] Compiler Part 1 destroyed!" << std::endl;
+        }
+    }
+    if (controller.part2_entity.has_value()) {
+        std::size_t idx = static_cast<std::size_t>(controller.part2_entity.value());
+        if (idx < healths.size() && healths[idx].has_value() && healths[idx]->current <= 0) {
+            if (idx < collision_boxes.size() && collision_boxes[idx].has_value()) {
+                collision_boxes[idx]->enabled = false;
+            }
+
+            if (idx < positions.size() && positions[idx].has_value()) {
+                float part_x = positions[idx]->x;
+                float part_y = positions[idx]->y;
+                spawn_boss_explosions(reg, part_x, part_y, 5);
+
+                for (std::size_t p = 0; p < positions.size(); ++p) {
+                    if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
+                        positions[p].has_value()) {
+                        float dx = positions[p]->x - part_x;
+                        float dy = positions[p]->y - part_y;
+                        float dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist < 200.0f) {
+                            auto proj = reg.entity_from_index(p);
+                            reg.kill_entity(proj);
+                        }
+                    }
+                }
+
+                positions[idx]->x = -9999.0f;
+                positions[idx]->y = -9999.0f;
+            }
+
+            reg.remove_component<entity_tag>(controller.part2_entity.value());
+            reg.remove_component<health>(controller.part2_entity.value());
+            reg.remove_component<collision_box>(controller.part2_entity.value());
+            reg.kill_entity(controller.part2_entity.value());
+            controller.part2_entity = std::nullopt;
+            std::cout << "[BOSS] Compiler Part 2 destroyed!" << std::endl;
+        }
+    }
+    if (controller.part3_entity.has_value()) {
+        std::size_t idx = static_cast<std::size_t>(controller.part3_entity.value());
+        if (idx < healths.size() && healths[idx].has_value() && healths[idx]->current <= 0) {
+            if (idx < collision_boxes.size() && collision_boxes[idx].has_value()) {
+                collision_boxes[idx]->enabled = false;
+            }
+
+            if (idx < positions.size() && positions[idx].has_value()) {
+                float part_x = positions[idx]->x;
+                float part_y = positions[idx]->y;
+                spawn_boss_explosions(reg, part_x, part_y, 5);
+
+                for (std::size_t p = 0; p < positions.size(); ++p) {
+                    if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
+                        positions[p].has_value()) {
+                        float dx = positions[p]->x - part_x;
+                        float dy = positions[p]->y - part_y;
+                        float dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist < 200.0f) {
+                            auto proj = reg.entity_from_index(p);
+                            reg.kill_entity(proj);
+                        }
+                    }
+                }
+
+                positions[idx]->x = -9999.0f;
+                positions[idx]->y = -9999.0f;
+            }
+
+            reg.remove_component<entity_tag>(controller.part3_entity.value());
+            reg.remove_component<health>(controller.part3_entity.value());
+            reg.remove_component<collision_box>(controller.part3_entity.value());
+            reg.kill_entity(controller.part3_entity.value());
+            controller.part3_entity = std::nullopt;
+            std::cout << "[BOSS] Compiler Part 3 destroyed!" << std::endl;
+        }
+    }
+
+    if (controller.is_defeated()) {
+        std::cout << "[BOSS] Compiler Boss defeated!" << std::endl;
+        auto pos_opt = reg.get_component<position>(compiler_controller_entity.value());
+        if (pos_opt.has_value()) {
+            spawn_boss_explosions(reg, pos_opt->x, pos_opt->y, 10);
+        }
+
+        auto& level_managers = reg.get_components<level_manager>();
+        for (size_t k = 0; k < level_managers.size(); ++k) {
+            if (level_managers[k].has_value()) {
+                auto& lvl = level_managers[k].value();
+                int remaining = lvl.enemies_needed_for_next_level - lvl.enemies_killed_this_level;
+                for (int m = 0; m < remaining; ++m) {
+                    lvl.on_enemy_killed();
+                }
+                break;
+            }
+        }
+        if (controller.part1_entity.has_value()) {
+            reg.kill_entity(controller.part1_entity.value());
+        }
+        if (controller.part2_entity.has_value()) {
+            reg.kill_entity(controller.part2_entity.value());
+        }
+        if (controller.part3_entity.has_value()) {
+            reg.kill_entity(controller.part3_entity.value());
+        }
+        reg.kill_entity(compiler_controller_entity.value());
+        compiler_controller_entity = std::nullopt;
+        return;
+    }
+
+    update_compiler_light_animation(controller, dt);
+
+    switch (controller.state) {
+        case CompilerState::Entering:
+            update_compiler_entering(reg, controller, dt);
+            break;
+        case CompilerState::Assembled:
+            update_compiler_assembled(reg, controller, client_entity_ids, dt);
+            break;
+        case CompilerState::Splitting:
+            update_compiler_splitting(reg, controller, dt);
+            break;
+        case CompilerState::Separated:
+            update_compiler_separated(reg, controller, client_entity_ids, dt);
+            break;
+        case CompilerState::Merging:
+            update_compiler_merging(reg, controller, dt);
+            break;
+    }
+
+    auto pos_opt = reg.get_component<position>(compiler_controller_entity.value());
+    if (pos_opt.has_value() && controller.state != CompilerState::Separated &&
+        controller.state != CompilerState::Splitting) {
+    }
+}
+
+void BossManager::update_compiler_entering(registry& reg, compiler_boss_controller& controller, float dt) {
+    (void)dt;
+    auto& positions = reg.get_components<position>();
+    auto& velocities = reg.get_components<velocity>();
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+
+    for (std::size_t i = 0; i < controllers.size(); ++i) {
+        if (!controllers[i].has_value()) continue;
+        if (&controllers[i].value() != &controller) continue;
+
+        if (i < positions.size() && positions[i].has_value()) {
+            auto& pos = positions[i].value();
+
+            if (pos.x <= controller.entrance_target_x) {
+                pos.x = controller.entrance_target_x;
+                controller.target_x = pos.x;
+                controller.target_y = pos.y;
+
+                if (i < velocities.size() && velocities[i].has_value()) {
+                    velocities[i]->vx = 0.0f;
+                    velocities[i]->vy = 0.0f;
+                }
+
+                controller.entrance_complete = true;
+                controller.state = CompilerState::Assembled;
+                controller.state_timer = 0.0f;
+                std::cout << "[BOSS] Compiler Boss entrance complete, now Assembled" << std::endl;
+            }
+        }
+        break;
+    }
+}
+
+void BossManager::update_compiler_assembled(registry& reg, compiler_boss_controller& controller,
+                                             const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                             float dt) {
+    (void)client_entity_ids;
+    controller.state_timer += dt;
+
+    auto& positions = reg.get_components<position>();
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+
+    for (std::size_t i = 0; i < controllers.size(); ++i) {
+        if (!controllers[i].has_value()) continue;
+        if (&controllers[i].value() != &controller) continue;
+
+        if (i < positions.size() && positions[i].has_value()) {
+            auto& pos = positions[i].value();
+            pos.x = -500.0f;
+            pos.y = -500.0f;
+        }
+        break;
+    }
+
+    float target_x = 1150.0f;
+    float target_y = 450.0f;
+    float oscillation_x = std::sin(controller.state_timer * 2.0f) * 30.0f;
+    float oscillation_y = std::sin(controller.state_timer * 1.5f) * 20.0f;
+
+    auto update_part_position = [&](std::optional<entity>& part_ent, float offset_x, float offset_y) {
+        if (!part_ent.has_value()) return;
+        std::size_t idx = static_cast<std::size_t>(part_ent.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            pos.x = target_x + offset_x + oscillation_x;
+            pos.y = target_y + offset_y + oscillation_y;
+        }
+    };
+
+    update_part_position(controller.part1_entity, -50.0f, -40.0f);
+    update_part_position(controller.part2_entity, 0.0f, 60.0f);
+    update_part_position(controller.part3_entity, 70.0f, -40.0f);
+
+    controller.special_attack_timer += dt;
+
+    if (controller.charging_special) {
+        controller.charge_time += dt;
+        if (controller.charge_time >= controller.charge_duration) {
+            float center_x = target_x + oscillation_x;
+            float center_y = target_y + oscillation_y;
+
+            for (int i = 0; i < 36; ++i) {
+                float angle = (3.14159f * 2.0f * i) / 36.0f;
+                float vx = std::cos(angle) * 190.0f;
+                float vy = std::sin(angle) * 190.0f;
+
+                createEnemy2Projectile(reg, center_x, center_y, vx, vy, 20);
+            }
+
+            for (int i = 0; i < 24; ++i) {
+                float angle = (3.14159f * 2.0f * i) / 24.0f + 0.13f;
+                float vx = std::cos(angle) * 220.0f;
+                float vy = std::sin(angle) * 220.0f;
+
+                createEnemy2Projectile(reg, center_x, center_y, vx, vy, 20);
+            }
+
+            for (int i = 0; i < 12; ++i) {
+                float angle = (3.14159f * 2.0f * i) / 12.0f + 0.26f;
+                float vx = std::cos(angle) * 250.0f;
+                float vy = std::sin(angle) * 250.0f;
+
+                createEnemy3Projectile(reg, center_x, center_y, vx, vy, 25, 0);
+            }
+
+            for (int i = 0; i < 10; ++i) {
+                float angle = (3.14159f * 2.0f * i) / 10.0f;
+                float vx = std::cos(angle) * 150.0f;
+                float vy = std::sin(angle) * 150.0f;
+
+                createExplosiveGrenade(reg, center_x, center_y, vx, vy, 2.0f, 90.0f, 60);
+            }
+
+            std::cout << "[BOSS ATTACK] Stack Overflow Wave - 72 projectiles + 10 GRENADES APOCALYPSE!" << std::endl;
+            controller.charging_special = false;
+            controller.charge_time = 0.0f;
+            controller.special_attack_timer = 0.0f;
+        }
+    } else if (controller.special_attack_timer >= controller.special_attack_cooldown) {
+        controller.charging_special = true;
+        controller.charge_time = 0.0f;
+        std::cout << "[BOSS] Charging Stack Overflow Wave..." << std::endl;
+    }
+
+    controller.attack_timer += dt;
+
+    if (controller.attack_timer >= controller.attack_cooldown) {
+        controller.attack_timer = 0.0f;
+
+        float center_x = target_x + oscillation_x;
+        float center_y = target_y + oscillation_y;
+
+        switch (controller.attack_pattern) {
+            case 0: {
+                createEnemyProjectile(reg, center_x, center_y, -350.0f, 0.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -340.0f, -80.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -340.0f, 80.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -330.0f, -140.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -330.0f, 140.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -320.0f, -200.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -320.0f, 200.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -310.0f, -260.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -310.0f, 260.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -300.0f, -300.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -300.0f, 300.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -290.0f, -340.0f, 15);
+                createEnemyProjectile(reg, center_x, center_y, -290.0f, 340.0f, 15);
+                createExplosiveGrenade(reg, center_x, center_y, -200.0f, -280.0f, 2.0f, 75.0f, 45);
+                createExplosiveGrenade(reg, center_x, center_y, -200.0f, 280.0f, 2.0f, 75.0f, 45);
+                createExplosiveGrenade(reg, center_x, center_y, -180.0f, -350.0f, 2.2f, 80.0f, 50);
+                createExplosiveGrenade(reg, center_x, center_y, -180.0f, 350.0f, 2.2f, 80.0f, 50);
+                std::cout << "[BOSS ATTACK] Syntax Error Barrage (13-shot fan + 4 grenades)" << std::endl;
+                break;
+            }
+            case 1: {
+                for (int i = 0; i < 16; ++i) {
+                    float angle = controller.state_timer * 3.0f + (i * 0.393f);
+                    float vx = std::cos(angle) * 220.0f - 120.0f;
+                    float vy = std::sin(angle) * 220.0f;
+                    createEnemy2Projectile(reg, center_x, center_y, vx, vy, 20);
+                }
+                std::cout << "[BOSS ATTACK] Memory Leak Spiral (16-way DENSE)" << std::endl;
+                break;
+            }
+            case 2: {
+                for (int row = 0; row < 4; ++row) {
+                    for (int col = 0; col < 4; ++col) {
+                        float offset_x = -60.0f + (col * 40.0f);
+                        float offset_y = -60.0f + (row * 40.0f);
+                        float vy = -180.0f + (row * 120.0f);
+                        createEnemy3Projectile(reg, center_x + offset_x, center_y + offset_y, -280.0f, vy, 25, 0);
+                    }
+                }
+                createExplosiveGrenade(reg, center_x - 30.0f, center_y - 60.0f, -200.0f, -100.0f, 2.2f, 80.0f, 50);
+                createExplosiveGrenade(reg, center_x - 30.0f, center_y, -200.0f, 0.0f, 2.2f, 80.0f, 50);
+                createExplosiveGrenade(reg, center_x - 30.0f, center_y + 60.0f, -200.0f, 100.0f, 2.2f, 80.0f, 50);
+                createExplosiveGrenade(reg, center_x + 30.0f, center_y - 60.0f, -200.0f, -100.0f, 2.3f, 85.0f, 50);
+                createExplosiveGrenade(reg, center_x + 30.0f, center_y, -200.0f, 0.0f, 2.3f, 85.0f, 50);
+                createExplosiveGrenade(reg, center_x + 30.0f, center_y + 60.0f, -200.0f, 100.0f, 2.3f, 85.0f, 50);
+                std::cout << "[BOSS ATTACK] Null Pointer Rain (16-shot grid + 6 grenades)" << std::endl;
+                break;
+            }
+            case 3: {
+                for (int i = 0; i < 12; ++i) {
+                    float delay_offset = i * 0.03f;
+                    float vy = -220.0f + (i * 44.0f);
+                    createEnemy2Projectile(reg, center_x + delay_offset * 100.0f, center_y, -370.0f, vy, 20);
+                }
+                std::cout << "[BOSS ATTACK] Buffer Overflow (12-wave INTENSE)" << std::endl;
+                break;
+            }
+            case 4: {
+                for (int i = 0; i < 16; ++i) {
+                    float angle = -1.4f + (i * 0.175f);
+                    float vx = -220.0f + std::cos(angle) * 120.0f;
+                    float vy = std::sin(angle) * 280.0f;
+                    createExplosiveGrenade(reg, center_x, center_y, vx, vy, 2.5f, 85.0f, 50);
+                }
+                std::cout << "[BOSS ATTACK] Exception Grenades (16 EXPLOSIVE EYES MAYHEM!)" << std::endl;
+                break;
+            }
+        }
+
+        controller.attack_pattern = (controller.attack_pattern + 1) % 5;
+    }
+
+    if (controller.state_timer >= controller.assembled_duration) {
+        std::cout << "[BOSS DEBUG] Assembled duration reached! Timer: " << controller.state_timer 
+                  << " Duration: " << controller.assembled_duration << std::endl;
+        controller.state = CompilerState::Splitting;
+        controller.state_timer = 0.0f;
+
+        auto& pos_components = reg.get_components<position>();
+        for (std::size_t i = 0; i < controllers.size(); ++i) {
+            if (!controllers[i].has_value()) continue;
+            if (&controllers[i].value() != &controller) continue;
+
+            if (i < pos_components.size() && pos_components[i].has_value()) {
+                set_compiler_separated_targets(controller);
+            }
+            break;
+        }
+
+        std::cout << "[BOSS] Compiler Boss starting to split!" << std::endl;
+    } else {
+        static float last_log_time = 0.0f;
+        last_log_time += dt;
+        if (last_log_time >= 1.0f) {
+            std::cout << "[BOSS DEBUG] Assembled state timer: " << controller.state_timer 
+                      << "/" << controller.assembled_duration << std::endl;
+            last_log_time = 0.0f;
+        }
+    }
+}
+
+void BossManager::update_compiler_splitting(registry& reg, compiler_boss_controller& controller, float dt) {
+    controller.state_timer += dt;
+
+    float progress = controller.state_timer / controller.split_duration;
+    if (progress > 1.0f) progress = 1.0f;
+
+    auto& positions = reg.get_components<position>();
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+
+    for (std::size_t i = 0; i < controllers.size(); ++i) {
+        if (!controllers[i].has_value()) continue;
+        if (&controllers[i].value() != &controller) continue;
+
+        if (i < positions.size() && positions[i].has_value()) {
+            auto& pos = positions[i].value();
+            pos.x = -500.0f;
+            pos.y = -500.0f;
+        }
+        break;
+    }
+
+    auto move_part_toward_target = [&](std::optional<entity>& part_ent, float target_x, float target_y) {
+        if (!part_ent.has_value()) return;
+        std::size_t idx = static_cast<std::size_t>(part_ent.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            float dx = target_x - pos.x;
+            float dy = target_y - pos.y;
+            float speed = 250.0f;
+            pos.x += dx * dt * 2.5f;
+            pos.y += dy * dt * 2.5f;
+        }
+    };
+
+    move_part_toward_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y);
+    move_part_toward_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y);
+    move_part_toward_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y);
+
+    if (controller.state_timer >= controller.split_duration) {
+        controller.state = CompilerState::Separated;
+        controller.state_timer = 0.0f;
+        controller.part_movement_timer = 0.0f;
+        std::cout << "[BOSS] Compiler Boss now Separated! Parts moving independently." << std::endl;
+    }
+}
+
+void BossManager::update_compiler_separated(registry& reg, compiler_boss_controller& controller,
+                                             const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                             float dt) {
+    (void)client_entity_ids;
+    controller.state_timer += dt;
+    controller.part_movement_timer += dt;
+
+    auto& positions = reg.get_components<position>();
+    auto& velocities = reg.get_components<velocity>();
+    auto& part_tags = reg.get_components<compiler_part_tag>();
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+
+    for (std::size_t i = 0; i < controllers.size(); ++i) {
+        if (!controllers[i].has_value()) continue;
+        if (&controllers[i].value() != &controller) continue;
+
+        if (i < positions.size() && positions[i].has_value()) {
+            auto& pos = positions[i].value();
+            pos.x = -500.0f;
+            pos.y = -500.0f;
+        }
+        break;
+    }
+
+    if (controller.part_movement_timer >= 2.0f) {
+        controller.part_movement_timer = 0.0f;
+        set_compiler_separated_targets(controller);
+    }
+
+    auto move_part_to_target = [&](std::optional<entity>& part_ent, float target_x, float target_y) {
+        if (!part_ent.has_value()) return;
+        std::size_t idx = static_cast<std::size_t>(part_ent.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            float dx = target_x - pos.x;
+            float dy = target_y - pos.y;
+            float dist = std::sqrt(dx * dx + dy * dy);
+
+            if (dist > 10.0f) {
+                float speed = 200.0f;
+                pos.x += (dx / dist) * speed * dt;
+                pos.y += (dy / dist) * speed * dt;
+            }
+        }
+    };
+
+    move_part_to_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y);
+    move_part_to_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y);
+    move_part_to_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y);
+
+    controller.part1_attack_timer += dt;
+    if (controller.part1_attack_timer >= 0.5f && controller.part1_entity.has_value()) {
+        controller.part1_attack_timer = 0.0f;
+        std::size_t idx = static_cast<std::size_t>(controller.part1_entity.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            createEnemyProjectile(reg, pos.x, pos.y - 15.0f, -280.0f, 0.0f, 15);
+            createEnemyProjectile(reg, pos.x, pos.y + 15.0f, -280.0f, 0.0f, 15);
+        }
+    }
+
+    controller.part2_attack_timer += dt;
+    if (controller.part2_attack_timer >= 0.8f && controller.part2_entity.has_value()) {
+        controller.part2_attack_timer = 0.0f;
+        std::size_t idx = static_cast<std::size_t>(controller.part2_entity.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            for (int i = 0; i < 4; ++i) {
+                float angle = controller.state_timer * 4.0f + (i * 1.5708f);
+                float vx = std::cos(angle) * 160.0f - 80.0f;
+                float vy = std::sin(angle) * 160.0f;
+                createEnemy2Projectile(reg, pos.x, pos.y, vx, vy, 20);
+            }
+        }
+    }
+
+
+    controller.part3_attack_timer += dt;
+    if (controller.part3_attack_timer >= 1.2f && controller.part3_entity.has_value()) {
+        controller.part3_attack_timer = 0.0f;
+        std::size_t idx = static_cast<std::size_t>(controller.part3_entity.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+
+            createEnemy3Projectile(reg, pos.x, pos.y, -200.0f, 60.0f, 25, 0);
+            createEnemy3Projectile(reg, pos.x, pos.y, -220.0f, 0.0f, 25, 0);
+            createEnemy3Projectile(reg, pos.x, pos.y, -200.0f, -60.0f, 25, 0);
+        }
+    }
+
+    if (controller.state_timer >= controller.separated_duration) {
+        controller.state = CompilerState::Merging;
+        controller.state_timer = 0.0f;
+        auto& projectile_tags = reg.get_components<projectile_tag>();
+        auto& proj_positions = reg.get_components<position>();
+        for (std::size_t p = 0; p < proj_positions.size(); ++p) {
+            if (p < projectile_tags.size() && projectile_tags[p].has_value() && proj_positions[p].has_value()) {
+                bool near_part = false;
+                auto check_near = [&](std::optional<entity>& part_ent) {
+                    if (!part_ent.has_value()) return;
+                    std::size_t idx = static_cast<std::size_t>(part_ent.value());
+                    if (idx < positions.size() && positions[idx].has_value()) {
+                        float dx = proj_positions[p]->x - positions[idx]->x;
+                        float dy = proj_positions[p]->y - positions[idx]->y;
+                        if (std::sqrt(dx * dx + dy * dy) < 150.0f) {
+                            near_part = true;
+                        }
+                    }
+                };
+                check_near(controller.part1_entity);
+                check_near(controller.part2_entity);
+                check_near(controller.part3_entity);
+                if (near_part) {
+                    auto proj = reg.entity_from_index(p);
+                    reg.kill_entity(proj);
+                }
+            }
+        }
+        std::cout << "[BOSS] Compiler Boss starting to merge!" << std::endl;
+    }
+}
+
+void BossManager::update_compiler_merging(registry& reg, compiler_boss_controller& controller, float dt) {
+    controller.state_timer += dt;
+
+    auto& positions = reg.get_components<position>();
+    auto& controllers = reg.get_components<compiler_boss_controller>();
+    float center_x = 1150.0f;
+    float center_y = 450.0f;
+    for (std::size_t i = 0; i < controllers.size(); ++i) {
+        if (!controllers[i].has_value()) continue;
+        if (&controllers[i].value() != &controller) continue;
+        if (i < positions.size() && positions[i].has_value()) {
+            auto& pos = positions[i].value();
+            pos.x = -500.0f;
+            pos.y = -500.0f;
+        }
+        break;
+    }
+    auto move_part_to_center = [&](std::optional<entity>& part_ent, float offset_x, float offset_y) {
+        if (!part_ent.has_value()) return;
+        std::size_t idx = static_cast<std::size_t>(part_ent.value());
+        if (idx < positions.size() && positions[idx].has_value()) {
+            auto& pos = positions[idx].value();
+            float target_x = center_x + offset_x;
+            float target_y = center_y + offset_y;
+            float dx = target_x - pos.x;
+            float dy = target_y - pos.y;
+            pos.x += dx * dt * 3.0f;
+            pos.y += dy * dt * 3.0f;
+        }
+    };
+    move_part_to_center(controller.part1_entity, -50.0f, -40.0f);
+    move_part_to_center(controller.part2_entity, 0.0f, 60.0f);
+    move_part_to_center(controller.part3_entity, 70.0f, -40.0f);
+    if (controller.state_timer >= controller.merge_duration) {
+        auto& projectile_tags = reg.get_components<projectile_tag>();
+        auto& proj_positions = reg.get_components<position>();
+        for (std::size_t p = 0; p < proj_positions.size(); ++p) {
+            if (p < projectile_tags.size() && projectile_tags[p].has_value() && proj_positions[p].has_value()) {
+                bool near_part = false;
+                auto check_near = [&](std::optional<entity>& part_ent) {
+                    if (!part_ent.has_value()) return;
+                    std::size_t idx = static_cast<std::size_t>(part_ent.value());
+                    if (idx < positions.size() && positions[idx].has_value()) {
+                        float dx = proj_positions[p]->x - positions[idx]->x;
+                        float dy = proj_positions[p]->y - positions[idx]->y;
+                        if (std::sqrt(dx * dx + dy * dy) < 150.0f) {
+                            near_part = true;
+                        }
+                    }
+                };
+                check_near(controller.part1_entity);
+                check_near(controller.part2_entity);
+                check_near(controller.part3_entity);
+                if (near_part) {
+                    auto proj = reg.entity_from_index(p);
+                    reg.kill_entity(proj);
+                }
+            }
+        }
+        controller.state = CompilerState::Assembled;
+        controller.state_timer = 0.0f;
+        std::cout << "[BOSS] Compiler Boss merged and assembled! Parts forming the boss." << std::endl;
+    }
+}
+
+void BossManager::update_compiler_light_animation(compiler_boss_controller& controller, float dt) {
+    controller.light_timer += dt;
+    if (controller.light_timer >= controller.light_duration) {
+        controller.light_timer = 0.0f;
+        controller.light_on = !controller.light_on;
+    }
+}
+
+void BossManager::set_compiler_separated_targets(compiler_boss_controller& controller) {
+
+    std::uniform_real_distribution<float> dist_x(600.0f, 1800.0f);
+    std::uniform_real_distribution<float> dist_y(50.0f, 800.0f);
+    controller.part1_target_x = dist_x(rng_);
+    controller.part1_target_y = 100.0f + (rand() % 150);
+    controller.part2_target_x = 1500.0f + (rand() % 300);
+    controller.part2_target_y = 350.0f + (rand() % 200);
+    controller.part3_target_x = dist_x(rng_);
+    controller.part3_target_y = 600.0f + (rand() % 150);
+    std::cout << "[BOSS] Separation targets set - Part1: (" << controller.part1_target_x << "," << controller.part1_target_y
+              << ") Part2: (" << controller.part2_target_x << "," << controller.part2_target_y
+              << ") Part3: (" << controller.part3_target_x << "," << controller.part3_target_y << ")" << std::endl;
+}
+
 std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<entity>& boss_entity,
                                                   std::optional<entity>& serpent_controller) {
-    // Check Level 5 boss
     if (boss_entity.has_value()) {
         auto& health_opt = reg.get_component<health>(boss_entity.value());
         if (health_opt.has_value()) {
             return {health_opt->current, health_opt->maximum};
         }
     }
-    
-    // Check Level 10 serpent boss
     if (serpent_controller.has_value()) {
         auto& ctrl_opt = reg.get_component<serpent_boss_controller>(serpent_controller.value());
         if (ctrl_opt.has_value()) {
             return {ctrl_opt->current_health, ctrl_opt->total_health};
         }
     }
-    
+    auto& compiler_controllers = reg.get_components<compiler_boss_controller>();
+    for (std::size_t i = 0; i < compiler_controllers.size(); ++i) {
+        if (compiler_controllers[i].has_value()) {
+            return {compiler_controllers[i]->current_health, compiler_controllers[i]->total_health};
+        }
+    }
     return {0, 0};
 }
 
-}  // namespace server
+void BossManager::spawn_boss_explosions(registry& reg, float x, float y, int count) {
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<float> offset_dist(-50.0f, 50.0f);
+    for (int i = 0; i < count; ++i) {
+        entity explosion = reg.spawn_entity();
+        float exp_x = x + offset_dist(gen);
+        float exp_y = y + offset_dist(gen);
+        reg.add_component(explosion, position{exp_x, exp_y});
+        reg.add_component(explosion, entity_tag{RType::EntityType::Obstacle});
+        reg.add_component(explosion, explosion_tag{0.8f});
+        std::cout << "[BOSS] Spawned explosion at (" << exp_x << ", " << exp_y << ")" << std::endl;
+    }
+}
+
+}

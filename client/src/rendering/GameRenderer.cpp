@@ -73,6 +73,14 @@ void GameRenderer::init(sf::RenderWindow& window) {
     boss_fight_bg_sprite_.setScale(scale_x, scale_y);
     boss_fight_bg_sprite_.setPosition(0, 0);
 
+    sf::Texture& boss3_texture = texture_mgr.load("assets/background-boss3.png");
+    compiler_boss_bg_sprite_.setTexture(boss3_texture);
+    sf::Vector2u tex_size3 = boss3_texture.getSize();
+    float scale_x3 = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(tex_size3.x);
+    float scale_y3 = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size3.y);
+    compiler_boss_bg_sprite_.setScale(scale_x3, scale_y3);
+    compiler_boss_bg_sprite_.setPosition(0, 0);
+
     std::vector<std::string> top_files = {
         "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
         "assets/ruins-top4.png", "assets/ruins-top5.png"
@@ -172,7 +180,7 @@ void GameRenderer::update(float dt) {
             }
         }
 
-        if (current_bg_level_ >= 10) {
+        if (current_bg_level_ >= 12) {
             ruins_bg2_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg2_sprite2_.setPosition(static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
         } else {
@@ -226,7 +234,37 @@ void GameRenderer::render_background(sf::RenderWindow& window) {
         return;
     }
 
-    if (current_bg_level_ >= 6) {
+    if (current_bg_level_ == 15) {
+        window.draw(compiler_boss_bg_sprite_);
+        return;
+    }
+
+    if (current_bg_level_ >= 12) {
+        if (bg_fade_active_ && bg_fade_timer_ < bg_fade_duration_) {
+            float progress = bg_fade_timer_ / bg_fade_duration_;
+            sf::Uint8 old_alpha = static_cast<sf::Uint8>((1.0f - progress) * 255);
+            ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, old_alpha));
+            ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, old_alpha));
+            window.draw(ruins_bg_sprite1_);
+            window.draw(ruins_bg_sprite2_);
+            sf::Uint8 new_alpha = static_cast<sf::Uint8>(progress * 255);
+            ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, new_alpha));
+            ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, new_alpha));
+            window.draw(ruins_bg2_sprite1_);
+            window.draw(ruins_bg2_sprite2_);
+        } else {
+            ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, 255));
+            ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, 255));
+            window.draw(ruins_bg2_sprite1_);
+            window.draw(ruins_bg2_sprite2_);
+        }
+        for (const auto& sprite : ruins_top_sprites_) {
+            window.draw(sprite);
+        }
+        for (const auto& sprite : ruins_bottom_sprites_) {
+            window.draw(sprite);
+        }
+    } else if (current_bg_level_ >= 6) {
         ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, 255));
         ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, 255));
         window.draw(ruins_bg_sprite1_);
@@ -251,6 +289,11 @@ void GameRenderer::set_background_level(uint8_t level) {
         transition_active_ = true;
         transition_timer_ = 0.0f;
     } else if (level == 10 && current_bg_level_ == 9) {
+        bg_fade_active_ = true;
+        bg_fade_timer_ = 0.0f;
+        current_bg_level_ = level;
+    } else if (level == 12 && current_bg_level_ == 11) {
+        target_bg_level_ = level;
         bg_fade_active_ = true;
         bg_fade_timer_ = 0.0f;
         current_bg_level_ = level;
@@ -467,7 +510,7 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setRotation(e.rotation);
         }
 
-        if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
+        if ((e.type == 0x08 || e.type == 0x21 || e.type == 0x22 || e.type == 0x23) && e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
         } else if (e.grayscale) {
             e.sprite.setColor(sf::Color(128, 128, 128, 255));

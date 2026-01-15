@@ -43,11 +43,13 @@ GameSession::GameSession() {
     reg.register_component<missile_drone>();
     reg.register_component<damage_flash_component>();
     reg.register_component<game_settings>();
+    reg.register_component<explosive_projectile>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
     _engine.register_system(std::make_unique<EnemyShootingSystem>());
     _engine.register_system(std::make_unique<WaveSystem>());
     _engine.register_system(std::make_unique<MovementSystem>());
+    _engine.register_system(std::make_unique<ExplosiveProjectileSystem>());
     _engine.register_system(std::make_unique<CollisionSystem>());
     _engine.register_system(std::make_unique<CleanupSystem>());
 
@@ -169,6 +171,10 @@ void GameSession::start_game(UDPServer& server) {
     } else if (_starting_level == 10) {
         std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
         _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    } else if (_starting_level == 15) {
+        std::cout << "[SERVER] *** Starting at Level 15 - Spawning COMPILER BOSS! ***" << std::endl;
+        _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity);
         _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
     }
 
@@ -521,6 +527,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _boss_shoot_counter, dt);
 
     _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity, _client_entity_ids, dt);
+
+    _boss_manager.update_compiler_boss(_engine.get_registry(), _compiler_controller_entity, _client_entity_ids, dt);
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
@@ -1114,6 +1122,11 @@ void GameSession::advance_level(UDPServer& server) {
     } else if (current_level == 10) {
         std::cout << "[SERVER] *** Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
         _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+
+        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    } else if (current_level == 15) {
+        std::cout << "[SERVER] *** Level 15 - Spawning COMPILER BOSS! ***" << std::endl;
+        _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity);
 
         _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
     }

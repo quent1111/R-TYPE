@@ -4,6 +4,7 @@
 #include "../../engine/ecs/registry.hpp"
 #include "../../game-lib/include/components/game_components.hpp"
 #include "../../game-lib/include/components/logic_components.hpp"
+#include "../../game-lib/include/entities/projectile_factory.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
 #include <cmath>
@@ -43,6 +44,13 @@ public:
                              const std::unordered_map<int, std::size_t>& client_entity_ids,
                              float dt);
 
+    void spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity);
+
+    void update_compiler_boss(registry& reg,
+                              std::optional<entity>& compiler_controller_entity,
+                              const std::unordered_map<int, std::size_t>& client_entity_ids,
+                              float dt);
+
     std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity, 
                                         std::optional<entity>& serpent_controller);
 
@@ -53,7 +61,7 @@ private:
     void boss_spawn_homing_enemy(registry& reg, std::optional<entity>& boss_entity);
 
     void spawn_serpent_nest(registry& reg, serpent_boss_controller& controller);
-    void spawn_serpent_part(registry& reg, serpent_boss_controller& controller, 
+    void spawn_serpent_part(registry& reg, serpent_boss_controller& controller,
                             SerpentPartType type, int index, float x, float y,
                             std::optional<entity> parent);
     void spawn_serpent_scale_on_body(registry& reg, serpent_boss_controller& controller,
@@ -63,9 +71,9 @@ private:
     void update_serpent_parts_follow(registry& reg, serpent_boss_controller& controller, float dt);
     void update_serpent_rotations(registry& reg, serpent_boss_controller& controller,
                                   const std::unordered_map<int, std::size_t>& client_entity_ids);
-    void handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller, 
+    void handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller,
                                     entity part_entity, int damage);
-    
+
     void update_serpent_attacks(registry& reg, serpent_boss_controller& controller,
                                 const std::unordered_map<int, std::size_t>& client_entity_ids,
                                 float dt);
@@ -76,7 +84,22 @@ private:
     void serpent_laser_attack(registry& reg, serpent_boss_controller& controller,
                               const std::unordered_map<int, std::size_t>& client_entity_ids,
                               float dt);
-    
+
+    void spawn_compiler_part(registry& reg, compiler_boss_controller& controller,
+                             int part_index, float x, float y);
+    void update_compiler_entering(registry& reg, compiler_boss_controller& controller, float dt);
+    void update_compiler_assembled(registry& reg, compiler_boss_controller& controller,
+                                   const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                   float dt);
+    void update_compiler_splitting(registry& reg, compiler_boss_controller& controller, float dt);
+    void update_compiler_separated(registry& reg, compiler_boss_controller& controller,
+                                   const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                   float dt);
+    void update_compiler_merging(registry& reg, compiler_boss_controller& controller, float dt);
+    void update_compiler_light_animation(compiler_boss_controller& controller, float dt);
+    void set_compiler_separated_targets(compiler_boss_controller& controller);
+    void spawn_boss_explosions(registry& reg, float x, float y, int count);
+
     std::mt19937 rng_{std::random_device{}()};
 };
 
