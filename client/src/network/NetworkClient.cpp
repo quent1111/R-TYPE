@@ -69,13 +69,14 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
                 decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
                 std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
-                         << ", buffer.size()=" << buffer.size() << std::endl;
+                         << ", decompressed buffer.size()=" << buffer.size() << std::endl;
                 std::cout << "[NetworkClient] Packet data: ";
-                for (size_t i = 0; i < bytes_received && i < buffer.size(); ++i) {
+                for (size_t i = 0; i < buffer.size(); ++i) {
                     std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
                 }
                 std::cout << std::dec << std::endl;
-                std::vector<uint8_t> data(buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(bytes_received));
+                // Utiliser buffer.size() car les données ont été décompressées
+                std::vector<uint8_t> data(buffer.begin(), buffer.end());
                 NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
                 msg.raw_lobby_data = data;
                 network_to_game_queue_.push(msg);
