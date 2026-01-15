@@ -41,6 +41,11 @@ public:
     void set_music_volume(float volume);
     void set_master_volume(float volume);
 
+    void set_music_muted(bool muted);
+    void set_sound_muted(bool muted);
+    bool is_music_muted() const;
+    bool is_sound_muted() const;
+
     float get_sound_volume() const;
     float get_music_volume() const;
     float get_master_volume() const;
@@ -54,6 +59,8 @@ private:
     float sound_volume_ = 70.0f;
     float music_volume_ = 50.0f;
     float master_volume_ = 100.0f;
+    bool music_muted_ = false;
+    bool sound_muted_ = false;
     float get_effective_volume(float base_volume) const;
 #else
     // Full SFML Audio implementation
@@ -68,6 +75,8 @@ private:
     float sound_volume_ = 70.0f;
     float music_volume_ = 50.0f;
     float master_volume_ = 100.0f;
+    bool music_muted_ = false;
+    bool sound_muted_ = false;
     sf::Sound& get_next_sound();
     float get_effective_volume(float base_volume) const;
 #endif

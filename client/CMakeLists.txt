@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 
+# Ajouter le module d'accessibilité
+add_subdirectory(accessibility)
+
 add_executable(r-type_client
     src/main_menu.cpp
     src/game/Game.cpp
@@ -28,6 +31,7 @@ target_include_directories(r-type_client PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/game-lib/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/accessibility/include
 )
 
 target_link_libraries(r-type_client PRIVATE
@@ -37,6 +41,7 @@ target_link_libraries(r-type_client PRIVATE
     Boost::boost
     game_logic
     LZ4::lz4_static
+    rtype-accessibility
 )
 
 link_platform_libraries(r-type_client)

@@ -3,10 +3,18 @@
 #include <vector>
 #include <SFML/Window.hpp>
 
+enum class ColorBlindMode {
+    Normal = 0,
+    Protanopia = 1,
+    Deuteranopia = 2,
+    Tritanopia = 3,
+    HighContrast = 4
+};
+
 struct Settings {
     int master_volume = 50;
     bool fullscreen = false;
-    bool colorblind_mode = false;
+    ColorBlindMode colorblind_mode = ColorBlindMode::Normal;
     bool screen_shake_enabled = true;
     std::vector<std::pair<int, int>> resolutions{{1280, 720}, {1600, 900}, {1920, 1080}};
     size_t resolution_index = 2;

@@ -73,7 +73,7 @@ private:
     std::function<void()> m_quit_callback;
     size_t m_temp_resolution_index{0};
     bool m_temp_fullscreen{false};
-    bool m_temp_colorblind{false};
+    ColorBlindMode m_temp_colorblind{ColorBlindMode::Normal};
     bool m_temp_screen_shake{true};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};

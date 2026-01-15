@@ -2,6 +2,8 @@
 
 #include "common/Settings.hpp"
 #include "managers/TextureManager.hpp"
+#include "managers/FontManager.hpp"
+#include <ColorBlindnessMode.hpp>
 
 #include <cmath>
 
@@ -385,6 +387,10 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
     const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
+    auto& accessibility_mgr = accessibility::AccessibilityManager::instance();
+    int client_mode = static_cast<int>(Settings::instance().colorblind_mode);
+    accessibility_mgr.setColorBlindMode(accessibility::fromClientColorBlindMode(client_mode));
+
     Entity* serpent_nest = nullptr;
 
     for (auto& pair : entities) {
@@ -469,6 +475,10 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setColor(sf::Color(255, 255, 255, 255));
         }
 
+        sf::Color current_color = e.sprite.getColor();
+        sf::Color transformed_color = accessibility_mgr.transformColor(current_color);
+        e.sprite.setColor(transformed_color);
+
         if (e.type == 0x01 && e.health <= 0) {
             continue;
         }
@@ -477,7 +487,28 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
-        window.draw(e.sprite);
+        // Rendu spécial pour les projectiles (player vs enemy)
+        bool is_projectile = (e.type == 0x03 || e.type == 0x04 || e.type == 0x05 || e.type == 0x06);
+        bool is_player_projectile = (e.type == 0x03 || e.type == 0x04); // Projectiles joueur
+        bool is_enemy_projectile = (e.type == 0x05 || e.type == 0x06);  // Projectiles ennemis
+        
+        if (is_projectile && client_mode != 0) { // Si mode daltonien activé
+            sf::FloatRect bounds = e.sprite.getGlobalBounds();
+            float size = std::max(bounds.width, bounds.height);
+            
+            if (is_player_projectile) {
+                // Cercle pour projectiles joueur (vert)
+                sf::Color player_color = accessibility_mgr.transformColor(sf::Color(0, 255, 0));
+                projectile_shape_renderer_.drawPlayerProjectile(window, draw_x, draw_y, size, player_color);
+            } else if (is_enemy_projectile) {
+                // Diamant pour projectiles ennemis (rouge)
+                sf::Color enemy_color = accessibility_mgr.transformColor(sf::Color(255, 0, 0));
+                projectile_shape_renderer_.drawEnemyProjectile(window, draw_x, draw_y, size, enemy_color);
+            }
+        } else {
+            // Rendu normal du sprite
+            window.draw(e.sprite);
+        }
     }
 
     if (serpent_nest != nullptr) {
@@ -577,10 +608,67 @@ void GameRenderer::render_damage_flash(sf::RenderWindow& window) {
 }
 
 void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
-    if (Settings::instance().colorblind_mode) {
-        sf::RectangleShape colorblind_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-        colorblind_overlay.setFillColor(sf::Color(255, 200, 100, 40));
-        window.draw(colorblind_overlay);
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+
+    if (mode != ColorBlindMode::Normal) {
+        sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+        switch (mode) {
+            case ColorBlindMode::Protanopia:
+                overlay.setFillColor(sf::Color(255, 255, 0, 90));
+                break;
+
+            case ColorBlindMode::Deuteranopia:
+                overlay.setFillColor(sf::Color(255, 100, 255, 90));
+                break;
+
+            case ColorBlindMode::Tritanopia:
+                overlay.setFillColor(sf::Color(255, 100, 50, 90));
+                break;
+
+            case ColorBlindMode::HighContrast:
+                overlay.setFillColor(sf::Color(150, 150, 255, 110));
+                break;
+            default:
+                overlay.setFillColor(sf::Color(255, 200, 100, 80));
+                break;
+        }
+        window.draw(overlay);
+        sf::Text mode_indicator;
+        auto& font_mgr = managers::FontManager::instance();
+        const sf::Font* font = font_mgr.get_default();
+        if (font != nullptr) {
+            mode_indicator.setFont(*font);
+            mode_indicator.setCharacterSize(18);
+            mode_indicator.setFillColor(sf::Color(255, 255, 100, 220));
+            mode_indicator.setOutlineColor(sf::Color::Black);
+            mode_indicator.setOutlineThickness(2);
+            std::string mode_text;
+            switch (mode) {
+                case ColorBlindMode::Protanopia:
+                    mode_text = "Protanopia";
+                    break;
+                case ColorBlindMode::Deuteranopia:
+                    mode_text = "Deuteranopia";
+                    break;
+                case ColorBlindMode::Tritanopia:
+                    mode_text = "Tritanopia";
+                    break;
+                case ColorBlindMode::HighContrast:
+                    mode_text = "Contraste++";
+                    break;
+                default:
+                    mode_text = "";
+                    break;
+            }
+
+            if (!mode_text.empty()) {
+                mode_indicator.setString(mode_text);
+                sf::FloatRect bounds = mode_indicator.getLocalBounds();
+                mode_indicator.setPosition(WINDOW_WIDTH - bounds.width - 20, 20);
+                window.draw(mode_indicator);
+            }
+        }
     }
 }
 
