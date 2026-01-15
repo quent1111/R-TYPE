@@ -4,6 +4,17 @@
 
 namespace server {
 
+// Helper function to get difficulty multiplier from game settings
+static float get_difficulty_multiplier(registry& reg) {
+    auto& settings = reg.get_components<game_settings>();
+    for (const auto& setting : settings) {
+        if (setting.has_value()) {
+            return setting->difficulty_multiplier;
+        }
+    }
+    return 1.0f;  // Default to easy if no settings found
+}
+
 void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_entity,
                                      float& boss_animation_timer, float& boss_shoot_timer,
                                      bool& boss_animation_complete, bool& boss_entrance_complete,
@@ -18,7 +29,11 @@ void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_
 
     reg.add_component(boss, velocity{-150.0f, 0.0f});
 
-    reg.add_component(boss, health{2000, 2000});
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 2000;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+
+    reg.add_component(boss, health{scaled_health, scaled_health});
 
     reg.add_component(boss, damage_on_contact{50, false});
 
@@ -185,7 +200,11 @@ void BossManager::boss_spawn_homing_enemy(registry& reg, std::optional<entity>& 
 
     reg.add_component(homing, velocity{-150.0f, 0.0f});
 
-    reg.add_component(homing, health{10, 10});
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 10;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+
+    reg.add_component(homing, health{scaled_health, scaled_health});
 
     reg.add_component(homing, collision_box{35.0f, 35.0f});
     reg.add_component(homing, damage_on_contact{30, true});
@@ -295,33 +314,36 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
                                      std::optional<entity> parent) {
     entity part = reg.spawn_entity();
     
-    int part_health = 100;
+    int base_health = 100;
     RType::EntityType entity_type = RType::EntityType::SerpentBody;
     
     switch (type) {
         case SerpentPartType::Head:
-            part_health = 300;
+            base_health = 300;
             entity_type = RType::EntityType::SerpentHead;
             break;
         case SerpentPartType::Body:
-            part_health = 100;
+            base_health = 100;
             entity_type = RType::EntityType::SerpentBody;
             break;
         case SerpentPartType::Scale:
-            part_health = 150;
+            base_health = 150;
             entity_type = RType::EntityType::SerpentScale;
             break;
         case SerpentPartType::Tail:
-            part_health = 80;
+            base_health = 80;
             entity_type = RType::EntityType::SerpentTail;
             break;
         default:
             break;
     }
     
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    
     reg.add_component(part, position{x, y});
     reg.add_component(part, velocity{0.0f, 0.0f});
-    reg.add_component(part, health{part_health, part_health});
+    reg.add_component(part, health{scaled_health, scaled_health});
     reg.add_component(part, collision_box{50.0f, 50.0f});
     reg.add_component(part, damage_on_contact{15, false});
     reg.add_component(part, entity_tag{entity_type});
@@ -355,11 +377,13 @@ void BossManager::spawn_serpent_scale_on_body(registry& reg, serpent_boss_contro
                                               entity body_entity, float x, float y, int scale_index) {
     entity scale = reg.spawn_entity();
     
-    int scale_health = 150;
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 150;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
     
     reg.add_component(scale, position{x, y});
     reg.add_component(scale, velocity{0.0f, 0.0f});
-    reg.add_component(scale, health{scale_health, scale_health});
+    reg.add_component(scale, health{scaled_health, scaled_health});
     reg.add_component(scale, collision_box{40.0f, 40.0f});
     reg.add_component(scale, damage_on_contact{15, false});
     reg.add_component(scale, entity_tag{RType::EntityType::SerpentScale});
@@ -947,9 +971,13 @@ void BossManager::serpent_spawn_homing(registry& reg, float x, float y, float ta
     float vx = (dx / dist) * speed;
     float vy = (dy / dist) * speed;
     
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 10;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    
     reg.add_component(homing, position{x, y});
     reg.add_component(homing, velocity{vx, vy});
-    reg.add_component(homing, health{10, 10});
+    reg.add_component(homing, health{scaled_health, scaled_health});
     reg.add_component(homing, collision_box{40.0f, 40.0f});
     reg.add_component(homing, damage_on_contact{15, true});
     reg.add_component(homing, homing_component{180.0f, 2.0f});

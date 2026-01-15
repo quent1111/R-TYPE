@@ -33,7 +33,7 @@ public:
     LobbyManager(int default_max_players = 4);
     ~LobbyManager() = default;
 
-    int create_lobby(const std::string& name, int max_players = 0);
+    int create_lobby(const std::string& name, int max_players = 0, bool friendly_fire = false, uint8_t difficulty = 0);
     bool delete_lobby(int lobby_id);
     Lobby* get_lobby(int lobby_id);
     std::vector<LobbyInfo> get_lobby_list();

@@ -43,7 +43,11 @@ void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
     deserializer >> magic >> opcode_val;
 
     std::string lobby_name;
+    bool friendly_fire = false;
+    uint8_t difficulty = 0;
     deserializer >> lobby_name;
+    deserializer >> friendly_fire;
+    deserializer >> difficulty;
 
     if (lobby_name.length() > 12) {
         std::cerr << "[LobbyCommandHandler] Lobby name too long (" << lobby_name.length()
@@ -54,9 +58,11 @@ void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
     uint8_t max_players = 4;
 
     std::cout << "[LobbyCommandHandler] Client " << client_id << " creating lobby: " 
-              << lobby_name << " (max " << static_cast<int>(max_players) << " players)" << std::endl;
+              << lobby_name << " (max " << static_cast<int>(max_players) << " players)"
+              << " Friendly Fire: " << (friendly_fire ? "ON" : "OFF")
+              << " Difficulty: " << static_cast<int>(difficulty) << std::endl;
 
-    int lobby_id = _lobby_manager.create_lobby(lobby_name, max_players);
+    int lobby_id = _lobby_manager.create_lobby(lobby_name, max_players, friendly_fire, difficulty);
 
     bool joined = _lobby_manager.join_lobby(lobby_id, client_id, server);
 
