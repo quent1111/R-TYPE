@@ -2,6 +2,12 @@
 
 #include <array>
 
+// Suppress false positive GCC warning about memmove in vector initialization
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 namespace server {
 
 // Helper function to get difficulty multiplier from game settings
@@ -31,16 +37,18 @@ void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_
 
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 2000;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
 
     reg.add_component(boss, health{scaled_health, scaled_health});
 
     reg.add_component(boss, damage_on_contact{50, false});
 
-    multi_hitbox boss_hitboxes;
-    boss_hitboxes.parts = {multi_hitbox::hitbox_part{250.0f, 250.0f, -200.0f, -350.0f},
-                           multi_hitbox::hitbox_part{350.0f, 500.0f, 25.0f, -100.0f},
-                           multi_hitbox::hitbox_part{200.0f, 200.0f, -100.0f, 220.0f}};
+    std::vector<multi_hitbox::hitbox_part> hitbox_parts;
+    hitbox_parts.reserve(3);
+    hitbox_parts.emplace_back(250.0f, 250.0f, -200.0f, -350.0f);
+    hitbox_parts.emplace_back(350.0f, 500.0f, 25.0f, -100.0f);
+    hitbox_parts.emplace_back(200.0f, 200.0f, -100.0f, 220.0f);
+    multi_hitbox boss_hitboxes(std::move(hitbox_parts));
     reg.add_component(boss, boss_hitboxes);
 
     reg.add_component(boss, boss_tag{});
@@ -240,7 +248,7 @@ void BossManager::boss_spawn_homing_enemy(registry& reg, std::optional<entity>& 
 
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 10;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
 
     reg.add_component(homing, health{scaled_health, scaled_health});
 
@@ -374,7 +382,7 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
     }
     
     float difficulty_mult = get_difficulty_multiplier(reg);
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
     
     reg.add_component(part, position{x, y});
     reg.add_component(part, velocity{0.0f, 0.0f});
@@ -387,7 +395,7 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
 
     serpent_part sp(type, index);
     sp.parent_entity = parent;
-    sp.follow_delay = 0.05f + (index * 0.02f);
+    sp.follow_delay = 0.05f + (static_cast<float>(index) * 0.02f);
     reg.add_component(part, sp);
 
     reg.add_component(part, position_history{});
@@ -414,7 +422,7 @@ void BossManager::spawn_serpent_scale_on_body(registry& reg, serpent_boss_contro
     
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 150;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
     
     reg.add_component(scale, position{x, y});
     reg.add_component(scale, velocity{0.0f, 0.0f});
@@ -449,7 +457,7 @@ void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_con
         serpent_progress = std::min(1.0f, std::max(0.0f, serpent_progress));
 
         int total_chain_parts = 1 + controller.num_body_parts + 1;
-        int parts_to_spawn = static_cast<int>(serpent_progress * total_chain_parts);
+        int parts_to_spawn = static_cast<int>(serpent_progress * static_cast<float>(total_chain_parts));
 
         float nest_x = 960.0f;
         float nest_y = 950.0f;
@@ -470,10 +478,10 @@ void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_con
                 if (!controller.body_entities.empty()) {
                     for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0;
                          --j) {
-                        auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[j]);
+                        auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[static_cast<std::size_t>(j)]);
                         if (tag_opt.has_value() &&
                             tag_opt->type == RType::EntityType::SerpentBody) {
-                            parent = controller.body_entities[j];
+                            parent = controller.body_entities[static_cast<std::size_t>(j)];
                             break;
                         }
                     }
@@ -501,10 +509,10 @@ void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_con
                 if (!controller.body_entities.empty()) {
                     for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0;
                          --j) {
-                        auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[j]);
+                        auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[static_cast<std::size_t>(j)]);
                         if (tag_opt.has_value() &&
                             tag_opt->type == RType::EntityType::SerpentBody) {
-                            parent = controller.body_entities[j];
+                            parent = controller.body_entities[static_cast<std::size_t>(j)];
                             break;
                         }
                     }
@@ -1136,7 +1144,7 @@ void BossManager::serpent_scream_attack(registry& reg, serpent_boss_controller& 
     if (!head_pos.has_value())
         return;
 
-    int num_homings = 6 + (rng_() % 3);
+    int num_homings = 6 + static_cast<int>(rng_() % 3);
 
     for (int i = 0; i < num_homings; ++i) {
         float spawn_x, spawn_y;
@@ -1185,7 +1193,7 @@ void BossManager::serpent_spawn_homing(registry& reg, float x, float y, float ta
     
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 10;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
     
     reg.add_component(homing, position{x, y});
     reg.add_component(homing, velocity{vx, vy});
@@ -1679,7 +1687,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             float center_y = target_y + oscillation_y;
 
             for (int i = 0; i < 36; ++i) {
-                float angle = (3.14159f * 2.0f * i) / 36.0f;
+                float angle = (3.14159f * 2.0f * static_cast<float>(i)) / 36.0f;
                 float vx = std::cos(angle) * 190.0f;
                 float vy = std::sin(angle) * 190.0f;
 
@@ -1687,7 +1695,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             }
 
             for (int i = 0; i < 24; ++i) {
-                float angle = (3.14159f * 2.0f * i) / 24.0f + 0.13f;
+                float angle = (3.14159f * 2.0f * static_cast<float>(i)) / 24.0f + 0.13f;
                 float vx = std::cos(angle) * 220.0f;
                 float vy = std::sin(angle) * 220.0f;
 
@@ -1695,7 +1703,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             }
 
             for (int i = 0; i < 12; ++i) {
-                float angle = (3.14159f * 2.0f * i) / 12.0f + 0.26f;
+                float angle = (3.14159f * 2.0f * static_cast<float>(i)) / 12.0f + 0.26f;
                 float vx = std::cos(angle) * 250.0f;
                 float vy = std::sin(angle) * 250.0f;
 
@@ -1703,7 +1711,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             }
 
             for (int i = 0; i < 10; ++i) {
-                float angle = (3.14159f * 2.0f * i) / 10.0f;
+                float angle = (3.14159f * 2.0f * static_cast<float>(i)) / 10.0f;
                 float vx = std::cos(angle) * 150.0f;
                 float vy = std::sin(angle) * 150.0f;
 
@@ -1749,7 +1757,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             }
             case 1: {
                 for (int i = 0; i < 16; ++i) {
-                    float angle = controller.state_timer * 3.0f + (i * 0.393f);
+                    float angle = controller.state_timer * 3.0f + (static_cast<float>(i) * 0.393f);
                     float vx = std::cos(angle) * 220.0f - 120.0f;
                     float vy = std::sin(angle) * 220.0f;
                     createEnemy2Projectile(reg, center_x, center_y, vx, vy, 20);
@@ -1759,9 +1767,9 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             case 2: {
                 for (int row = 0; row < 4; ++row) {
                     for (int col = 0; col < 4; ++col) {
-                        float offset_x = -60.0f + (col * 40.0f);
-                        float offset_y = -60.0f + (row * 40.0f);
-                        float vy = -180.0f + (row * 120.0f);
+                        float offset_x = -60.0f + (static_cast<float>(col) * 40.0f);
+                        float offset_y = -60.0f + (static_cast<float>(row) * 40.0f);
+                        float vy = -180.0f + (static_cast<float>(row) * 120.0f);
                         createEnemy3Projectile(reg, center_x + offset_x, center_y + offset_y, -280.0f, vy, 25, 0);
                     }
                 }
@@ -1775,15 +1783,15 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
             }
             case 3: {
                 for (int i = 0; i < 12; ++i) {
-                    float delay_offset = i * 0.03f;
-                    float vy = -220.0f + (i * 44.0f);
+                    float delay_offset = static_cast<float>(i) * 0.03f;
+                    float vy = -220.0f + (static_cast<float>(i) * 44.0f);
                     createEnemy2Projectile(reg, center_x + delay_offset * 100.0f, center_y, -370.0f, vy, 20);
                 }
                 break;
             }
             case 4: {
                 for (int i = 0; i < 16; ++i) {
-                    float angle = -1.4f + (i * 0.175f);
+                    float angle = -1.4f + (static_cast<float>(i) * 0.175f);
                     float vx = -220.0f + std::cos(angle) * 120.0f;
                     float vy = std::sin(angle) * 280.0f;
                     createExplosiveGrenade(reg, center_x, center_y, vx, vy, 2.5f, 85.0f, 50);
@@ -1924,7 +1932,7 @@ void BossManager::update_compiler_separated(registry& reg, compiler_boss_control
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
             for (int i = 0; i < 4; ++i) {
-                float angle = controller.state_timer * 4.0f + (i * 1.5708f);
+                float angle = controller.state_timer * 4.0f + (static_cast<float>(i) * 1.5708f);
                 float vx = std::cos(angle) * 160.0f - 80.0f;
                 float vy = std::sin(angle) * 160.0f;
                 createEnemy2Projectile(reg, pos.x, pos.y, vx, vy, 20);
@@ -2055,11 +2063,11 @@ void BossManager::set_compiler_separated_targets(compiler_boss_controller& contr
     std::uniform_real_distribution<float> dist_x(600.0f, 1800.0f);
     std::uniform_real_distribution<float> dist_y(50.0f, 800.0f);
     controller.part1_target_x = dist_x(rng_);
-    controller.part1_target_y = 100.0f + (rand() % 150);
-    controller.part2_target_x = 1500.0f + (rand() % 300);
-    controller.part2_target_y = 350.0f + (rand() % 200);
+    controller.part1_target_y = 100.0f + static_cast<float>(rand() % 150);
+    controller.part2_target_x = 1500.0f + static_cast<float>(rand() % 300);
+    controller.part2_target_y = 350.0f + static_cast<float>(rand() % 200);
     controller.part3_target_x = dist_x(rng_);
-    controller.part3_target_y = 600.0f + (rand() % 150);
+    controller.part3_target_y = 600.0f + static_cast<float>(rand() % 150);
 }
 
 std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<entity>& boss_entity,
@@ -2094,8 +2102,8 @@ std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<en
 void BossManager::spawn_boss_explosions(registry& reg, float x, float y, int count) {
     std::random_device rd;
     std::mt19937 gen(rd());
-    float zone_x = 150.0f + (count * 2.0f);
-    float zone_y = 150.0f + (count * 2.0f);
+    float zone_x = 150.0f + (static_cast<float>(count) * 2.0f);
+    float zone_y = 150.0f + (static_cast<float>(count) * 2.0f);
     std::uniform_real_distribution<float> offset_x_dist(-zone_x, zone_x);
     std::uniform_real_distribution<float> offset_y_dist(-zone_y, zone_y);
     for (int i = 0; i < count; ++i) {
@@ -2110,5 +2118,9 @@ void BossManager::spawn_boss_explosions(registry& reg, float x, float y, int cou
         reg.add_component(explosion, exp_tag);
     }
 }
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 }

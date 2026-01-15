@@ -93,7 +93,7 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received > 0) {
         if (bytes_received >= 2) {
             std::vector<uint8_t> data(recv_buffer_->begin(),
-                                      recv_buffer_->begin() + bytes_received);
+                                      recv_buffer_->begin() + static_cast<std::ptrdiff_t>(bytes_received));
 
             if (!data.empty() && (data[0] == 0x00 || data[0] == 0x01)) {
                 try {

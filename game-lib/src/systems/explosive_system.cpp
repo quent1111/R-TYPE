@@ -29,7 +29,7 @@ void explosiveProjectileSystem(registry& reg, float dt) {
                       << " - Damage: " << explosive.explosion_damage << std::endl;
 
             for (int e = 0; e < 12; ++e) {
-                float angle = (3.14159f * 2.0f * e) / 12.0f;
+                float angle = (3.14159f * 2.0f * static_cast<float>(e)) / 12.0f;
                 float offset_x = std::cos(angle) * 20.0f;
                 float offset_y = std::sin(angle) * 20.0f;
                 createExplosion(reg, pos.x + offset_x, pos.y + offset_y);
@@ -59,7 +59,7 @@ void explosiveProjectileSystem(registry& reg, float dt) {
 
                     if (!protected_by_shield) {
                         float damage_multiplier = 1.0f - (distance / explosive.explosion_radius);
-                        int actual_damage = static_cast<int>(explosive.explosion_damage * damage_multiplier);
+                        int actual_damage = static_cast<int>(static_cast<float>(explosive.explosion_damage) * damage_multiplier);
                         if (actual_damage > 0) {
                             player_health.current -= actual_damage;
                             if (player_health.current < 0) player_health.current = 0;

@@ -6,6 +6,12 @@
 #include <algorithm>
 #include <iostream>
 
+// Suppress false positive GCC warning about memmove in vector operations
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 namespace server {
 
 LobbyManager::LobbyManager(int default_max_players)
@@ -215,5 +221,9 @@ void LobbyManager::broadcast_lobby_list(UDPServer& server) {
     serializer.compress();
     server.send_to_all(serializer.data());
 }
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 }  // namespace server

@@ -252,7 +252,7 @@ void LobbyListState::on_create_clicked() {
         box.setFillColor(i == 0 ? sf::Color(50, 150, 50, 240) : sf::Color(20, 20, 30, 240));
         box.setOutlineColor(sf::Color(100, 180, 220));
         box.setOutlineThickness(2.0f);
-        box.setPosition(start_x + i * (button_width + button_spacing), start_y);
+        box.setPosition(start_x + static_cast<float>(i) * (button_width + button_spacing), start_y);
         m_difficulty_boxes.push_back(box);
 
         sf::Text text;

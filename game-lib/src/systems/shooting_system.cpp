@@ -83,7 +83,7 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                     for (int p = 0; p < count; ++p) {
                         float angle_offset = 0.0f;
                         if (count > 1) {
-                            angle_offset = (static_cast<float>(p) / (count - 1) - 0.5f) * spread;
+                            angle_offset = (static_cast<float>(p) / static_cast<float>(count - 1) - 0.5f) * spread;
                         }
                         float angle_rad = (base_angle + angle_offset) * 3.14159f / 180.0f;
                         float vx = std::cos(angle_rad) * wpn.projectile_speed;
@@ -166,8 +166,8 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                         static int shot_counter = 0;
                         for (int burst = 0; burst < 3; burst++) {
                             int projectile_type = (shot_counter + burst) % 3;
-                            float offset_x = (burst - 1) * 50.0f;
-                            float angle_offset = (burst - 1) * 0.087f;
+                            float offset_x = static_cast<float>(burst - 1) * 50.0f;
+                            float angle_offset = static_cast<float>(burst - 1) * 0.087f;
                             float vx = base_vx * std::cos(angle_offset) - base_vy * std::sin(angle_offset);
                             float vy = base_vx * std::sin(angle_offset) + base_vy * std::cos(angle_offset);
                             createEnemy3Projectile(reg, pos.x - 20.0f + offset_x, pos.y - 15.0f, vx, vy, wpn.damage, projectile_type);

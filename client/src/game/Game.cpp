@@ -473,8 +473,8 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
                         }
                         auto tex_size = texture_mgr.get(enemy_def.sprite.texture_path)->getSize();
                         int last_frame_x = 5 * 72;
-                        int last_frame_w = tex_size.x - last_frame_x;
-                        entity.frames.push_back({last_frame_x, 0, last_frame_w, fh});
+                        unsigned int last_frame_w = tex_size.x - static_cast<unsigned int>(last_frame_x);
+                        entity.frames.push_back({last_frame_x, 0, static_cast<int>(last_frame_w), fh});
                     } else if (enemy_def.id == "fairy3") {
                         entity.frames.push_back({0, 0, 74, fh});
                         entity.frames.push_back({100, 0, 74, fh});
@@ -900,7 +900,8 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
     } else if (entity.type == 0x16) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
-    } else if (entity.type == 0x17) {
+    } else if (entity.type == 0x17 && entity.frames.empty()) {
+        // Already handled at line 547, only apply if not yet initialized
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
     } else if (entity.type == 0x18) {
@@ -970,12 +971,8 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
             entity.sprite.setScale(2.5F, 2.5F);
             std::cout << "[CLIENT] CompilerExplosion sprite loaded! 6 frames, Scale: 2.5" << std::endl;
         }
-    } else if (entity.type == 0x30) {
-        // CustomEnemy - handled via custom_entity_id
-    } else if (entity.type == 0x31) {
-        // CustomBoss - handled via custom_entity_id
-    } else if (entity.type == 0x32) {
-        // CustomProjectile - handled via custom_entity_id
+    } else if (entity.type == 0x30 || entity.type == 0x31 || entity.type == 0x32) {
+        // CustomEnemy (0x30), CustomBoss (0x31), CustomProjectile (0x32) - handled via custom_entity_id
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();

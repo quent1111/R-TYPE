@@ -29,7 +29,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
 
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 10;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
@@ -80,7 +80,7 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
 
     float difficulty_mult = get_difficulty_multiplier(reg);
     int base_health = 15;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-120.0f, 0.0f});

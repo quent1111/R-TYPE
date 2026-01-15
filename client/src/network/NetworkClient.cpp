@@ -259,7 +259,7 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 for (int j = 0; j < str_length; ++j) {
                     uint8_t ch;
                     deserializer >> ch;
-                    entity.custom_entity_id[j] = static_cast<char>(ch);
+                    entity.custom_entity_id[static_cast<std::size_t>(j)] = static_cast<char>(ch);
                 }
             }
 

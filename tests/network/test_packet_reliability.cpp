@@ -329,7 +329,7 @@ TEST_F(PacketReliabilityTest, TypicalGameSession) {
     
     for (int idx : order) {
         if (idx < static_cast<int>(packets.size())) {
-            auto ready = state_.process_received_packet(idx + 1, packets[idx]);
+            auto ready = state_.process_received_packet(static_cast<uint32_t>(static_cast<std::size_t>(idx) + 1), packets[static_cast<std::size_t>(idx)]);
             // Vérifier que tous les paquets sont traités
             EXPECT_GE(ready.size(), 0);
         }
@@ -368,7 +368,7 @@ TEST_F(PacketReliabilityTest, DISABLED_ProcessPacketPerformance) {
     
     for (int i = 1; i <= 1000; ++i) {
         std::vector<uint8_t> data = {static_cast<uint8_t>(i % 256)};
-        state_.process_received_packet(i, data);
+        state_.process_received_packet(static_cast<uint32_t>(i), data);
     }
     
     auto end = std::chrono::high_resolution_clock::now();
@@ -393,7 +393,7 @@ TEST_F(PacketReliabilityTest, ReorderingPerformance) {
     // Envoyer paquets 4-30 (seq 3 manquant)
     for (int i = 4; i <= 30; ++i) {
         std::vector<uint8_t> data = {static_cast<uint8_t>(i % 256)};
-        state_.process_received_packet(i, data);
+        state_.process_received_packet(static_cast<uint32_t>(i), data);
     }
     
     // Paquets 4-30 devraient être bufferisés

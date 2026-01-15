@@ -499,7 +499,7 @@ TEST(Extrapolation, MultipleEntitiesPerformance) {
     auto now = std::chrono::steady_clock::now();
     
     // Setup entities with packet loss
-    for (int i = 0; i < NUM_ENTITIES; ++i) {
+    for (std::size_t i = 0; i < NUM_ENTITIES; ++i) {
         entities[i].x = static_cast<float>(i * 2);
         entities[i].vx = 500.0f;
         entities[i].prev_time = now;

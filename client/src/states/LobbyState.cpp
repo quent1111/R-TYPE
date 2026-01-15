@@ -210,7 +210,7 @@ void LobbyState::send_start_game_request() {
     std::string level_id;
     if (m_selected_level_index >= 0 &&
         m_selected_level_index < static_cast<int>(m_available_level_ids.size())) {
-        level_id = m_available_level_ids[m_selected_level_index];
+        level_id = m_available_level_ids[static_cast<std::size_t>(m_selected_level_index)];
     }
     std::cout << "[LobbyState] Sending StartGame request with level_id: " << level_id << "\n";
 

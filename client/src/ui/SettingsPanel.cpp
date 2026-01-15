@@ -14,13 +14,13 @@ static std::string key_to_string(sf::Keyboard::Key k) {
     int a = static_cast<int>(sf::Keyboard::A);
     int z = static_cast<int>(sf::Keyboard::Z);
     if (ki >= a && ki <= z) {
-        char c = 'A' + (ki - a);
+        char c = static_cast<char>('A' + (ki - a));
         return std::string(1, c);
     }
     int n0 = static_cast<int>(sf::Keyboard::Num0);
     int n9 = static_cast<int>(sf::Keyboard::Num9);
     if (ki >= n0 && ki <= n9) {
-        char c = '0' + (ki - n0);
+        char c = static_cast<char>('0' + (ki - n0));
         return std::string(1, c);
     }
     int np0 = static_cast<int>(sf::Keyboard::Numpad0);
