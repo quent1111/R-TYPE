@@ -59,14 +59,12 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet5.gif");
         texture_mgr.load("assets/missile.png");
         texture_mgr.load("assets/drone.png");
-        // Serpent boss textures
         texture_mgr.load("assets/serpent_head.png");
         texture_mgr.load("assets/serpent_body.png");
         texture_mgr.load("assets/serpent_scale.png");
         texture_mgr.load("assets/serpent_tail.png");
         texture_mgr.load("assets/serpent_nest.png");
         texture_mgr.load("assets/serpent_homing.png");
-        // Compiler boss textures (Level 15)
         texture_mgr.load("assets/r-typesheet38-22.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
@@ -724,7 +722,6 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x08) {
-        // Standard game boss
         if (texture_mgr.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet30.gif"));
             entity.frames = {{0, 0, 185, 204},    {0, 215, 185, 204}, {0, 428, 185, 204},
@@ -1047,6 +1044,14 @@ void Game::process_network_messages() {
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
+                        if (incoming.type == 0x1F) {
+                            boss_explosion_count_++;
+                            if (boss_explosion_count_ % 5 == 1) {
+                                managers::AudioManager::instance().play_sound(
+                                    managers::AudioManager::SoundType::BossExplosion);
+                                std::cout << "[CLIENT] Boss explosion sound #" << (boss_explosion_count_ / 5 + 1) << std::endl;
+                            }
+                        }
                         incoming.prev_x = incoming.x;
                         incoming.prev_y = incoming.y;
                         incoming.prev_time = now;
@@ -1111,6 +1116,8 @@ void Game::process_network_messages() {
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
+                boss_spawn_triggered_ = false;
+                boss_explosion_count_ = 0;
                 if (!msg.custom_level_id.empty()) {
                     load_custom_level(msg.custom_level_id);
                     if (custom_level_config_) {
