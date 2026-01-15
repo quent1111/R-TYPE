@@ -5,6 +5,7 @@
 #include <thread>
 #include <memory>
 #include <set>
+#include <filesystem>
 
 extern std::atomic<bool> server_running;
 
@@ -42,6 +43,9 @@ GameSession::GameSession() {
     reg.register_component<little_friend>();
     reg.register_component<missile_drone>();
     reg.register_component<damage_flash_component>();
+    reg.register_component<laser_damage_immunity>();
+    reg.register_component<custom_attack_config>();
+    reg.register_component<custom_entity_id>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
     _engine.register_system(std::make_unique<EnemyShootingSystem>());
@@ -119,6 +123,11 @@ void GameSession::check_start_game(UDPServer& server) {
 
 void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Starting game at level " << _starting_level << "..." << std::endl;
+    
+    if (!_custom_level_id.empty()) {
+        std::cout << "[Game] Custom level selected: " << _custom_level_id << std::endl;
+        load_custom_level();
+    }
 
     _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
     _game_phase = GamePhase::InGame;
@@ -126,7 +135,14 @@ void GameSession::start_game(UDPServer& server) {
     auto& level_managers = _engine.get_registry().get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
-            level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
+            if (_is_custom_level) {
+                // Custom level starts at level 1 but with is_custom_level flag set
+                level_managers[i].value().current_level = 1;
+                level_managers[i].value().is_custom_level = true;  // Flag to disable WaveSystem
+            } else {
+                level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
+                level_managers[i].value().is_custom_level = false;
+            }
             break;
         }
     }
@@ -141,20 +157,21 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
 
-    // Spawn boss if starting directly at a boss level
-    if (_starting_level == 5) {
-        std::cout << "[SERVER] *** Starting at Level 5 - Spawning BOSS! ***" << std::endl;
-        _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
-                                         _boss_shoot_timer, _boss_animation_complete,
-                                         _boss_entrance_complete, _boss_target_x);
-        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
-    } else if (_starting_level == 10) {
-        std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
-        _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
-        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+    if (!_is_custom_level) {
+        if (_starting_level == 5) {
+            std::cout << "[SERVER] *** Starting at Level 5 - Spawning BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
+                                             _boss_shoot_timer, _boss_animation_complete,
+                                             _boss_entrance_complete, _boss_target_x);
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        } else if (_starting_level == 10) {
+            std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        }
     }
 
-    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level), _lobby_client_ids);
+    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level), _current_custom_level_id, _lobby_client_ids);
 }
 
 void GameSession::broadcast_lobby_status(UDPServer& server) {
@@ -495,14 +512,20 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
 
     _input_handler.apply_buffered_inputs(_engine.get_registry(), _client_entity_ids);
 
+    if (_is_custom_level) {
+        update_custom_level(dt);
+    }
+
     _engine.update(dt);
 
-    _boss_manager.update_boss_behavior(
-        _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
-        _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
-        _boss_shoot_counter, dt);
+    if (!_is_custom_level) {
+        _boss_manager.update_boss_behavior(
+            _engine.get_registry(), _boss_entity, _client_entity_ids, _boss_animation_timer, _boss_shoot_timer,
+            _boss_shoot_cooldown, _boss_animation_complete, _boss_entrance_complete, _boss_target_x,
+            _boss_shoot_counter, dt);
 
-    _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity, _client_entity_ids, dt);
+        _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity, _client_entity_ids, dt);
+    }
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
@@ -1082,21 +1105,24 @@ void GameSession::advance_level(UDPServer& server) {
 
     uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
 
-    if (current_level == 5) {
-        std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
-        _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
-                                         _boss_shoot_timer, _boss_animation_complete,
-                                         _boss_entrance_complete, _boss_target_x);
+    // Only spawn standard game bosses if NOT in custom level mode
+    if (!_is_custom_level) {
+        if (current_level == 5) {
+            std::cout << "[SERVER] *** Level 5 - Spawning BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
+                                             _boss_shoot_timer, _boss_animation_complete,
+                                             _boss_entrance_complete, _boss_target_x);
 
-        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
-    } else if (current_level == 10) {
-        std::cout << "[SERVER] *** Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
-        _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        } else if (current_level == 10) {
+            std::cout << "[SERVER] *** Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
 
-        _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        }
     }
 
-    _game_broadcaster.broadcast_level_start(server, current_level, _lobby_client_ids);
+    _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id, _lobby_client_ids);
 }
 
 void GameSession::reset_game([[maybe_unused]] UDPServer& server) {
@@ -1360,6 +1386,63 @@ void GameSession::handle_packet(UDPServer& server, int client_id, const std::vec
         std::cerr << "[GameSession] Error handling packet from client " << client_id << ": "
                   << e.what() << std::endl;
     }
+}
+
+void GameSession::load_custom_level() {
+    _is_custom_level = false;
+    _loaded_custom_level = std::nullopt;
+    _current_custom_level_id.clear();
+    resetCustomWaveState(_custom_wave_state);
+    
+    std::cout << "[Game] Loading custom level with id: " << _custom_level_id << std::endl;
+    
+    auto& level_mgr = rtype::level::CustomLevelManager::instance();
+    std::filesystem::path custom_dir = "levels/custom";
+    std::cout << "[Game] Looking for levels in: " << std::filesystem::absolute(custom_dir) << std::endl;
+    
+    if (!std::filesystem::exists(custom_dir)) {
+        std::cout << "[Game] ERROR: Directory does not exist: " << custom_dir << std::endl;
+        return;
+    }
+    
+    level_mgr.setCustomLevelsDirectory(custom_dir);
+    level_mgr.reloadAllLevels();
+    
+    auto available_before = level_mgr.getAvailableLevelIds();
+    std::cout << "[Game] Available levels after reload (" << available_before.size() << "): ";
+    for (const auto& id : available_before) {
+        std::cout << "'" << id << "' ";
+    }
+    std::cout << std::endl;
+    
+    _current_custom_level_id = _custom_level_id;
+    
+    std::cout << "[Game] Looking for level with ID: " << _current_custom_level_id << std::endl;
+    
+    const auto* loaded = level_mgr.getLevel(_current_custom_level_id);
+    if (!loaded) {
+        std::cout << "[Game] Failed to load custom level: " << _current_custom_level_id << std::endl;
+        _current_custom_level_id.clear();
+        return;
+    }
+    
+    _loaded_custom_level = loaded->config;
+    _is_custom_level = true;
+    initCustomWaveState(_custom_wave_state, _current_custom_level_id);
+    
+    std::cout << "[Game] Successfully loaded custom level: " << loaded->config.metadata.name << std::endl;
+    std::cout << "[Game] - Author: " << loaded->config.metadata.author << std::endl;
+    std::cout << "[Game] - Waves: " << loaded->config.waves.size() << std::endl;
+    std::cout << "[Game] - Enemy types: " << loaded->config.enemy_definitions.size() << std::endl;
+}
+
+void GameSession::update_custom_level(float dt) {
+    if (!_is_custom_level || !_loaded_custom_level.has_value()) {
+        return;
+    }
+    
+    updateCustomWaveSystem(_engine.get_registry(), _custom_wave_state, 
+                           _loaded_custom_level.value(), dt);
 }
 
 }  // namespace server
