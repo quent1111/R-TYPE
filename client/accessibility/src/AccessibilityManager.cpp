@@ -14,7 +14,6 @@ AccessibilityManager::AccessibilityManager()
     : current_mode_(ColorBlindnessMode::Normal),
       projectile_shapes_enabled_(true),
       cache_valid_(false) {
-    // Initialisation du gestionnaire
 }
 
 void AccessibilityManager::setColorBlindMode(ColorBlindnessMode mode) {
@@ -31,62 +30,48 @@ sf::Color AccessibilityManager::transformColor(const sf::Color& original) const 
 }
 
 sf::Color AccessibilityManager::getPlayerProjectileColor(const sf::Color& /*original*/) const {
-    // Utiliser le cache si valide
     if (cache_valid_) {
         return cached_player_projectile_color_;
     }
 
-    // Couleur de base pour les projectiles joueur (cyan/bleu clair)
     sf::Color playerColor = sf::Color(0, 200, 255);
 
-    // Appliquer la transformation selon le mode
     playerColor = transformColor(playerColor);
 
-    // Assurer un bon contraste sur fond sombre
     sf::Color background(0, 0, 0);
     playerColor = ColorTransform::enhanceContrast(playerColor, background, 1.3f);
 
-    // Mise en cache
     cached_player_projectile_color_ = playerColor;
 
     return playerColor;
 }
 
 sf::Color AccessibilityManager::getEnemyProjectileColor(const sf::Color& original) const {
-    // Utiliser le cache si valide
     if (cache_valid_) {
         return cached_enemy_projectile_color_;
     }
 
-    // Couleur de base pour les projectiles ennemis (rouge/orange)
     sf::Color enemyColor = sf::Color(255, 80, 0);
 
-    // Appliquer la transformation selon le mode
     enemyColor = transformColor(enemyColor);
 
-    // Assurer un bon contraste sur fond sombre
     sf::Color background(0, 0, 0);
     enemyColor = ColorTransform::enhanceContrast(enemyColor, background, 1.3f);
 
-    // Vérifier que les projectiles joueur et ennemi sont distinguables
     sf::Color playerColor = getPlayerProjectileColor(original);
     if (!ColorTransform::areColorsDistinguishable(playerColor, enemyColor, current_mode_, 60.0f)) {
-        // Si pas assez distinguables, ajuster la couleur ennemie vers le jaune
         enemyColor = sf::Color(255, 200, 0);
         enemyColor = transformColor(enemyColor);
     }
 
-    // Mise en cache
     cached_enemy_projectile_color_ = enemyColor;
 
     return enemyColor;
 }
 
 sf::Color AccessibilityManager::getBorderColor(const sf::Color& fillColor) const {
-    // Calculer la luminance de la couleur de remplissage
     float luminance = ColorTransform::calculateLuminance(fillColor);
 
-    // Choisir blanc ou noir selon la luminance (ratio de contraste WCAG AAA)
     if (luminance > 128.0f) {
         return transformColor(sf::Color::Black);
     } else {
@@ -105,12 +90,10 @@ bool AccessibilityManager::loadSettings(const std::string& filepath) {
     bool in_accessibility_section = false;
 
     while (std::getline(file, line)) {
-        // Ignorer les lignes vides et commentaires
         if (line.empty() || line[0] == '#' || line[0] == ';') {
             continue;
         }
 
-        // Détecter la section [Accessibility]
         if (line == "[Accessibility]") {
             in_accessibility_section = true;
             continue;
@@ -120,13 +103,11 @@ bool AccessibilityManager::loadSettings(const std::string& filepath) {
         }
 
         if (in_accessibility_section) {
-            // Parser la ligne key=value
             size_t equal_pos = line.find('=');
             if (equal_pos != std::string::npos) {
                 std::string key = line.substr(0, equal_pos);
                 std::string value = line.substr(equal_pos + 1);
 
-                // Retirer les espaces
                 key.erase(0, key.find_first_not_of(" \t"));
                 key.erase(key.find_last_not_of(" \t") + 1);
                 value.erase(0, value.find_first_not_of(" \t"));
