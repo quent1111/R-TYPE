@@ -177,6 +177,7 @@ struct level_manager {
     int enemies_needed_for_next_level = 1;
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
+    bool is_custom_level = false;  // Flag to differentiate custom levels from standard game
     float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
     

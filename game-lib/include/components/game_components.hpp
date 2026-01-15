@@ -19,6 +19,10 @@ struct sprite_component {
     bool flip_horizontal;
     bool visible;
     bool grayscale;
+    // New: Extended mirror and rotation support
+    bool mirror_x = false;     // Flip horizontally (alias for flip_horizontal)
+    bool mirror_y = false;     // Flip vertically
+    float rotation = 0.0f;     // Rotation in degrees
 
     sprite_component(std::string path = "", int rect_x = 0, int rect_y = 0, int rect_w = 32,
                      int rect_h = 16, float sprite_scale = 2.0f, bool flip_h = false, bool is_visible = true,
@@ -31,7 +35,10 @@ struct sprite_component {
           scale(sprite_scale),
           flip_horizontal(flip_h),
           visible(is_visible),
-          grayscale(is_grayscale) {}
+          grayscale(is_grayscale),
+          mirror_x(flip_h),
+          mirror_y(false),
+          rotation(0.0f) {}
 };
 
 struct animation_component {
@@ -136,4 +143,33 @@ struct laser_damage_immunity {
         }
     }
 };
+
+// Custom attack configuration for custom level enemies
+struct custom_attack_config {
+    std::string pattern_type = "front";  // "front", "targeted", "spread"
+    int projectile_count = 1;
+    float spread_angle = 30.0f;
+    bool aim_at_player = false;
+    
+    // Projectile sprite configuration
+    std::string projectile_texture;
+    int projectile_frame_width = 16;
+    int projectile_frame_height = 16;
+    int projectile_frame_count = 1;
+    float projectile_frame_duration = 0.1f;
+    float projectile_scale = 1.0f;
+    bool projectile_mirror_x = false;
+    bool projectile_mirror_y = false;
+    float projectile_rotation = 0.0f;
+};
+
+// Component to store the ID of custom level entities (for proper identification)
+struct custom_entity_id {
+    std::string entity_id;  // e.g., "fairy1", "fairy2", "unicorn_boss"
+    
+    custom_entity_id() = default;
+    explicit custom_entity_id(std::string id) : entity_id(std::move(id)) {}
+};
+
+// Note: boss_tag is already defined in logic_components.hpp
 
