@@ -2,4 +2,4 @@
 
 #include "ecs/registry.hpp"
 
-void cleanupSystem(registry& reg);
+void cleanupSystem(registry& reg, float dt);

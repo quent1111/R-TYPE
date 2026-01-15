@@ -57,8 +57,8 @@ public:
 class CleanupSystem : public engine::ISystem {
 public:
     void init([[maybe_unused]] registry& reg) override {}
-    void update(registry& reg, [[maybe_unused]] float dt) override {
-        cleanupSystem(reg);
+    void update(registry& reg, float dt) override {
+        cleanupSystem(reg, dt);
     }
     void shutdown([[maybe_unused]] registry& reg) override {}
 };
