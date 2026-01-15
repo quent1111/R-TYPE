@@ -27,7 +27,7 @@ public:
     void render_timer(sf::RenderWindow& window);
     void render_health_bar(sf::RenderWindow& window, const std::map<uint32_t, Entity>& entities,
                            uint32_t my_network_id);
-    void render_level_hud(sf::RenderWindow& window, bool show_level_intro);
+    void render_level_hud(sf::RenderWindow& window, bool show_level_intro, bool is_custom_level);
     void render_combo_bar(sf::RenderWindow& window);
     void render_boss_health_bar(sf::RenderWindow& window, const std::map<uint32_t, Entity>& entities);
 

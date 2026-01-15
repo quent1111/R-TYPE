@@ -28,6 +28,7 @@ public:
     void render_background(sf::RenderWindow& window);
 
     void set_background_level(uint8_t level);
+    void set_custom_background(const std::string& texture_path, bool is_static = false);
     void render_level_transition(sf::RenderWindow& window);
     bool is_transitioning() const { return transition_active_; }
 
@@ -85,6 +86,12 @@ private:
     sf::RectangleShape transition_overlay_;
     sf::Text transition_text_;
     sf::Font transition_font_;
+    
+    bool custom_bg_active_ = false;
+    bool custom_bg_static_ = false;
+    sf::Sprite custom_bg_sprite1_;
+    sf::Sprite custom_bg_sprite2_;
+    float custom_bg_scroll_offset_ = 0.0f;
 
     sf::View game_view_;
     

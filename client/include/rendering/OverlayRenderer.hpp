@@ -23,7 +23,7 @@ public:
     void init(const sf::Font& font);
 
     void render_level_intro(sf::RenderWindow& window, bool show, uint8_t level,
-                            uint16_t enemies_needed);
+                            uint16_t enemies_needed, bool is_custom_level);
 
     void render_powerup_selection(sf::RenderWindow& window, bool show);
 

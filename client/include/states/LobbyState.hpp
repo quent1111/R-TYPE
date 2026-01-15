@@ -33,10 +33,12 @@ private:
     void setup_ui();
     void on_back_clicked();
     void on_start_game_clicked();
+    void on_level_select_clicked();
     void process_network_messages();
     void send_start_game_request();
     void send_keepalive();
     void request_lobby_status();
+    void update_level_display();
 
     sf::RenderWindow& m_window;
     std::string m_next_state;
@@ -54,12 +56,18 @@ private:
     sf::Text m_info_text;
     sf::Text m_player_list_text;
     sf::Text m_status_text;
+    sf::Text m_level_text;
     sf::Font m_font;
 
     int m_total_players{0};
     int m_ready_players{0};
     int m_max_players{4};
     std::vector<std::string> m_player_names;
+
+    std::vector<std::string> m_available_levels;
+    std::vector<std::string> m_available_level_ids;
+    int m_selected_level_index{0};
+    bool m_use_custom_level{false};
 
     float m_keepalive_timer{0.0f};
     static constexpr float KEEPALIVE_INTERVAL = 10.0f;
