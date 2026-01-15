@@ -1,4 +1,5 @@
 #include "handlers/InputHandler.hpp"
+
 #include <cmath>
 
 namespace server {
@@ -39,13 +40,13 @@ void InputHandler::handle_player_input(
 
     auto& buffer = client_input_buffers_[client_id];
     if (!buffer.add_input(timestamp, input_mask)) {
-        std::cerr << "[InputHandler] Warning: Failed to buffer input for client " << client_id << std::endl;
+        std::cerr << "[InputHandler] Warning: Failed to buffer input for client " << client_id
+                  << std::endl;
     }
 }
 
 void InputHandler::apply_buffered_inputs(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids) {
-
     for (auto& [client_id, buffer] : client_input_buffers_) {
         auto ready_inputs = buffer.get_ready_inputs();
 
@@ -97,9 +98,11 @@ void InputHandler::apply_input_to_player(registry& reg, entity player, uint8_t i
                     }
 
                     auto& multishot_opt = reg.get_component<multishot>(player);
-                    int total_projectiles = multishot_opt.has_value() ? multishot_opt->extra_projectiles : 1;
+                    int total_projectiles =
+                        multishot_opt.has_value() ? multishot_opt->extra_projectiles : 1;
 
-                    if (wpn.upgrade_type == WeaponUpgradeType::TripleShot && total_projectiles == 1) {
+                    if (wpn.upgrade_type == WeaponUpgradeType::TripleShot &&
+                        total_projectiles == 1) {
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,
                                            0.0f, damage, visual_type, power_cannon_active);
                         ::createProjectile(reg, pos_opt->x + 50.0f, pos_opt->y + 10.0f, 500.0f,

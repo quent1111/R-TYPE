@@ -10,12 +10,7 @@
 
 namespace server {
 
-enum class LobbyState {
-    Waiting,
-    Ready,
-    InGame,
-    Finished
-};
+enum class LobbyState { Waiting, Ready, InGame, Finished };
 
 class Lobby {
 private:

@@ -1,5 +1,7 @@
 #include "network/NetworkDispatcher.hpp"
+
 #include "network/NetworkCommands.hpp"
+
 #include <iostream>
 
 namespace server {
@@ -18,10 +20,8 @@ std::queue<std::unique_ptr<INetworkCommand>> NetworkDispatcher::poll_commands(UD
     return commands;
 }
 
-std::unique_ptr<INetworkCommand> NetworkDispatcher::parse_packet(
-    const NetworkPacket& packet,
-    UDPServer& server
-) {
+std::unique_ptr<INetworkCommand> NetworkDispatcher::parse_packet(const NetworkPacket& packet,
+                                                                 UDPServer& server) {
     if (packet.data.empty() || packet.data.size() < 3) {
         return nullptr;
     }
@@ -33,7 +33,8 @@ std::unique_ptr<INetworkCommand> NetworkDispatcher::parse_packet(
         deserializer >> magic;
 
         if (!RType::MagicNumber::is_valid(magic)) {
-            std::cerr << "[NetworkDispatcher] Invalid magic number from " << packet.sender << std::endl;
+            std::cerr << "[NetworkDispatcher] Invalid magic number from " << packet.sender
+                      << std::endl;
             return nullptr;
         }
 
@@ -42,7 +43,7 @@ std::unique_ptr<INetworkCommand> NetworkDispatcher::parse_packet(
 
         int client_id = server.register_client(packet.sender);
 
-        std::cerr << "[NetworkDispatcher] Opcode parsing not yet implemented: " 
+        std::cerr << "[NetworkDispatcher] Opcode parsing not yet implemented: "
                   << static_cast<int>(opcode) << std::endl;
         return nullptr;
 

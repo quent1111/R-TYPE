@@ -25,6 +25,7 @@ add_executable(r-type_client
     src/states/GameState.cpp
     src/ui/SettingsPanel.cpp
     src/ui/MenuComponents.cpp
+    src/level/CustomLevelLoader.cpp
 )
 
 target_include_directories(r-type_client PRIVATE
@@ -41,6 +42,7 @@ target_link_libraries(r-type_client PRIVATE
     Boost::boost
     game_logic
     LZ4::lz4_static
+    nlohmann_json::nlohmann_json
     rtype-accessibility
 )
 
@@ -50,6 +52,12 @@ add_custom_command(TARGET r-type_client POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:r-type_client>/assets
     COMMENT "Copying assets to build directory"
+)
+
+add_custom_command(TARGET r-type_client POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/levels $<TARGET_FILE_DIR:r-type_client>/levels
+    COMMENT "Copying levels to build directory"
 )
 
 message(STATUS "Client executable configured: r-type_client")

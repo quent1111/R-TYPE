@@ -221,8 +221,8 @@ void BossManager::update_homing_enemies(
     auto& homing_comps = reg.get_components<homing_component>();
     auto& entity_tags = reg.get_components<entity_tag>();
     for (std::size_t i = 0; i < entity_tags.size(); ++i) {
-        if (!entity_tags[i].has_value() || 
-            (entity_tags[i]->type != RType::EntityType::HomingEnemy && 
+        if (!entity_tags[i].has_value() ||
+            (entity_tags[i]->type != RType::EntityType::HomingEnemy &&
              entity_tags[i]->type != static_cast<RType::EntityType>(0x15)) ||
             !positions[i].has_value() || !velocities[i].has_value() ||
             !homing_comps[i].has_value()) {
@@ -275,11 +275,12 @@ void BossManager::update_homing_enemies(
     }
 }
 
-void BossManager::spawn_boss_level_10(registry& reg, std::optional<entity>& serpent_controller_entity) {
+void BossManager::spawn_boss_level_10(registry& reg,
+                                      std::optional<entity>& serpent_controller_entity) {
     std::cout << "[BOSS] Level 10 - Spawning Serpent Boss!" << std::endl;
-    
+
     entity controller = reg.spawn_entity();
-    
+
     serpent_boss_controller ctrl(8000, 18, 6);
     ctrl.spawn_timer = 0.0f;
     ctrl.spawn_complete = false;
@@ -287,25 +288,25 @@ void BossManager::spawn_boss_level_10(registry& reg, std::optional<entity>& serp
     ctrl.movement_speed = 350.0f;
     ctrl.wave_frequency = 2.5f;
     ctrl.wave_amplitude = 50.0f;
-    
+
     reg.add_component(controller, ctrl);
     reg.add_component(controller, position{960.0f, 1200.0f});
     reg.add_component(controller, boss_tag{});
-    
+
     serpent_controller_entity = controller;
 }
 
 void BossManager::spawn_serpent_nest(registry& reg, serpent_boss_controller& controller) {
     entity nest = reg.spawn_entity();
-    
+
     reg.add_component(nest, position{960.0f, 1000.0f});
     reg.add_component(nest, velocity{0.0f, 0.0f});
     reg.add_component(nest, entity_tag{RType::EntityType::SerpentNest});
     reg.add_component(nest, serpent_nest_tag{});
-    
+
     controller.nest_entity = nest;
     controller.nest_visible = true;
-    
+
     std::cout << "[BOSS] Serpent nest spawned at bottom of screen (half visible)" << std::endl;
 }
 
@@ -316,7 +317,7 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
     
     int base_health = 100;
     RType::EntityType entity_type = RType::EntityType::SerpentBody;
-    
+
     switch (type) {
         case SerpentPartType::Head:
             base_health = 300;
@@ -349,14 +350,14 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
     reg.add_component(part, entity_tag{entity_type});
     reg.add_component(part, enemy_tag{});
     reg.add_component(part, damage_flash_component{0.15f});
-    
+
     serpent_part sp(type, index);
     sp.parent_entity = parent;
     sp.follow_delay = 0.05f + (index * 0.02f);
     reg.add_component(part, sp);
-    
+
     reg.add_component(part, position_history{});
-    
+
     switch (type) {
         case SerpentPartType::Head:
             controller.head_entity = part;
@@ -370,11 +371,11 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
         default:
             break;
     }
-    
 }
 
 void BossManager::spawn_serpent_scale_on_body(registry& reg, serpent_boss_controller& controller,
-                                              entity body_entity, float x, float y, int scale_index) {
+                                              entity body_entity, float x, float y,
+                                              int scale_index) {
     entity scale = reg.spawn_entity();
     
     float difficulty_mult = get_difficulty_multiplier(reg);
@@ -389,50 +390,55 @@ void BossManager::spawn_serpent_scale_on_body(registry& reg, serpent_boss_contro
     reg.add_component(scale, entity_tag{RType::EntityType::SerpentScale});
     reg.add_component(scale, enemy_tag{});
     reg.add_component(scale, damage_flash_component{0.15f});
-    
+
     serpent_part sp(SerpentPartType::Scale, 100 + scale_index);
     sp.attached_body = body_entity;
     sp.can_attack = true;
     sp.attack_cooldown = 2.5f;
     reg.add_component(scale, sp);
-    
-    
+
     controller.scale_entities.push_back(scale);
 }
 
-void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_controller& controller, float dt) {
+void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_controller& controller,
+                                                 float dt) {
     controller.spawn_timer += dt;
-    
+
     if (!controller.nest_visible && controller.spawn_timer >= 0.5f) {
         spawn_serpent_nest(reg, controller);
     }
-    
-    
-    if (controller.spawn_timer >= controller.nest_rise_duration + 0.5f && !controller.spawn_complete) {
-        float serpent_progress = (controller.spawn_timer - controller.nest_rise_duration - 0.5f) / controller.serpent_emerge_duration;
+
+    if (controller.spawn_timer >= controller.nest_rise_duration + 0.5f &&
+        !controller.spawn_complete) {
+        float serpent_progress = (controller.spawn_timer - controller.nest_rise_duration - 0.5f) /
+                                 controller.serpent_emerge_duration;
         serpent_progress = std::min(1.0f, std::max(0.0f, serpent_progress));
-        
+
         int total_chain_parts = 1 + controller.num_body_parts + 1;
         int parts_to_spawn = static_cast<int>(serpent_progress * total_chain_parts);
-        
+
         float nest_x = 960.0f;
         float nest_y = 950.0f;
-        
-        while (controller.parts_spawned < parts_to_spawn && controller.parts_spawned < total_chain_parts) {
+
+        while (controller.parts_spawned < parts_to_spawn &&
+               controller.parts_spawned < total_chain_parts) {
             int index = controller.parts_spawned;
             float spawn_x = nest_x;
             float spawn_y = nest_y;
-            
+
             std::optional<entity> parent = std::nullopt;
-            
+
             if (index == 0) {
-                spawn_serpent_part(reg, controller, SerpentPartType::Head, index, spawn_x, spawn_y - 50.0f, std::nullopt);
+                spawn_serpent_part(reg, controller, SerpentPartType::Head, index, spawn_x,
+                                   spawn_y - 50.0f, std::nullopt);
                 parent = controller.head_entity;
             } else if (index <= controller.num_body_parts) {
                 if (!controller.body_entities.empty()) {
-                    for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0; --j) {
+                    for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0;
+                         --j) {
                         auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[j]);
-                        if (tag_opt.has_value() && tag_opt->type == RType::EntityType::SerpentBody) {
+                        if (tag_opt.has_value() &&
+                            tag_opt->type == RType::EntityType::SerpentBody) {
                             parent = controller.body_entities[j];
                             break;
                         }
@@ -443,139 +449,144 @@ void BossManager::update_serpent_spawn_animation(registry& reg, serpent_boss_con
                 } else if (controller.head_entity.has_value()) {
                     parent = controller.head_entity;
                 }
-                
-                spawn_serpent_part(reg, controller, SerpentPartType::Body, index, spawn_x, spawn_y, parent);
-                
+
+                spawn_serpent_part(reg, controller, SerpentPartType::Body, index, spawn_x, spawn_y,
+                                   parent);
+
                 int body_index = index;
                 if (body_index % 3 == 0) {
                     entity last_body = controller.body_entities.back();
                     auto& body_pos = reg.get_component<position>(last_body);
                     if (body_pos.has_value()) {
-                        spawn_serpent_scale_on_body(reg, controller, last_body, 
-                                                    body_pos->x, body_pos->y, 
-                                                    static_cast<int>(controller.scale_entities.size()));
+                        spawn_serpent_scale_on_body(
+                            reg, controller, last_body, body_pos->x, body_pos->y,
+                            static_cast<int>(controller.scale_entities.size()));
                     }
                 }
             } else {
                 if (!controller.body_entities.empty()) {
-                    for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0; --j) {
+                    for (int j = static_cast<int>(controller.body_entities.size()) - 1; j >= 0;
+                         --j) {
                         auto& tag_opt = reg.get_component<entity_tag>(controller.body_entities[j]);
-                        if (tag_opt.has_value() && tag_opt->type == RType::EntityType::SerpentBody) {
+                        if (tag_opt.has_value() &&
+                            tag_opt->type == RType::EntityType::SerpentBody) {
                             parent = controller.body_entities[j];
                             break;
                         }
                     }
                 }
-                spawn_serpent_part(reg, controller, SerpentPartType::Tail, index, spawn_x, spawn_y, parent);
+                spawn_serpent_part(reg, controller, SerpentPartType::Tail, index, spawn_x, spawn_y,
+                                   parent);
             }
-            
+
             controller.parts_spawned++;
         }
-        
+
         if (controller.parts_spawned >= total_chain_parts) {
             controller.spawn_complete = true;
         }
     }
 }
 
-void BossManager::update_serpent_movement(registry& reg, serpent_boss_controller& controller, float dt) {
+void BossManager::update_serpent_movement(registry& reg, serpent_boss_controller& controller,
+                                          float dt) {
     if (!controller.spawn_complete || !controller.head_entity.has_value()) {
         return;
     }
-    
+
     controller.movement_timer += dt;
-    
+
     auto& head_pos = reg.get_component<position>(controller.head_entity.value());
     auto& head_vel = reg.get_component<velocity>(controller.head_entity.value());
-    
+
     if (!head_pos.has_value() || !head_vel.has_value()) {
         return;
     }
-    
-    static const std::array<std::pair<float, float>, 4> WAYPOINTS = {{
-        {300.0f, 200.0f},
-        {1620.0f, 200.0f},
-        {1620.0f, 800.0f},
-        {300.0f, 800.0f}
-    }};
-    
+
+    static const std::array<std::pair<float, float>, 4> WAYPOINTS = {
+        {{300.0f, 200.0f}, {1620.0f, 200.0f}, {1620.0f, 800.0f}, {300.0f, 800.0f}}};
+
     float dx = controller.target_x - head_pos->x;
     float dy = controller.target_y - head_pos->y;
     float distance = std::sqrt(dx * dx + dy * dy);
-    
+
     if (distance < 100.0f) {
         controller.previous_waypoint_idx = controller.current_waypoint_idx;
-        
+
         int new_waypoint;
         do {
             std::uniform_int_distribution<int> dist(0, 3);
             new_waypoint = dist(rng_);
-        } while (new_waypoint == controller.current_waypoint_idx || new_waypoint == controller.previous_waypoint_idx);
-        
+        } while (new_waypoint == controller.current_waypoint_idx ||
+                 new_waypoint == controller.previous_waypoint_idx);
+
         controller.current_waypoint_idx = new_waypoint;
         controller.target_x = WAYPOINTS[static_cast<size_t>(controller.current_waypoint_idx)].first;
-        controller.target_y = WAYPOINTS[static_cast<size_t>(controller.current_waypoint_idx)].second;
-        
+        controller.target_y =
+            WAYPOINTS[static_cast<size_t>(controller.current_waypoint_idx)].second;
+
         dx = controller.target_x - head_pos->x;
         dy = controller.target_y - head_pos->y;
         distance = std::sqrt(dx * dx + dy * dy);
     }
-    
+
     if (distance > 1.0f) {
         float speed = controller.movement_speed;
-        
+
         float base_vx = (dx / distance) * speed;
         float base_vy = (dy / distance) * speed;
-        
-        float wave_offset = std::sin(controller.movement_timer * controller.wave_frequency) * controller.wave_amplitude;
+
+        float wave_offset = std::sin(controller.movement_timer * controller.wave_frequency) *
+                            controller.wave_amplitude;
         float perp_x = -dy / distance;
         float perp_y = dx / distance;
-        
+
         head_vel->vx = base_vx + perp_x * wave_offset * 0.2f;
         head_vel->vy = base_vy + perp_y * wave_offset * 0.2f;
     }
-    
+
     auto& head_history = reg.get_component<position_history>(controller.head_entity.value());
     if (head_history.has_value()) {
         head_history->add_position(head_pos->x, head_pos->y);
     }
 }
 
-void BossManager::update_serpent_parts_follow(registry& reg, serpent_boss_controller& controller, float dt) {
+void BossManager::update_serpent_parts_follow(registry& reg, serpent_boss_controller& controller,
+                                              float dt) {
     if (!controller.spawn_complete) {
         return;
     }
-    
+
     const float segment_distance = 30.0f;
-    
+
     std::optional<entity> prev_entity = controller.head_entity;
-    
+
     for (size_t i = 0; i < controller.body_entities.size(); ++i) {
         entity part_ent = controller.body_entities[i];
-        
+
         auto& part_pos = reg.get_component<position>(part_ent);
         auto& part_comp = reg.get_component<serpent_part>(part_ent);
         auto& part_history = reg.get_component<position_history>(part_ent);
-        
+
         if (!part_pos.has_value() || !part_comp.has_value()) {
             continue;
         }
-        
+
         if (prev_entity.has_value()) {
             auto& prev_pos = reg.get_component<position>(prev_entity.value());
             if (prev_pos.has_value()) {
                 float dx = prev_pos->x - part_pos->x;
                 float dy = prev_pos->y - part_pos->y;
                 float distance = std::sqrt(dx * dx + dy * dy);
-                
+
                 if (distance > segment_distance) {
                     float target_x = prev_pos->x - (dx / distance) * segment_distance;
                     float target_y = prev_pos->y - (dy / distance) * segment_distance;
-                    
+
                     float follow_speed = 15.0f * dt;
                     part_pos->x += (target_x - part_pos->x) * follow_speed;
                     part_pos->y += (target_y - part_pos->y) * follow_speed;
-                    
+
                     if (distance > segment_distance * 3.0f) {
                         part_pos->x = target_x;
                         part_pos->y = target_y;
@@ -583,22 +594,22 @@ void BossManager::update_serpent_parts_follow(registry& reg, serpent_boss_contro
                 }
             }
         }
-        
+
         if (part_history.has_value()) {
             part_history->add_position(part_pos->x, part_pos->y);
         }
-        
+
         prev_entity = part_ent;
     }
-    
+
     for (entity scale_ent : controller.scale_entities) {
         auto& scale_pos = reg.get_component<position>(scale_ent);
         auto& scale_comp = reg.get_component<serpent_part>(scale_ent);
-        
+
         if (!scale_pos.has_value() || !scale_comp.has_value()) {
             continue;
         }
-        
+
         if (scale_comp->attached_body.has_value()) {
             try {
                 auto& body_pos = reg.get_component<position>(scale_comp->attached_body.value());
@@ -606,28 +617,27 @@ void BossManager::update_serpent_parts_follow(registry& reg, serpent_boss_contro
                     scale_pos->x = body_pos->x;
                     scale_pos->y = body_pos->y;
                 }
-            } catch (...) {
-            }
+            } catch (...) {}
         }
     }
-    
+
     if (controller.tail_entity.has_value() && prev_entity.has_value()) {
         auto& tail_pos = reg.get_component<position>(controller.tail_entity.value());
         auto& prev_pos = reg.get_component<position>(prev_entity.value());
-        
+
         if (tail_pos.has_value() && prev_pos.has_value()) {
             float dx = prev_pos->x - tail_pos->x;
             float dy = prev_pos->y - tail_pos->y;
             float distance = std::sqrt(dx * dx + dy * dy);
-            
+
             if (distance > segment_distance) {
                 float target_x = prev_pos->x - (dx / distance) * segment_distance;
                 float target_y = prev_pos->y - (dy / distance) * segment_distance;
-                
+
                 float follow_speed = 15.0f * dt;
                 tail_pos->x += (target_x - tail_pos->x) * follow_speed;
                 tail_pos->y += (target_y - tail_pos->y) * follow_speed;
-                
+
                 if (distance > segment_distance * 3.0f) {
                     tail_pos->x = target_x;
                     tail_pos->y = target_y;
@@ -637,12 +647,13 @@ void BossManager::update_serpent_parts_follow(registry& reg, serpent_boss_contro
     }
 }
 
-void BossManager::update_serpent_rotations(registry& reg, serpent_boss_controller& controller,
-                                           const std::unordered_map<int, std::size_t>& client_entity_ids) {
+void BossManager::update_serpent_rotations(
+    registry& reg, serpent_boss_controller& controller,
+    const std::unordered_map<int, std::size_t>& client_entity_ids) {
     if (controller.head_entity.has_value()) {
         auto& head_vel = reg.get_component<velocity>(controller.head_entity.value());
         auto& head_part = reg.get_component<serpent_part>(controller.head_entity.value());
-        
+
         if (head_vel.has_value() && head_part.has_value()) {
             if (std::abs(head_vel->vx) > 0.1f || std::abs(head_vel->vy) > 0.1f) {
                 float angle = std::atan2(head_vel->vy, head_vel->vx) * 180.0f / 3.14159265f;
@@ -650,24 +661,24 @@ void BossManager::update_serpent_rotations(registry& reg, serpent_boss_controlle
             }
         }
     }
-    
+
     for (size_t i = 0; i < controller.body_entities.size(); ++i) {
         entity part_ent = controller.body_entities[i];
-        
+
         auto& part_pos = reg.get_component<position>(part_ent);
         auto& part_comp = reg.get_component<serpent_part>(part_ent);
-        
+
         if (!part_pos.has_value() || !part_comp.has_value()) {
             continue;
         }
-        
+
         std::optional<entity> next_entity;
         if (i == 0) {
             next_entity = controller.head_entity;
         } else {
             next_entity = controller.body_entities[i - 1];
         }
-        
+
         if (next_entity.has_value()) {
             auto& next_pos = reg.get_component<position>(next_entity.value());
             if (next_pos.has_value()) {
@@ -678,18 +689,18 @@ void BossManager::update_serpent_rotations(registry& reg, serpent_boss_controlle
             }
         }
     }
-    
+
     for (entity scale_ent : controller.scale_entities) {
         auto& scale_pos = reg.get_component<position>(scale_ent);
         auto& scale_comp = reg.get_component<serpent_part>(scale_ent);
-        
+
         if (!scale_pos.has_value() || !scale_comp.has_value()) {
             continue;
         }
-        
+
         float closest_dist = 999999.0f;
         float closest_px = 960.0f, closest_py = 540.0f;
-        
+
         for (const auto& [client_id, entity_idx] : client_entity_ids) {
             auto player_ent = reg.entity_from_index(entity_idx);
             auto& player_pos = reg.get_component<position>(player_ent);
@@ -704,23 +715,23 @@ void BossManager::update_serpent_rotations(registry& reg, serpent_boss_controlle
                 }
             }
         }
-        
+
         float dx = closest_px - scale_pos->x;
         float dy = closest_py - scale_pos->y;
         float angle = std::atan2(dy, dx) * 180.0f / 3.14159265f;
         scale_comp->rotation = angle - 90.0f;
     }
-    
+
     if (controller.tail_entity.has_value()) {
         auto& tail_pos = reg.get_component<position>(controller.tail_entity.value());
         auto& tail_part = reg.get_component<serpent_part>(controller.tail_entity.value());
-        
+
         if (tail_pos.has_value() && tail_part.has_value()) {
             std::optional<entity> last_body;
             if (!controller.body_entities.empty()) {
                 last_body = controller.body_entities.back();
             }
-            
+
             if (last_body.has_value()) {
                 auto& body_pos = reg.get_component<position>(last_body.value());
                 if (body_pos.has_value()) {
@@ -746,14 +757,14 @@ void BossManager::update_serpent_boss(registry& reg,
     if (!serpent_controller_entity.has_value()) {
         return;
     }
-    
+
     auto& ctrl_opt = reg.get_component<serpent_boss_controller>(serpent_controller_entity.value());
     if (!ctrl_opt.has_value()) {
         return;
     }
-    
+
     auto& controller = ctrl_opt.value();
-    
+
     if (controller.is_defeated()) {
         auto& level_managers = reg.get_components<level_manager>();
         for (size_t k = 0; k < level_managers.size(); ++k) {
@@ -766,52 +777,54 @@ void BossManager::update_serpent_boss(registry& reg,
                 break;
             }
         }
-        
+
         if (controller.nest_entity.has_value()) {
-            try { 
+            try {
                 reg.remove_component<entity_tag>(controller.nest_entity.value());
-                reg.kill_entity(controller.nest_entity.value()); 
+                reg.kill_entity(controller.nest_entity.value());
             } catch (...) {}
         }
         if (controller.head_entity.has_value()) {
-            try { 
+            try {
                 reg.remove_component<entity_tag>(controller.head_entity.value());
-                reg.kill_entity(controller.head_entity.value()); 
+                reg.kill_entity(controller.head_entity.value());
             } catch (...) {}
         }
         for (auto& body_ent : controller.body_entities) {
-            try { 
+            try {
                 reg.remove_component<entity_tag>(body_ent);
-                reg.kill_entity(body_ent); 
+                reg.kill_entity(body_ent);
             } catch (...) {}
         }
         for (auto& scale_ent : controller.scale_entities) {
-            try { 
+            try {
                 reg.remove_component<entity_tag>(scale_ent);
-                reg.kill_entity(scale_ent); 
+                reg.kill_entity(scale_ent);
             } catch (...) {}
         }
         if (controller.tail_entity.has_value()) {
-            try { 
+            try {
                 reg.remove_component<entity_tag>(controller.tail_entity.value());
-                reg.kill_entity(controller.tail_entity.value()); 
+                reg.kill_entity(controller.tail_entity.value());
             } catch (...) {}
         }
-        
-        try { reg.kill_entity(serpent_controller_entity.value()); } catch (...) {}
+
+        try {
+            reg.kill_entity(serpent_controller_entity.value());
+        } catch (...) {}
         serpent_controller_entity = std::nullopt;
         return;
     }
-    
+
     if (!controller.spawn_complete) {
         update_serpent_spawn_animation(reg, controller, dt);
         return;
     }
-    
+
     update_serpent_movement(reg, controller, dt);
     update_serpent_parts_follow(reg, controller, dt);
     update_serpent_rotations(reg, controller, client_entity_ids);
-    
+
     if (controller.head_entity.has_value()) {
         auto& head_health = reg.get_component<health>(controller.head_entity.value());
         if (head_health.has_value()) {
@@ -819,19 +832,19 @@ void BossManager::update_serpent_boss(registry& reg,
             head_health->maximum = controller.total_health;
         }
     }
-    
+
     update_serpent_attacks(reg, controller, client_entity_ids, dt);
 }
 
-void BossManager::update_serpent_attacks(registry& reg, serpent_boss_controller& controller,
-                                         const std::unordered_map<int, std::size_t>& client_entity_ids,
-                                         float dt) {
+void BossManager::update_serpent_attacks(
+    registry& reg, serpent_boss_controller& controller,
+    const std::unordered_map<int, std::size_t>& client_entity_ids, float dt) {
     controller.scale_shoot_timer += dt;
     if (controller.scale_shoot_timer >= controller.scale_shoot_cooldown) {
         controller.scale_shoot_timer = 0.0f;
         serpent_scale_shoot(reg, controller, client_entity_ids);
     }
-    
+
     if (!controller.scream_active) {
         controller.scream_timer += dt;
         if (controller.scream_timer >= controller.scream_cooldown) {
@@ -842,7 +855,7 @@ void BossManager::update_serpent_attacks(registry& reg, serpent_boss_controller&
         }
     } else {
         controller.scream_elapsed += dt;
-        
+
         if (controller.head_entity.has_value()) {
             auto& head_pos = reg.get_component<position>(controller.head_entity.value());
             if (head_pos.has_value()) {
@@ -853,7 +866,7 @@ void BossManager::update_serpent_attacks(registry& reg, serpent_boss_controller&
                 reg.add_component(scream_effect, explosion_tag{0.05f});
             }
         }
-        
+
         if (controller.scream_elapsed >= controller.scream_duration) {
             controller.scream_active = false;
         }
@@ -867,27 +880,32 @@ void BossManager::update_serpent_attacks(registry& reg, serpent_boss_controller&
             controller.laser_elapsed = 0.0f;
         }
     }
-    
+
     if (controller.laser_charging || controller.laser_firing) {
         serpent_laser_attack(reg, controller, client_entity_ids, dt);
     }
 }
 
-void BossManager::serpent_scale_shoot(registry& reg, serpent_boss_controller& controller,
-                                      const std::unordered_map<int, std::size_t>& client_entity_ids) {
-    if (controller.scale_entities.empty()) return;
-    
-    size_t scale_idx = static_cast<size_t>(controller.current_scale_index) % controller.scale_entities.size();
+void BossManager::serpent_scale_shoot(
+    registry& reg, serpent_boss_controller& controller,
+    const std::unordered_map<int, std::size_t>& client_entity_ids) {
+    if (controller.scale_entities.empty())
+        return;
+
+    size_t scale_idx =
+        static_cast<size_t>(controller.current_scale_index) % controller.scale_entities.size();
     entity scale_ent = controller.scale_entities[scale_idx];
-    
-    controller.current_scale_index = (controller.current_scale_index + 1) % static_cast<int>(controller.scale_entities.size());
-    
+
+    controller.current_scale_index =
+        (controller.current_scale_index + 1) % static_cast<int>(controller.scale_entities.size());
+
     auto& scale_pos = reg.get_component<position>(scale_ent);
-    if (!scale_pos.has_value()) return;
-    
+    if (!scale_pos.has_value())
+        return;
+
     float target_x = 400.0f;
     float target_y = 540.0f;
-    
+
     for (const auto& [client_id, entity_id] : client_entity_ids) {
         auto player = reg.entity_from_index(entity_id);
         auto player_pos_opt = reg.get_component<position>(player);
@@ -897,19 +915,20 @@ void BossManager::serpent_scale_shoot(registry& reg, serpent_boss_controller& co
             break;
         }
     }
-    
+
     float sx = scale_pos->x;
     float sy = scale_pos->y;
-    
+
     float dx = target_x - sx;
     float dy = target_y - sy;
     float dist = std::sqrt(dx * dx + dy * dy);
-    if (dist < 1.0f) dist = 1.0f;
-    
+    if (dist < 1.0f)
+        dist = 1.0f;
+
     float speed = 350.0f;
     float vx = (dx / dist) * speed;
     float vy = (dy / dist) * speed;
-    
+
     entity projectile = reg.spawn_entity();
     reg.add_component(projectile, position{sx, sy});
     reg.add_component(projectile, velocity{vx, vy});
@@ -921,17 +940,19 @@ void BossManager::serpent_scale_shoot(registry& reg, serpent_boss_controller& co
 }
 
 void BossManager::serpent_scream_attack(registry& reg, serpent_boss_controller& controller) {
-    if (!controller.head_entity.has_value()) return;
-    
+    if (!controller.head_entity.has_value())
+        return;
+
     auto& head_pos = reg.get_component<position>(controller.head_entity.value());
-    if (!head_pos.has_value()) return;
-    
+    if (!head_pos.has_value())
+        return;
+
     int num_homings = 6 + (rng_() % 3);
-    
+
     for (int i = 0; i < num_homings; ++i) {
         float spawn_x, spawn_y;
         int side = i % 4;
-        
+
         switch (side) {
             case 0:
                 spawn_x = 100.0f + static_cast<float>(rng_() % 1720);
@@ -951,22 +972,24 @@ void BossManager::serpent_scream_attack(registry& reg, serpent_boss_controller& 
                 spawn_y = 100.0f + static_cast<float>(rng_() % 880);
                 break;
         }
-        
+
         float target_x = 960.0f + static_cast<float>(rng_() % 200) - 100.0f;
         float target_y = 540.0f + static_cast<float>(rng_() % 200) - 100.0f;
-        
+
         serpent_spawn_homing(reg, spawn_x, spawn_y, target_x, target_y);
     }
 }
 
-void BossManager::serpent_spawn_homing(registry& reg, float x, float y, float target_x, float target_y) {
+void BossManager::serpent_spawn_homing(registry& reg, float x, float y, float target_x,
+                                       float target_y) {
     entity homing = reg.spawn_entity();
-    
+
     float dx = target_x - x;
     float dy = target_y - y;
     float dist = std::sqrt(dx * dx + dy * dy);
-    if (dist < 1.0f) dist = 1.0f;
-    
+    if (dist < 1.0f)
+        dist = 1.0f;
+
     float speed = 150.0f;
     float vx = (dx / dist) * speed;
     float vy = (dy / dist) * speed;
@@ -985,29 +1008,31 @@ void BossManager::serpent_spawn_homing(registry& reg, float x, float y, float ta
     reg.add_component(homing, enemy_tag{});
 }
 
-void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& controller,
-                                       const std::unordered_map<int, std::size_t>& client_entity_ids,
-                                       float dt) {
-    if (!controller.tail_entity.has_value()) return;
-    
+void BossManager::serpent_laser_attack(
+    registry& reg, serpent_boss_controller& controller,
+    const std::unordered_map<int, std::size_t>& client_entity_ids, float dt) {
+    if (!controller.tail_entity.has_value())
+        return;
+
     auto& tail_pos = reg.get_component<position>(controller.tail_entity.value());
-    if (!tail_pos.has_value()) return;
-    
+    if (!tail_pos.has_value())
+        return;
+
     if (controller.laser_charging) {
         controller.laser_elapsed += dt;
-        
+
         float charge_progress = controller.laser_elapsed / controller.laser_charge_duration;
         entity charge_effect = reg.spawn_entity();
         reg.add_component(charge_effect, position{tail_pos->x, tail_pos->y});
         reg.add_component(charge_effect, velocity{0.0f, charge_progress * 100.0f});
         reg.add_component(charge_effect, entity_tag{static_cast<RType::EntityType>(0x19)});
         reg.add_component(charge_effect, explosion_tag{0.05f});
-        
+
         if (controller.laser_elapsed >= controller.laser_charge_duration) {
             controller.laser_charging = false;
             controller.laser_firing = true;
             controller.laser_elapsed = 0.0f;
-            
+
             float target_x = 400.0f;
             float target_y = 540.0f;
             for (const auto& [client_id, entity_id] : client_entity_ids) {
@@ -1019,11 +1044,11 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
                     break;
                 }
             }
-            
+
             float dx = target_x - tail_pos->x;
             float dy = target_y - tail_pos->y;
             float angle_to_player = std::atan2(dy, dx);
-            
+
             controller.laser_sweep_direction = (rng_() % 2 == 0) ? 1 : -1;
             float offset = 1.0f * controller.laser_sweep_direction;
             controller.laser_start_angle = angle_to_player - offset;
@@ -1031,20 +1056,20 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
         }
         return;
     }
-    
+
     if (controller.laser_firing) {
         controller.laser_elapsed += dt;
-        
+
         float sweep_speed = 0.6f;
         controller.laser_angle += sweep_speed * controller.laser_sweep_direction * dt;
-        
+
         float laser_length = 1800.0f;
         float segment_spacing = 60.0f;
         int num_segments = static_cast<int>(laser_length / segment_spacing);
-        
+
         float cos_angle = std::cos(controller.laser_angle);
         float sin_angle = std::sin(controller.laser_angle);
-        
+
         entity laser_origin = reg.spawn_entity();
         reg.add_component(laser_origin, position{tail_pos->x, tail_pos->y});
         reg.add_component(laser_origin, velocity{controller.laser_angle * 100.0f, laser_length});
@@ -1054,14 +1079,14 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
         reg.add_component(laser_origin, enemy_tag{});
         reg.add_component(laser_origin, entity_tag{static_cast<RType::EntityType>(0x16)});
         reg.add_component(laser_origin, explosion_tag{0.05f});
-        
+
         for (int i = 2; i <= num_segments; ++i) {
             float dist = static_cast<float>(i) * segment_spacing;
             float seg_x = tail_pos->x + cos_angle * dist;
             float seg_y = tail_pos->y + sin_angle * dist;
             if (seg_x < -100 || seg_x > 2020 || seg_y < -100 || seg_y > 1200) continue;
             
-            
+            // Create laser segment for collision
             entity laser_seg = reg.spawn_entity();
             reg.add_component(laser_seg, position{seg_x, seg_y});
             reg.add_component(laser_seg, velocity{0.0f, 0.0f});  
@@ -1069,12 +1094,12 @@ void BossManager::serpent_laser_attack(registry& reg, serpent_boss_controller& c
             reg.add_component(laser_seg, damage_on_contact{10, false});  
             reg.add_component(laser_seg, projectile_tag{});
             reg.add_component(laser_seg, enemy_tag{});
-            
-            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});  
-            reg.add_component(laser_seg, explosion_tag{0.05f});  
+            // Use same laser type - segments won't render as beam, just for collision
+            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});  // Hidden collision type
+            reg.add_component(laser_seg, explosion_tag{0.05f});  // Auto-destroy after 0.05s
         }
         
-        
+        // End laser after duration
         if (controller.laser_elapsed >= controller.laser_fire_duration) {
             controller.laser_firing = false;
             std::cout << "[BOSS] Serpent laser attack finished." << std::endl;
@@ -1857,24 +1882,30 @@ void BossManager::set_compiler_separated_targets(compiler_boss_controller& contr
 
 std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<entity>& boss_entity,
                                                   std::optional<entity>& serpent_controller) {
+    // Check Level 5 boss
     if (boss_entity.has_value()) {
         auto& health_opt = reg.get_component<health>(boss_entity.value());
         if (health_opt.has_value()) {
             return {health_opt->current, health_opt->maximum};
         }
     }
+
+    // Check Level 10 serpent boss
     if (serpent_controller.has_value()) {
         auto& ctrl_opt = reg.get_component<serpent_boss_controller>(serpent_controller.value());
         if (ctrl_opt.has_value()) {
             return {ctrl_opt->current_health, ctrl_opt->total_health};
         }
     }
+
+    // Check Level 15 compiler boss
     auto& compiler_controllers = reg.get_components<compiler_boss_controller>();
     for (std::size_t i = 0; i < compiler_controllers.size(); ++i) {
         if (compiler_controllers[i].has_value()) {
             return {compiler_controllers[i]->current_health, compiler_controllers[i]->total_health};
         }
     }
+
     return {0, 0};
 }
 

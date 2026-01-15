@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vector>
 #include <SFML/Window.hpp>
+
+#include <vector>
 
 enum class ColorBlindMode {
     Normal = 0,

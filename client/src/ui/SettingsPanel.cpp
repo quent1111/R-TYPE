@@ -4,6 +4,7 @@
 #include "managers/AudioManager.hpp"
 
 #include <SFML/Graphics.hpp>
+
 #include <iostream>
 
 using namespace rtype::ui;
@@ -29,40 +30,74 @@ static std::string key_to_string(sf::Keyboard::Key k) {
     }
 
     switch (k) {
-        case sf::Keyboard::Space: return "Space";
-        case sf::Keyboard::Escape: return "Escape";
-        case sf::Keyboard::Enter: return "Enter";
-        case sf::Keyboard::BackSpace: return "Backspace";
-        case sf::Keyboard::Tab: return "Tab";
-        case sf::Keyboard::PageUp: return "PageUp";
-        case sf::Keyboard::PageDown: return "PageDown";
-        case sf::Keyboard::End: return "End";
-        case sf::Keyboard::Home: return "Home";
-        case sf::Keyboard::Insert: return "Insert";
-        case sf::Keyboard::Delete: return "Delete";
-        case sf::Keyboard::Add: return "+";
-        case sf::Keyboard::Subtract: return "-";
-        case sf::Keyboard::Multiply: return "*";
-        case sf::Keyboard::Divide: return "/";
-        case sf::Keyboard::Left: return "Left";
-        case sf::Keyboard::Right: return "Right";
-        case sf::Keyboard::Up: return "Up";
-        case sf::Keyboard::Down: return "Down";
-        case sf::Keyboard::LShift: return "LShift";
-        case sf::Keyboard::RShift: return "RShift";
-        case sf::Keyboard::LControl: return "LControl";
-        case sf::Keyboard::RControl: return "RControl";
-        case sf::Keyboard::LAlt: return "LAlt";
-        case sf::Keyboard::RAlt: return "RAlt";
-        case sf::Keyboard::SemiColon: return ";";
-        case sf::Keyboard::Comma: return ",";
-        case sf::Keyboard::Period: return ".";
-        case sf::Keyboard::Quote: return "'";
-        case sf::Keyboard::Slash: return "/";
-        case sf::Keyboard::BackSlash: return "\\";
-        case sf::Keyboard::Tilde: return "~";
-        case sf::Keyboard::Equal: return "=";
-        case sf::Keyboard::Hyphen: return "-";
+        case sf::Keyboard::Space:
+            return "Space";
+        case sf::Keyboard::Escape:
+            return "Escape";
+        case sf::Keyboard::Enter:
+            return "Enter";
+        case sf::Keyboard::BackSpace:
+            return "Backspace";
+        case sf::Keyboard::Tab:
+            return "Tab";
+        case sf::Keyboard::PageUp:
+            return "PageUp";
+        case sf::Keyboard::PageDown:
+            return "PageDown";
+        case sf::Keyboard::End:
+            return "End";
+        case sf::Keyboard::Home:
+            return "Home";
+        case sf::Keyboard::Insert:
+            return "Insert";
+        case sf::Keyboard::Delete:
+            return "Delete";
+        case sf::Keyboard::Add:
+            return "+";
+        case sf::Keyboard::Subtract:
+            return "-";
+        case sf::Keyboard::Multiply:
+            return "*";
+        case sf::Keyboard::Divide:
+            return "/";
+        case sf::Keyboard::Left:
+            return "Left";
+        case sf::Keyboard::Right:
+            return "Right";
+        case sf::Keyboard::Up:
+            return "Up";
+        case sf::Keyboard::Down:
+            return "Down";
+        case sf::Keyboard::LShift:
+            return "LShift";
+        case sf::Keyboard::RShift:
+            return "RShift";
+        case sf::Keyboard::LControl:
+            return "LControl";
+        case sf::Keyboard::RControl:
+            return "RControl";
+        case sf::Keyboard::LAlt:
+            return "LAlt";
+        case sf::Keyboard::RAlt:
+            return "RAlt";
+        case sf::Keyboard::SemiColon:
+            return ";";
+        case sf::Keyboard::Comma:
+            return ",";
+        case sf::Keyboard::Period:
+            return ".";
+        case sf::Keyboard::Quote:
+            return "'";
+        case sf::Keyboard::Slash:
+            return "/";
+        case sf::Keyboard::BackSlash:
+            return "\\";
+        case sf::Keyboard::Tilde:
+            return "~";
+        case sf::Keyboard::Equal:
+            return "=";
+        case sf::Keyboard::Hyphen:
+            return "-";
         default:
             return std::string("Key(") + std::to_string(ki) + ")";
     }
@@ -88,7 +123,6 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_title.setCharacterSize(42);
     m_title.setFillColor(sf::Color(100, 200, 255));
     m_title.setPosition(m_panel_bg.getPosition().x + 24.0f, m_panel_bg.getPosition().y + 20.0f);
-
 
     m_players_text.setFont(m_font);
     m_players_text.setCharacterSize(24);
@@ -118,7 +152,8 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_resolution_text.setCharacterSize(22);
     m_resolution_text.setFillColor(sf::Color(220, 220, 220));
     auto res = Settings::instance().resolutions[Settings::instance().resolution_index];
-    m_resolution_text.setString("Resolution: " + std::to_string(res.first) + "x" + std::to_string(res.second));
+    m_resolution_text.setString("Resolution: " + std::to_string(res.first) + "x" +
+                                std::to_string(res.second));
     m_resolution_text.setPosition(content_x, content_y);
 
     m_controls_text.setFont(m_font);
@@ -166,13 +201,17 @@ void SettingsPanel::create_buttons() {
         tab_btn->set_callback([this, target_tab]() { this->switch_tab(target_tab); });
 
         if (tab_labels[i] == "Game") {
-            tab_btn->set_colors(sf::Color(40, 160, 220, 220), sf::Color(70, 200, 255, 255), sf::Color(20, 100, 160, 255));
+            tab_btn->set_colors(sf::Color(40, 160, 220, 220), sf::Color(70, 200, 255, 255),
+                                sf::Color(20, 100, 160, 255));
         } else if (tab_labels[i] == "Audio") {
-            tab_btn->set_colors(sf::Color(180, 80, 200, 220), sf::Color(210, 120, 240, 255), sf::Color(140, 50, 160, 255));
+            tab_btn->set_colors(sf::Color(180, 80, 200, 220), sf::Color(210, 120, 240, 255),
+                                sf::Color(140, 50, 160, 255));
         } else if (tab_labels[i] == "Video") {
-            tab_btn->set_colors(sf::Color(200, 160, 40, 220), sf::Color(240, 200, 80, 255), sf::Color(160, 120, 20, 255));
+            tab_btn->set_colors(sf::Color(200, 160, 40, 220), sf::Color(240, 200, 80, 255),
+                                sf::Color(160, 120, 20, 255));
         } else {
-            tab_btn->set_colors(sf::Color(80, 200, 120, 220), sf::Color(120, 240, 160, 255), sf::Color(50, 160, 80, 255));
+            tab_btn->set_colors(sf::Color(80, 200, 120, 220), sf::Color(120, 240, 160, 255),
+                                sf::Color(50, 160, 80, 255));
         }
 
         tab_btn->update(0.0f);
@@ -193,36 +232,44 @@ void SettingsPanel::create_buttons() {
         float center_x = m_panel_bg.getPosition().x + (m_panel_bg.getSize().x - 220.0f) / 2.0f;
         float center_y = m_panel_bg.getPosition().y + (m_panel_bg.getSize().y - 100.0f) / 2.0f;
 
-        auto quit_btn = std::make_unique<Button>(
-            sf::Vector2f(center_x, center_y), sf::Vector2f(220.0f, 50.0f), "Quitter la partie");
+        auto quit_btn = std::make_unique<Button>(sf::Vector2f(center_x, center_y),
+                                                 sf::Vector2f(220.0f, 50.0f), "Quitter la partie");
         quit_btn->set_callback([this]() {
-            if (m_quit_callback) m_quit_callback();
+            if (m_quit_callback)
+                m_quit_callback();
         });
-        quit_btn->set_colors(sf::Color(180, 50, 60, 255), sf::Color(220, 70, 80, 255), sf::Color(140, 30, 40, 255));
-        quit_btn->update(0.0f); 
+        quit_btn->set_colors(sf::Color(180, 50, 60, 255), sf::Color(220, 70, 80, 255),
+                             sf::Color(140, 30, 40, 255));
+        quit_btn->update(0.0f);
         m_buttons.push_back(std::move(quit_btn));
     }
 
     if (m_current_tab == Tab::Audio) {
         float vol_y = m_panel_bg.getPosition().y + 160.0f + 40.0f + 40.0f;
 
-        auto vol_down = std::make_unique<Button>(sf::Vector2f(bx, vol_y), sf::Vector2f(80.0f, 45.0f), "-");
+        auto vol_down =
+            std::make_unique<Button>(sf::Vector2f(bx, vol_y), sf::Vector2f(80.0f, 45.0f), "-");
         vol_down->set_callback([]() {
             auto& s = Settings::instance();
             s.master_volume = std::max(0, s.master_volume - 5);
-            managers::AudioManager::instance().set_master_volume(static_cast<float>(s.master_volume));
+            managers::AudioManager::instance().set_master_volume(
+                static_cast<float>(s.master_volume));
         });
-        vol_down->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        vol_down->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                             sf::Color(60, 60, 80, 255));
         vol_down->update(0.0f);
         m_buttons.push_back(std::move(vol_down));
 
-        auto vol_up = std::make_unique<Button>(sf::Vector2f(bx + 90.0f, vol_y), sf::Vector2f(80.0f, 45.0f), "+");
+        auto vol_up = std::make_unique<Button>(sf::Vector2f(bx + 90.0f, vol_y),
+                                               sf::Vector2f(80.0f, 45.0f), "+");
         vol_up->set_callback([]() {
             auto& s = Settings::instance();
             s.master_volume = std::min(100, s.master_volume + 5);
-            managers::AudioManager::instance().set_master_volume(static_cast<float>(s.master_volume));
+            managers::AudioManager::instance().set_master_volume(
+                static_cast<float>(s.master_volume));
         });
-        vol_up->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        vol_up->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                           sf::Color(60, 60, 80, 255));
         vol_up->update(0.0f);
         m_buttons.push_back(std::move(vol_up));
 
@@ -263,19 +310,25 @@ void SettingsPanel::create_buttons() {
         m_buttons.push_back(std::move(sound_toggle));
 
     } else if (m_current_tab == Tab::Video) {
-        auto res_prev = std::make_unique<Button>(sf::Vector2f(bx, by), sf::Vector2f(100.0f, 45.0f), "<");
+        auto res_prev =
+            std::make_unique<Button>(sf::Vector2f(bx, by), sf::Vector2f(100.0f, 45.0f), "<");
         res_prev->set_callback([this]() {
-            if (m_temp_resolution_index > 0) m_temp_resolution_index--;
+            if (m_temp_resolution_index > 0)
+                m_temp_resolution_index--;
         });
-        res_prev->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        res_prev->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                             sf::Color(60, 60, 80, 255));
         res_prev->update(0.0f);
         m_buttons.push_back(std::move(res_prev));
 
-        auto res_next = std::make_unique<Button>(sf::Vector2f(bx + 110.0f, by), sf::Vector2f(100.0f, 45.0f), ">");
+        auto res_next = std::make_unique<Button>(sf::Vector2f(bx + 110.0f, by),
+                                                 sf::Vector2f(100.0f, 45.0f), ">");
         res_next->set_callback([this]() {
-            if (m_temp_resolution_index + 1 < Settings::instance().resolutions.size()) ++m_temp_resolution_index;
+            if (m_temp_resolution_index + 1 < Settings::instance().resolutions.size())
+                ++m_temp_resolution_index;
         });
-        res_next->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        res_next->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                             sf::Color(60, 60, 80, 255));
         res_next->update(0.0f);
         m_buttons.push_back(std::move(res_next));
 
@@ -287,9 +340,11 @@ void SettingsPanel::create_buttons() {
             create_buttons();
         });
         if (m_temp_fullscreen) {
-            fullscreen_btn->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+            fullscreen_btn->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255),
+                                       sf::Color(20, 120, 60, 255));
         } else {
-            fullscreen_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            fullscreen_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                                       sf::Color(60, 60, 80, 255));
         }
         fullscreen_btn->update(0.0f);
         m_buttons.push_back(std::move(fullscreen_btn));
@@ -326,22 +381,25 @@ void SettingsPanel::create_buttons() {
         if (m_temp_colorblind != ColorBlindMode::Normal) {
             colorblind_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
         } else {
-            colorblind_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            colorblind_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                                       sf::Color(60, 60, 80, 255));
         }
         colorblind_btn->update(0.0f);
         m_buttons.push_back(std::move(colorblind_btn));
 
         float ss_y = cb_y + 60.0f;
-        auto shake_btn = std::make_unique<Button>(
-            sf::Vector2f(bx, ss_y), sf::Vector2f(250.0f, 45.0f), "Secousse Camera");
+        auto shake_btn = std::make_unique<Button>(sf::Vector2f(bx, ss_y),
+                                                  sf::Vector2f(250.0f, 45.0f), "Secousse Camera");
         shake_btn->set_callback([this]() {
             m_temp_screen_shake = !m_temp_screen_shake;
             create_buttons();
         });
         if (m_temp_screen_shake) {
-            shake_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+            shake_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255),
+                                  sf::Color(160, 90, 20, 255));
         } else {
-            shake_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            shake_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                                  sf::Color(60, 60, 80, 255));
         }
         shake_btn->update(0.0f);
         m_buttons.push_back(std::move(shake_btn));
@@ -372,17 +430,22 @@ void SettingsPanel::create_buttons() {
         float right_x = bx + 260.0f;
         float cy_left = by;
         float cy_right = by;
-        auto make_btn_at = [&](const std::string& label, int keycode, int action_index, float px, float py) {
+        auto make_btn_at = [&](const std::string& label, int keycode, int action_index, float px,
+                               float py) {
             std::string text;
-            if (m_listening_control == action_index) text = "Press a key...";
-            else text = label + ": " + key_to_string(static_cast<sf::Keyboard::Key>(keycode));
+            if (m_listening_control == action_index)
+                text = "Press a key...";
+            else
+                text = label + ": " + key_to_string(static_cast<sf::Keyboard::Key>(keycode));
 
-            auto btn = std::make_unique<Button>(sf::Vector2f(px, py), sf::Vector2f(220.0f, 45.0f), text);
+            auto btn =
+                std::make_unique<Button>(sf::Vector2f(px, py), sf::Vector2f(220.0f, 45.0f), text);
             btn->set_callback([this, action_index]() {
                 m_listening_control = action_index;
                 create_buttons();
             });
-            btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                            sf::Color(60, 60, 80, 255));
             btn->update(0.0f);
             m_buttons.push_back(std::move(btn));
         };
@@ -395,20 +458,24 @@ void SettingsPanel::create_buttons() {
         cy_left += 60.0f;
         make_btn_at("Right", s.key_right, static_cast<int>(ControlAction::Right), left_x, cy_left);
 
-        make_btn_at("Shoot", s.key_shoot, static_cast<int>(ControlAction::Shoot), right_x, cy_right);
+        make_btn_at("Shoot", s.key_shoot, static_cast<int>(ControlAction::Shoot), right_x,
+                    cy_right);
         cy_right += 60.0f;
-        make_btn_at("Power1", s.key_powerup1, static_cast<int>(ControlAction::Power1), right_x, cy_right);
+        make_btn_at("Power1", s.key_powerup1, static_cast<int>(ControlAction::Power1), right_x,
+                    cy_right);
         cy_right += 60.0f;
-        make_btn_at("Power2", s.key_powerup2, static_cast<int>(ControlAction::Power2), right_x, cy_right);
+        make_btn_at("Power2", s.key_powerup2, static_cast<int>(ControlAction::Power2), right_x,
+                    cy_right);
     }
 
     float bottom_y = m_panel_bg.getPosition().y + m_panel_bg.getSize().y - 70.0f;
 
-    auto apply_btn = std::make_unique<Button>(
-        sf::Vector2f(m_panel_bg.getPosition().x + 24.0f, bottom_y),
-        sf::Vector2f(180.0f, 50.0f), "Appliquer");
+    auto apply_btn =
+        std::make_unique<Button>(sf::Vector2f(m_panel_bg.getPosition().x + 24.0f, bottom_y),
+                                 sf::Vector2f(180.0f, 50.0f), "Appliquer");
     apply_btn->set_callback([this]() { this->apply_settings(); });
-    apply_btn->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+    apply_btn->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255),
+                          sf::Color(20, 120, 60, 255));
     apply_btn->update(0.0f);
     m_buttons.push_back(std::move(apply_btn));
 
@@ -416,7 +483,8 @@ void SettingsPanel::create_buttons() {
         sf::Vector2f(m_panel_bg.getPosition().x + m_panel_bg.getSize().x - 204.0f, bottom_y),
         sf::Vector2f(180.0f, 50.0f), "Fermer");
     back_btn->set_callback([this]() { this->close(); });
-    back_btn->set_colors(sf::Color(180, 50, 60, 220), sf::Color(220, 70, 80, 255), sf::Color(140, 30, 40, 255));
+    back_btn->set_colors(sf::Color(180, 50, 60, 220), sf::Color(220, 70, 80, 255),
+                         sf::Color(140, 30, 40, 255));
     back_btn->update(0.0f);
     m_buttons.push_back(std::move(back_btn));
 }
@@ -428,7 +496,8 @@ void SettingsPanel::switch_tab(Tab new_tab) {
 
 void SettingsPanel::apply_settings() {
     auto& s = Settings::instance();
-    bool changed = (m_temp_resolution_index != s.resolution_index) || (m_temp_fullscreen != s.fullscreen);
+    bool changed =
+        (m_temp_resolution_index != s.resolution_index) || (m_temp_fullscreen != s.fullscreen);
 
     s.resolution_index = m_temp_resolution_index;
     s.fullscreen = m_temp_fullscreen;
@@ -445,7 +514,8 @@ void SettingsPanel::apply_settings() {
 void SettingsPanel::get_new_window_settings(sf::Vector2u& size, bool& fullscreen) const {
     auto& s = Settings::instance();
     auto res = s.resolutions[s.resolution_index];
-    size = sf::Vector2u(static_cast<unsigned int>(res.first), static_cast<unsigned int>(res.second));
+    size =
+        sf::Vector2u(static_cast<unsigned int>(res.first), static_cast<unsigned int>(res.second));
     fullscreen = s.fullscreen;
 }
 
@@ -521,7 +591,8 @@ void SettingsPanel::update(float dt) {
 
     if (m_current_tab == Tab::Video) {
         auto res = Settings::instance().resolutions[m_temp_resolution_index];
-        m_resolution_text.setString("Resolution: " + std::to_string(res.first) + "x" + std::to_string(res.second));
+        m_resolution_text.setString("Resolution: " + std::to_string(res.first) + "x" +
+                                    std::to_string(res.second));
 
         sf::FloatRect bounds = m_resolution_text.getLocalBounds();
         m_resolution_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -572,8 +643,7 @@ void SettingsPanel::render(sf::RenderWindow& window) {
         window.draw(m_resolution_text);
     }
 
-    if (m_current_tab == Tab::Controls) {
-    }
+    if (m_current_tab == Tab::Controls) {}
 
     for (auto& b : m_buttons)
         b->render(window);

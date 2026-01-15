@@ -4,7 +4,10 @@
 #include "managers/AudioManager.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "level/CustomLevelLoader.hpp"
+#include "managers/AudioManager.hpp"
 
+#include <filesystem>
 #include <iostream>
 
 namespace rtype {
@@ -37,6 +40,27 @@ void LobbyState::on_enter() {
     m_total_players = 1;
     m_ready_players = 0;
 
+    m_available_levels = {"Standard Game"};
+    m_available_level_ids = {""};
+
+    std::filesystem::path custom_dir = "levels/custom";
+    if (std::filesystem::exists(custom_dir)) {
+        for (const auto& entry : std::filesystem::directory_iterator(custom_dir)) {
+            if (entry.path().extension() == ".json") {
+                auto config = level::CustomLevelLoader::load_from_file(entry.path().string());
+                if (config) {
+                    m_available_levels.push_back(config->name);
+                    m_available_level_ids.push_back(config->id);
+                    std::cout << "[LobbyState] Found custom level: " << config->name
+                              << " (id: " << config->id << ")" << std::endl;
+                }
+            }
+        }
+    }
+
+    m_selected_level_index = 0;
+    m_use_custom_level = false;
+
     setup_ui();
 
     request_lobby_status();
@@ -53,13 +77,12 @@ void LobbyState::setup_ui() {
 
     m_background = std::make_unique<ui::MenuBackground>(window_size);
 
-    m_title =
-        std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, 50.0f), 72);
+    m_title = std::make_unique<ui::MenuTitle>("LOBBY", sf::Vector2f(center.x, 50.0f), 72);
 
     m_footer = std::make_unique<ui::MenuFooter>(window_size);
 
-    m_corners.push_back(std::make_unique<ui::CornerDecoration>(
-        sf::Vector2f(30.0f, 30.0f), false, false));
+    m_corners.push_back(
+        std::make_unique<ui::CornerDecoration>(sf::Vector2f(30.0f, 30.0f), false, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
         sf::Vector2f(static_cast<float>(window_size.x) - 30.0f, 30.0f), true, false));
     m_corners.push_back(std::make_unique<ui::CornerDecoration>(
@@ -72,7 +95,9 @@ void LobbyState::setup_ui() {
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
         sf::Vector2f(50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), true));
     m_side_panels.push_back(std::make_unique<ui::SidePanel>(
-        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f, static_cast<float>(window_size.y) / 2.0f - 50.0f), false));
+        sf::Vector2f(static_cast<float>(window_size.x) - 50.0f,
+                     static_cast<float>(window_size.y) / 2.0f - 50.0f),
+        false));
 
     m_info_text.setFont(m_font);
     m_info_text.setCharacterSize(20);
@@ -92,15 +117,28 @@ void LobbyState::setup_ui() {
     m_status_text.setFillColor(sf::Color::White);
     m_status_text.setString("Joueurs: 0/4");
     auto status_bounds = m_status_text.getLocalBounds();
-    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 50.0f);
+    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 100.0f);
+
+    m_level_text.setFont(m_font);
+    m_level_text.setCharacterSize(28);
+    m_level_text.setFillColor(sf::Color(255, 255, 0));
+    update_level_display();
 
     const float button_width = 300.0f;
     const float button_height = 60.0f;
-    const float button_spacing = 80.0f;
-    const float start_y = center.y + 100.0f;
+    const float button_spacing = 70.0f;
+    const float start_y = center.y + 50.0f;
+
+    auto level_btn =
+        std::make_unique<ui::Button>(sf::Vector2f(center.x - button_width / 2.0f, start_y),
+                                     sf::Vector2f(button_width, button_height), "< SELECT LEVEL >");
+    level_btn->set_colors(sf::Color(80, 80, 150, 220), sf::Color(100, 100, 200, 255),
+                          sf::Color(60, 60, 120, 255));
+    level_btn->set_callback([this]() { on_level_select_clicked(); });
+    m_buttons.push_back(std::move(level_btn));
 
     auto start_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(center.x - button_width / 2.0f, start_y),
+        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
         sf::Vector2f(button_width, button_height), "START GAME");
     start_btn->set_colors(sf::Color(30, 150, 50, 220), sf::Color(50, 200, 80, 255),
                           sf::Color(20, 120, 40, 255));
@@ -108,7 +146,7 @@ void LobbyState::setup_ui() {
     m_buttons.push_back(std::move(start_btn));
 
     auto back_btn = std::make_unique<ui::Button>(
-        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing),
+        sf::Vector2f(center.x - button_width / 2.0f, start_y + button_spacing * 2),
         sf::Vector2f(button_width, button_height), "LEAVE LOBBY");
     back_btn->set_colors(sf::Color(120, 30, 40, 200), sf::Color(180, 50, 60, 255),
                          sf::Color(100, 20, 30, 255));
@@ -118,6 +156,8 @@ void LobbyState::setup_ui() {
 
 void LobbyState::on_start_game_clicked() {
     std::cout << "[LobbyState] Start game button clicked\n";
+    std::cout << "[LobbyState] Selected level: "
+              << m_available_levels[static_cast<size_t>(m_selected_level_index)] << "\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
 
     send_start_game_request();
@@ -125,14 +165,39 @@ void LobbyState::on_start_game_clicked() {
     m_next_state = "game";
 }
 
+void LobbyState::on_level_select_clicked() {
+    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+
+    m_selected_level_index =
+        (m_selected_level_index + 1) % static_cast<int>(m_available_levels.size());
+    m_use_custom_level = (m_selected_level_index > 0);
+
+    update_level_display();
+
+    std::cout << "[LobbyState] Level selected: "
+              << m_available_levels[static_cast<size_t>(m_selected_level_index)]
+              << " (custom: " << (m_use_custom_level ? "yes" : "no") << ")\n";
+}
+
+void LobbyState::update_level_display() {
+    auto window_size = m_window.getSize();
+    sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
+                        static_cast<float>(window_size.y) / 2.0f);
+
+    std::string level_name = m_available_levels[static_cast<size_t>(m_selected_level_index)];
+    m_level_text.setString("Level: " + level_name);
+    auto level_bounds = m_level_text.getLocalBounds();
+    m_level_text.setPosition(center.x - level_bounds.width / 2.0f, center.y - 30.0f);
+}
+
 void LobbyState::on_back_clicked() {
     std::cout << "[LobbyState] Leave lobby button clicked\n";
     managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
 
-    // Envoyer la requête de quitter le lobby au serveur
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::LeaveLobby;
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
     msg.raw_data = serializer.data();
@@ -142,11 +207,20 @@ void LobbyState::on_back_clicked() {
 }
 
 void LobbyState::send_start_game_request() {
-    std::cout << "[LobbyState] Sending StartGame request to server\n";
+    std::string level_id;
+    if (m_selected_level_index >= 0 &&
+        m_selected_level_index < static_cast<int>(m_available_level_ids.size())) {
+        level_id = m_available_level_ids[m_selected_level_index];
+    }
+    std::cout << "[LobbyState] Sending StartGame request with level_id: " << level_id << "\n";
 
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
-    serializer << static_cast<uint8_t>(RType::OpCode::StartGame);
+    serializer << RType::OpCode::StartGame;
+    serializer << static_cast<uint8_t>(level_id.size());
+    for (char c : level_id) {
+        serializer << static_cast<uint8_t>(c);
+    }
     serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
@@ -155,9 +229,10 @@ void LobbyState::send_start_game_request() {
 }
 
 void LobbyState::send_keepalive() {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
-    serializer << static_cast<uint8_t>(RType::OpCode::Keepalive);
+    serializer << RType::OpCode::Keepalive;
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
     msg.raw_data = serializer.data();
@@ -165,10 +240,11 @@ void LobbyState::send_keepalive() {
 }
 
 void LobbyState::request_lobby_status() {
-    RType::BinarySerializer serializer;
+    RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
-    serializer << static_cast<uint8_t>(RType::OpCode::PlayerReady);
+    serializer << RType::OpCode::PlayerReady;
     serializer << static_cast<uint8_t>(0);
+    serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket);
     msg.raw_data = serializer.data();
@@ -261,14 +337,15 @@ void LobbyState::update(float dt) {
         panel->update(dt);
     }
 
-    std::string status_info = "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
+    std::string status_info =
+        "Joueurs: " + std::to_string(m_total_players) + "/" + std::to_string(m_max_players);
     m_status_text.setString(status_info);
 
     auto status_bounds = m_status_text.getLocalBounds();
     auto window_size = m_window.getSize();
     sf::Vector2f center(static_cast<float>(window_size.x) / 2.0f,
                         static_cast<float>(window_size.y) / 2.0f);
-    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 50.0f);
+    m_status_text.setPosition(center.x - status_bounds.width / 2.0f, center.y - 100.0f);
 }
 
 void LobbyState::render(sf::RenderWindow& window) {
@@ -289,6 +366,7 @@ void LobbyState::render(sf::RenderWindow& window) {
     }
 
     window.draw(m_status_text);
+    window.draw(m_level_text);
 
     for (auto& button : m_buttons) {
         button->render(window);

@@ -22,6 +22,9 @@ enum class OpCode : uint8_t {
     LeaveLobby = 0x26,
     LobbyJoined = 0x27,
     LobbyLeft = 0x28,
+    SelectLevel = 0x29,
+    ListLevels = 0x2A,
+    LevelList = 0x2B,
     LevelStart = 0x30,
     LevelComplete = 0x31,
     WeaponUpgradeChoice = 0x32,
@@ -70,10 +73,15 @@ enum class EntityType : uint8_t {
     SerpentScream = 0x18,
     SerpentLaserCharge = 0x19,
     FlyingEnemy = 0x1A,
-    CompilerBoss = 0x20,
-    CompilerPart1 = 0x21,
-    CompilerPart2 = 0x22,
-    CompilerPart3 = 0x23
+    // New bosses and parts (level 15+)
+    CompilerBoss = 0x1B,
+    CompilerPart1 = 0x1C,
+    CompilerPart2 = 0x1D,
+    CompilerPart3 = 0x1E,
+    // Custom level entities (separate from standard game)
+    CustomEnemy = 0x30,
+    CustomBoss = 0x31,
+    CustomProjectile = 0x32
 };
 
 struct MagicNumber {

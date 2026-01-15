@@ -14,8 +14,7 @@ void MenuState::on_enter() {
     std::cout << "[MenuState] Entering menu\n";
     try {
         m_window.setView(m_window.getDefaultView());
-    } catch (...) {
-    }
+    } catch (...) {}
     m_buttons.clear();
     m_corners.clear();
     m_side_panels.clear();

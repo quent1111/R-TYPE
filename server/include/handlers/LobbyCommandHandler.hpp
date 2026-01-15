@@ -22,7 +22,7 @@ public:
     void handle_create_lobby(UDPServer& server, int client_id, const std::vector<uint8_t>& data);
     void handle_join_lobby(UDPServer& server, int client_id, const std::vector<uint8_t>& data);
     void handle_leave_lobby(UDPServer& server, int client_id);
-    void handle_start_game(UDPServer& server, int client_id);
+    void handle_start_game(UDPServer& server, int client_id, const std::string& level_id = "");
 
 private:
     void send_lobby_joined_ack(UDPServer& server, int client_id, int lobby_id, bool success);

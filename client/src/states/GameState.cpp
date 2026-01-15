@@ -25,13 +25,11 @@ void GameState::on_exit() {
     std::cout << "[GameState] Exiting game\n";
     try {
         m_window.setView(m_window.getDefaultView());
-    } catch (...) {
-    }
+    } catch (...) {}
     m_game.reset();
 }
 
 void GameState::handle_event(const sf::Event& event) {
-
     if (m_game) {
         if (event.type == sf::Event::GainedFocus) {
             m_game->set_focus(true);

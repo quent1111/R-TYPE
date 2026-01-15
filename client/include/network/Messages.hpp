@@ -109,13 +109,14 @@ struct Message {
     std::vector<uint8_t> raw_lobby_data;
     bool lobby_join_success{false};
     int lobby_joined_id{-1};
-    
+    std::string custom_level_id;
+
     struct PowerUpCard {
         uint8_t id;
         uint8_t level;
     };
     std::vector<PowerUpCard> powerup_cards;
-    
+
     struct ActivableSlotData {
         bool has_powerup;
         uint8_t powerup_id;
@@ -175,10 +176,11 @@ struct Message {
         msg.next_level = static_cast<uint8_t>(next);
         return msg;
     }
-    static Message level_start(uint32_t lvl) {
+    static Message level_start(uint32_t lvl, const std::string& custom_level_id = "") {
         Message msg(MessageType::LevelStart);
         msg.level = lvl;
         msg.current_level = static_cast<uint8_t>(lvl);
+        msg.custom_level_id = custom_level_id;
         return msg;
     }
 };

@@ -162,6 +162,61 @@ entity createEnemy2Projectile(registry& reg, float x, float y, float vx, float v
     return projectile;
 }
 
+entity createCustomProjectile(registry& reg, float x, float y, float vx, float vy, int damage,
+                               const custom_attack_config& config) {
+    entity projectile = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();
+    reg.register_component<enemy_tag>();
+
+    // Build animation frames
+    std::vector<sf::IntRect> custom_projectile_frames;
+    for (int i = 0; i < config.projectile_frame_count; ++i) {
+        custom_projectile_frames.push_back({
+            i * config.projectile_frame_width, 0,
+            config.projectile_frame_width, config.projectile_frame_height
+        });
+    }
+
+    float collision_w = static_cast<float>(config.projectile_frame_width) * config.projectile_scale * 0.8f;
+    float collision_h = static_cast<float>(config.projectile_frame_height) * config.projectile_scale * 0.8f;
+
+    reg.add_component(projectile, position{x, y});
+    reg.add_component(projectile, velocity{vx, vy});
+    
+    sprite_component sprite;
+    sprite.texture_path = config.projectile_texture;
+    sprite.texture_rect_x = 0;
+    sprite.texture_rect_y = 0;
+    sprite.texture_rect_w = config.projectile_frame_width;
+    sprite.texture_rect_h = config.projectile_frame_height;
+    sprite.scale = config.projectile_scale;
+    sprite.mirror_x = config.projectile_mirror_x;
+    sprite.mirror_y = config.projectile_mirror_y;
+    sprite.rotation = config.projectile_rotation;
+    reg.add_component(projectile, sprite);
+    
+    reg.add_component(projectile,
+                      animation_component{custom_projectile_frames, config.projectile_frame_duration, true});
+    reg.add_component(projectile, collision_box{collision_w, collision_h});
+    reg.add_component(projectile, damage_on_contact{damage, true});
+    reg.add_component(projectile, projectile_tag{});
+    reg.add_component(projectile, entity_tag{RType::EntityType::CustomProjectile});
+    reg.add_component(projectile, enemy_tag{});
+    
+    // Store the texture path as entity ID for identification
+    reg.add_component(projectile, custom_entity_id{config.projectile_texture});
+
+    return projectile;
+}
+
 entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float vy, int damage, int projectile_type) {
     entity projectile = reg.spawn_entity();
 

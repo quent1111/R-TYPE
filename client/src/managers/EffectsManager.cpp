@@ -1,4 +1,5 @@
 #include "managers/EffectsManager.hpp"
+
 #include "common/Settings.hpp"
 
 #include <cmath>

@@ -38,7 +38,8 @@ public:
         powerup_time_remaining_ = time_remaining;
     }
 
-    void set_powerup_card_bounds(const sf::FloatRect& card1, const sf::FloatRect& card2, const sf::FloatRect& card3) {
+    void set_powerup_card_bounds(const sf::FloatRect& card1, const sf::FloatRect& card2,
+                                 const sf::FloatRect& card3) {
         powerup_card1_bounds_ = card1;
         powerup_card2_bounds_ = card2;
         powerup_card3_bounds_ = card3;

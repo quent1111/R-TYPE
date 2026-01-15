@@ -25,10 +25,7 @@ int PowerupHandler::count_alive_players(
 }
 
 std::vector<powerup::PowerupCard> PowerupHandler::generate_card_choices(
-    registry& reg,
-    const std::unordered_map<int, std::size_t>& client_entity_ids,
-    int client_id) {
-
+    registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id) {
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         return {};
@@ -53,7 +50,6 @@ std::vector<powerup::PowerupCard> PowerupHandler::generate_card_choices(
 void PowerupHandler::handle_powerup_choice(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids,
     std::unordered_set<int>& players_who_chose_powerup, int client_id, uint8_t powerup_choice) {
-
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         std::cerr << "[Game] Cannot apply power-up: player not found for client " << client_id
@@ -81,18 +77,17 @@ void PowerupHandler::handle_powerup_choice(
     if (powerup_choice > 0 && powerup_choice <= cards.size()) {
         const auto& chosen_card = cards[powerup_choice - 1];
 
-        std::cout << "[PowerupHandler] Client " << client_id 
-                  << " chose card " << static_cast<int>(powerup_choice) 
-                  << " - PowerupId=" << static_cast<int>(chosen_card.id) 
+        std::cout << "[PowerupHandler] Client " << client_id << " chose card "
+                  << static_cast<int>(powerup_choice)
+                  << " - PowerupId=" << static_cast<int>(chosen_card.id)
                   << " Level=" << static_cast<int>(chosen_card.level) << std::endl;
 
         powerups.add_or_upgrade(chosen_card.id);
 
         auto* def = powerup::PowerupRegistry::instance().get_powerup(chosen_card.id);
         if (def) {
-            std::cout << "[Game] Client " << client_id << " received: " 
-                      << def->name << " Level " << static_cast<int>(powerups.get_level(chosen_card.id))
-                      << std::endl;
+            std::cout << "[Game] Client " << client_id << " received: " << def->name << " Level "
+                      << static_cast<int>(powerups.get_level(chosen_card.id)) << std::endl;
         }
 
         if (def && def->category == powerup::PowerupCategory::Activable) {
@@ -125,7 +120,6 @@ void PowerupHandler::handle_powerup_choice(
 void PowerupHandler::handle_powerup_activate(
     registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids, int client_id,
     uint8_t slot_index) {
-
     auto player_opt = get_player_entity(reg, client_entity_ids, client_id);
     if (!player_opt.has_value()) {
         return;
@@ -157,8 +151,9 @@ void PowerupHandler::handle_powerup_activate(
 
     auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
     if (def) {
-        std::cout << "[Game] Client " << client_id << " activated slot " << static_cast<int>(slot_index)
-                  << " - " << def->name << " Level " << static_cast<int>(level) << std::endl;
+        std::cout << "[Game] Client " << client_id << " activated slot "
+                  << static_cast<int>(slot_index) << " - " << def->name << " Level "
+                  << static_cast<int>(level) << std::endl;
     }
 
     if (id == powerup::PowerupId::PowerCannon) {
@@ -205,14 +200,14 @@ void PowerupHandler::handle_powerup_activate(
                 reg.emplace_component<laser_beam>(player, duration, dps, level);
                 reg.get_component<laser_beam>(player)->activate();
             }
-            std::cout << "[Game] Laser beam activated: " << duration << "s duration, " 
-                      << dps << " DPS" << std::endl;
+            std::cout << "[Game] Laser beam activated: " << duration << "s duration, " << dps
+                      << " DPS" << std::endl;
         }
     }
 }
 
-void PowerupHandler::apply_passive_powerup(registry& reg, entity player, 
-                                           powerup::PowerupId id, uint8_t level) {
+void PowerupHandler::apply_passive_powerup(registry& reg, entity player, powerup::PowerupId id,
+                                           uint8_t level) {
     if (id == powerup::PowerupId::LittleFriend) {
         auto& friend_opt = reg.get_component<little_friend>(player);
         if (!friend_opt.has_value()) {
@@ -235,8 +230,7 @@ void PowerupHandler::apply_passive_powerup(registry& reg, entity player,
 
         std::cout << "[Game] Little Friend passive activated at level " << static_cast<int>(level)
                   << " with " << lf.num_drones << " drone(s)" << std::endl;
-    }
-    else if (id == powerup::PowerupId::MissileDrone) {
+    } else if (id == powerup::PowerupId::MissileDrone) {
         auto& drone_opt = reg.get_component<missile_drone>(player);
         if (!drone_opt.has_value()) {
             reg.emplace_component<missile_drone>(player);
@@ -254,13 +248,13 @@ void PowerupHandler::apply_passive_powerup(registry& reg, entity player,
         md.activate(md.num_drones, md.missiles_per_volley);
 
         std::cout << "[Game] Missile Drone passive activated at level " << static_cast<int>(level)
-                  << " with " << md.num_drones << " drone(s), " << md.missiles_per_volley 
+                  << " with " << md.num_drones << " drone(s), " << md.missiles_per_volley
                   << " missiles per volley" << std::endl;
     }
 }
 
-void PowerupHandler::apply_stat_powerup(registry& reg, entity player,
-                                        powerup::PowerupId id, uint8_t level) {
+void PowerupHandler::apply_stat_powerup(registry& reg, entity player, powerup::PowerupId id,
+                                        uint8_t level) {
     auto* def = powerup::PowerupRegistry::instance().get_powerup(id);
     if (!def || level == 0 || level > def->level_effects.size()) {
         return;
@@ -275,42 +269,40 @@ void PowerupHandler::apply_stat_powerup(registry& reg, entity player,
             weapon_opt->damage = static_cast<int>(base_damage * effect.value);
             std::cout << "[Game] Damage increased to " << weapon_opt->damage << std::endl;
         }
-    }
-    else if (id == powerup::PowerupId::Speed) {
+    } else if (id == powerup::PowerupId::Speed) {
         auto& control_opt = reg.get_component<controllable>(player);
         if (control_opt.has_value()) {
             float base_speed = 200.0f;
             control_opt->speed = base_speed * effect.value;
             std::cout << "[Game] Speed increased to " << control_opt->speed << std::endl;
         }
-    }
-    else if (id == powerup::PowerupId::Health) {
+    } else if (id == powerup::PowerupId::Health) {
         auto& health_opt = reg.get_component<health>(player);
         if (health_opt.has_value()) {
             int bonus = static_cast<int>(effect.value);
             health_opt->maximum += bonus;
             health_opt->current += bonus;
-            std::cout << "[Game] Max health increased by " << bonus << " to " << health_opt->maximum << std::endl;
+            std::cout << "[Game] Max health increased by " << bonus << " to " << health_opt->maximum
+                      << std::endl;
         }
-    }
-    else if (id == powerup::PowerupId::FireRate) {
+    } else if (id == powerup::PowerupId::FireRate) {
         auto& weapon_opt = reg.get_component<weapon>(player);
         if (weapon_opt.has_value()) {
             float base_fire_rate = 5.0f;
             weapon_opt->fire_rate = base_fire_rate * effect.value;
-            std::cout << "[Game] Fire rate increased by " << ((effect.value - 1.0f) * 100.0f) << "% (new rate: " << weapon_opt->fire_rate << " shots/s)" << std::endl;
+            std::cout << "[Game] Fire rate increased by " << ((effect.value - 1.0f) * 100.0f)
+                      << "% (new rate: " << weapon_opt->fire_rate << " shots/s)" << std::endl;
         }
-    }
-    else if (id == powerup::PowerupId::MultiShot) {
+    } else if (id == powerup::PowerupId::MultiShot) {
         auto& multishot_opt = reg.get_component<multishot>(player);
         if (!multishot_opt.has_value()) {
             reg.emplace_component<multishot>(player, static_cast<int>(effect.value));
         } else {
             multishot_opt->extra_projectiles = static_cast<int>(effect.value);
         }
-        std::cout << "[Game] Multi-shot activated: " << static_cast<int>(effect.value) << " extra projectiles" << std::endl;
+        std::cout << "[Game] Multi-shot activated: " << static_cast<int>(effect.value)
+                  << " extra projectiles" << std::endl;
     }
 }
 
 }  // namespace server
-

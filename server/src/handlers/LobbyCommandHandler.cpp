@@ -1,8 +1,9 @@
 #include "handlers/LobbyCommandHandler.hpp"
 
-#include <iostream>
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+
+#include <iostream>
 
 namespace server {
 
@@ -12,7 +13,8 @@ LobbyCommandHandler::LobbyCommandHandler(LobbyManager& lobby_manager)
 }
 
 void LobbyCommandHandler::handle_list_lobbies(UDPServer& server, int client_id) {
-    std::cout << "[LobbyCommandHandler] Client " << client_id << " requested lobby list" << std::endl;
+    std::cout << "[LobbyCommandHandler] Client " << client_id << " requested lobby list"
+              << std::endl;
 
     auto lobbies = _lobby_manager.get_lobby_list();
 
@@ -30,12 +32,13 @@ void LobbyCommandHandler::handle_list_lobbies(UDPServer& server, int client_id) 
     }
 
     serializer.compress();
-    std::cout << "[LobbyCommandHandler] Sending " << lobbies.size() << " lobbies to client " << client_id << std::endl;
+    std::cout << "[LobbyCommandHandler] Sending " << lobbies.size() << " lobbies to client "
+              << client_id << std::endl;
     server.send_to_client(client_id, serializer.data());
 }
 
 void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
-                                               const std::vector<uint8_t>& data) {
+                                              const std::vector<uint8_t>& data) {
     RType::BinarySerializer deserializer(data);
 
     uint16_t magic;
@@ -82,8 +85,8 @@ void LobbyCommandHandler::handle_join_lobby(UDPServer& server, int client_id,
     int32_t lobby_id;
     deserializer >> lobby_id;
 
-    std::cout << "[LobbyCommandHandler] Client " << client_id << " joining lobby " 
-              << lobby_id << std::endl;
+    std::cout << "[LobbyCommandHandler] Client " << client_id << " joining lobby " << lobby_id
+              << std::endl;
 
     bool success = _lobby_manager.join_lobby(lobby_id, client_id, server);
 
@@ -110,13 +113,21 @@ void LobbyCommandHandler::handle_leave_lobby(UDPServer& server, int client_id) {
     }
 }
 
-void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id) {
-    std::cout << "[LobbyCommandHandler] Client " << client_id << " requesting game start" << std::endl;
+void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id,
+                                            const std::string& level_id) {
+    std::cout << "[LobbyCommandHandler] Client " << client_id
+              << " requesting game start with level id: "
+              << (level_id.empty() ? "(standard)" : level_id) << std::endl;
 
     Lobby* lobby = _lobby_manager.get_client_lobby_ptr(client_id);
     if (!lobby) {
-        std::cerr << "[LobbyCommandHandler] Client " << client_id << " not in any lobby" << std::endl;
+        std::cerr << "[LobbyCommandHandler] Client " << client_id << " not in any lobby"
+                  << std::endl;
         return;
+    }
+
+    if (lobby->get_game_session()) {
+        lobby->get_game_session()->set_custom_level_id(level_id);
     }
 
     lobby->start_game(server);
@@ -125,7 +136,7 @@ void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id) {
 }
 
 void LobbyCommandHandler::send_lobby_joined_ack(UDPServer& server, int client_id, int lobby_id,
-                                                 bool success) {
+                                                bool success) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << static_cast<uint8_t>(RType::OpCode::LobbyJoined);
@@ -135,7 +146,7 @@ void LobbyCommandHandler::send_lobby_joined_ack(UDPServer& server, int client_id
 
     server.send_to_client(client_id, serializer.data());
 
-    std::cout << "[LobbyCommandHandler] Sent LobbyJoined ack to client " << client_id 
+    std::cout << "[LobbyCommandHandler] Sent LobbyJoined ack to client " << client_id
               << " (success=" << success << ", lobby=" << lobby_id << ")" << std::endl;
 }
 
@@ -148,7 +159,7 @@ void LobbyCommandHandler::send_lobby_left_ack(UDPServer& server, int client_id, 
 
     server.send_to_client(client_id, serializer.data());
 
-    std::cout << "[LobbyCommandHandler] Sent LobbyLeft ack to client " << client_id 
+    std::cout << "[LobbyCommandHandler] Sent LobbyLeft ack to client " << client_id
               << " (success=" << success << ")" << std::endl;
 }
 

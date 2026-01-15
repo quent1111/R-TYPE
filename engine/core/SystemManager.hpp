@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ISystem.hpp"
+
 #include <memory>
 #include <vector>
 
@@ -8,7 +9,7 @@ namespace engine {
 
 /**
  * @brief Manages registration and execution of systems in order.
- * 
+ *
  * SystemManager enforces modular architecture by:
  * - Allowing systems to be registered in explicit order
  * - Providing lifecycle hooks (init, update, shutdown)

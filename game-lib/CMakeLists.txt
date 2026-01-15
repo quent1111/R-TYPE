@@ -1,4 +1,6 @@
 
+find_package(nlohmann_json REQUIRED)
+
 add_library(game_logic STATIC
     src/systems/input_system.cpp
     src/systems/movement_system.cpp
@@ -6,6 +8,7 @@ add_library(game_logic STATIC
     src/systems/collision_system.cpp
     src/systems/cleanup_system.cpp
     src/systems/wave_system.cpp
+    src/systems/custom_wave_system.cpp
     src/systems/explosive_system.cpp
     src/entities/player_factory.cpp
     src/entities/enemy_factory.cpp
@@ -14,6 +17,9 @@ add_library(game_logic STATIC
     src/entities/explosion_factory.cpp
     src/powerup/PowerupRegistry.cpp
     src/powerup/PowerupCardPool.cpp
+    src/level/LevelConfigParser.cpp
+    src/level/CustomLevelManager.cpp
+    src/level/LevelEntityFactory.cpp
 )
 
 target_include_directories(game_logic
@@ -28,6 +34,7 @@ target_link_libraries(game_logic
         project_options
         project_warnings
         sfml::sfml
+        nlohmann_json::nlohmann_json
 )
 
 target_compile_features(game_logic PUBLIC cxx_std_20)

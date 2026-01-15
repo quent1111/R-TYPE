@@ -31,6 +31,7 @@ endif()
 find_package(Boost REQUIRED)
 find_package(GTest REQUIRED)
 find_package(lz4 REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 if(TARGET sfml::sfml)
     message(STATUS "Using Conan SFML targets (sfml::sfml)")
