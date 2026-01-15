@@ -6,6 +6,7 @@
 #include "network/Messages.hpp"
 #include "network/NetworkClient.hpp"
 #include "rendering/Rendering.hpp"
+#include "level/CustomLevelConfig.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -52,6 +53,7 @@ private:
     uint8_t powerup_type_ = 0;
     float powerup_time_remaining_ = 0.0f;
     bool has_x_key_been_released_ = true;
+    bool powerup_choice_pending_ = false;
     std::map<std::pair<uint32_t, uint8_t>, float> player_powerups_;
     std::map<uint32_t, int> player_shield_frame_;
     std::map<uint32_t, float> player_shield_anim_timer_;
@@ -79,7 +81,9 @@ private:
     float boss_roar_timer_ = 0.0f;
     float boss_roar_delay_ = 2.5f;
 
-    // Client-side prediction
+    std::optional<level::CustomLevelConfig> custom_level_config_;
+    std::string current_custom_level_id_;
+
     float predicted_player_x_ = 0.0f;
     float predicted_player_y_ = 0.0f;
     uint8_t last_input_mask_ = 0;
@@ -90,7 +94,9 @@ private:
     void setup_input_handler();
     void request_game_state();
 
-    void init_entity_sprite(Entity& entity);
+    void init_entity_sprite(Entity& entity, uint32_t entity_id);
+    void load_custom_level(const std::string& level_id);
+    void load_custom_level_textures();
 
     // Settings panel for in-game and menu
     std::unique_ptr<rtype::ui::SettingsPanel> m_settings_panel;
