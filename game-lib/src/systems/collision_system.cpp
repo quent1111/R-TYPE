@@ -631,5 +631,88 @@ void collisionSystem(registry& reg) {
                 }
             }
         }
+
+    auto& game_settings_comps = reg.get_components<game_settings>();
+    bool friendly_fire_enabled = false;
+    for (const auto& settings_opt : game_settings_comps) {
+        if (settings_opt.has_value()) {
+            friendly_fire_enabled = settings_opt->friendly_fire_enabled;
+            break;
+        }
     }
+
+    if (friendly_fire_enabled) {
+        auto& ally_projectile_tags = reg.get_components<ally_projectile_tag>();
+
+        for (std::size_t ff_i = 0; ff_i < positions.size() && ff_i < projectile_tags.size(); ++ff_i) {
+            if (!projectile_tags[ff_i] || !positions[ff_i] || !collision_boxes[ff_i] || !damage_contacts[ff_i]) continue;
+
+            bool is_player_projectile = !(ff_i < enemy_tags.size() && enemy_tags[ff_i].has_value());
+            if (!is_player_projectile) continue;
+
+            if (ff_i < ally_projectile_tags.size() && ally_projectile_tags[ff_i].has_value()) {
+                continue;
+            }
+
+            auto& proj_pos = positions[ff_i].value();
+            auto& proj_box = collision_boxes[ff_i].value();
+            auto& proj_dmg = damage_contacts[ff_i].value();
+
+            for (std::size_t ff_j = 0; ff_j < positions.size() && ff_j < player_tags.size(); ++ff_j) {
+                if (!player_tags[ff_j] || !positions[ff_j] || !collision_boxes[ff_j] || !healths[ff_j]) continue;
+
+                auto& player_pos = positions[ff_j].value();
+                auto& player_box = collision_boxes[ff_j].value();
+                auto& player_hp = healths[ff_j].value();
+
+                float p_left = proj_pos.x + proj_box.offset_x;
+                float p_top = proj_pos.y + proj_box.offset_y;
+                float p_right = p_left + proj_box.width;
+                float p_bottom = p_top + proj_box.height;
+
+                float pl_left = player_pos.x + player_box.offset_x;
+                float pl_top = player_pos.y + player_box.offset_y;
+                float pl_right = pl_left + player_box.width;
+                float pl_bottom = pl_top + player_box.height;
+
+                if (p_left < pl_right && p_right > pl_left &&
+                    p_top < pl_bottom && p_bottom > pl_top) {
+
+                    bool has_active_shield = false;
+                    if (ff_j < shields.size() && shields[ff_j].has_value()) {
+                        has_active_shield = shields[ff_j]->is_active();
+                    }
+
+                    if (!has_active_shield) {
+                        player_hp.current -= proj_dmg.damage_amount;
+                        if (player_hp.current < 0) player_hp.current = 0;
+
+                        std::cout << "[Collision] Friendly fire! Player hit by ally projectile for " 
+                                  << proj_dmg.damage_amount << " damage" << std::endl;
+
+                        if (player_hp.is_dead()) {
+                            std::cout << "[Collision] Player killed by friendly fire!" << std::endl;
+                            createExplosion(reg, player_pos.x, player_pos.y);
+
+                            if (ff_j < sprite_components.size() && sprite_components[ff_j].has_value()) {
+                                sprite_components[ff_j]->visible = false;
+                            }
+                            if (ff_j < collision_boxes.size() && collision_boxes[ff_j].has_value()) {
+                                collision_boxes[ff_j]->enabled = false;
+                            }
+                        }
+                    }
+
+                    if (proj_dmg.destroy_on_hit) {
+                        auto proj_entity = reg.entity_from_index(ff_i);
+                        reg.remove_component<entity_tag>(proj_entity);
+                        reg.kill_entity(proj_entity);
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
 }
