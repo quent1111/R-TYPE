@@ -78,6 +78,7 @@ enum class EntityType : uint8_t {
     CompilerPart1 = 0x1C,
     CompilerPart2 = 0x1D,
     CompilerPart3 = 0x1E,
+    CompilerExplosion = 0x1F,
     // Custom level entities (separate from standard game)
     CustomEnemy = 0x30,
     CustomBoss = 0x31,

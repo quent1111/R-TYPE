@@ -63,14 +63,52 @@ void BossManager::update_boss_behavior(
         return;
     }
 
+    // Vérifier si le boss a un death_timer (ajouté quand il meurt)
+    auto boss_death_tag = reg.get_component<explosion_tag>(boss_entity.value());
+    if (boss_death_tag.has_value()) {
+        // Le boss est en train de mourir avec des explosions
+        boss_death_tag->elapsed += dt;
+        
+        // Après 1.8s (60 explosions * 0.03s), marquer le niveau comme complété et détruire le boss
+        if (boss_death_tag->elapsed >= boss_death_tag->lifetime) {
+            // Marquer le niveau comme complété
+            auto& level_managers = reg.get_components<level_manager>();
+            for (size_t k = 0; k < level_managers.size(); ++k) {
+                if (level_managers[k].has_value()) {
+                    auto& lvl = level_managers[k].value();
+                    int remaining = lvl.enemies_needed_for_next_level - lvl.enemies_killed_this_level;
+                    for (int m = 0; m < remaining; ++m) {
+                        lvl.on_enemy_killed();
+                    }
+                    break;
+                }
+            }
+            
+            try {
+                auto boss_ent = boss_entity.value();
+                reg.remove_component<entity_tag>(boss_ent);
+                reg.kill_entity(boss_ent);
+            } catch (...) {}
+            boss_entity = std::nullopt;
+        }
+        return;
+    }
+
     auto boss_health_opt = reg.get_component<health>(boss_entity.value());
     if (!boss_health_opt.has_value() || boss_health_opt->current <= 0) {
-        try {
-            auto boss_ent = boss_entity.value();
-            reg.remove_component<entity_tag>(boss_ent);
-            reg.kill_entity(boss_ent);
-        } catch (...) {}
-        boss_entity = std::nullopt;
+        // Boss vient de mourir - lancer les explosions
+        auto boss_pos_opt = reg.get_component<position>(boss_entity.value());
+        if (boss_pos_opt.has_value()) {
+            spawn_boss_explosions(reg, boss_pos_opt->x, boss_pos_opt->y, 25);
+        }
+        
+        // Ajouter un explosion_tag au boss pour suivre le temps d'explosion
+        explosion_tag death_timer(1.2f);
+        death_timer.elapsed = 0.0f;
+        reg.add_component(boss_entity.value(), death_timer);
+        
+        // Retirer la collision pour que le boss ne soit plus attaquable
+        reg.remove_component<collision_box>(boss_entity.value());
         return;
     }
 
@@ -277,8 +315,6 @@ void BossManager::update_homing_enemies(
 
 void BossManager::spawn_boss_level_10(registry& reg,
                                       std::optional<entity>& serpent_controller_entity) {
-    std::cout << "[BOSS] Level 10 - Spawning Serpent Boss!" << std::endl;
-
     entity controller = reg.spawn_entity();
 
     serpent_boss_controller ctrl(8000, 18, 6);
@@ -306,8 +342,6 @@ void BossManager::spawn_serpent_nest(registry& reg, serpent_boss_controller& con
 
     controller.nest_entity = nest;
     controller.nest_visible = true;
-
-    std::cout << "[BOSS] Serpent nest spawned at bottom of screen (half visible)" << std::endl;
 }
 
 void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& controller,
@@ -766,18 +800,54 @@ void BossManager::update_serpent_boss(registry& reg,
     auto& controller = ctrl_opt.value();
 
     if (controller.is_defeated()) {
+        auto& positions = reg.get_components<position>();
+        
+        if (controller.head_entity.has_value()) {
+            std::size_t head_idx = static_cast<std::size_t>(controller.head_entity.value());
+            if (head_idx < positions.size() && positions[head_idx].has_value()) {
+                auto& pos = positions[head_idx].value();
+                spawn_boss_explosions(reg, pos.x, pos.y, 8);
+            }
+        }
+        for (auto& body_ent : controller.body_entities) {
+            std::size_t body_idx = static_cast<std::size_t>(body_ent);
+            if (body_idx < positions.size() && positions[body_idx].has_value()) {
+                auto& pos = positions[body_idx].value();
+                spawn_boss_explosions(reg, pos.x, pos.y, 3);
+            }
+        }
+        for (auto& scale_ent : controller.scale_entities) {
+            std::size_t scale_idx = static_cast<std::size_t>(scale_ent);
+            if (scale_idx < positions.size() && positions[scale_idx].has_value()) {
+                auto& pos = positions[scale_idx].value();
+                spawn_boss_explosions(reg, pos.x, pos.y, 5);
+            }
+        }
+        if (controller.tail_entity.has_value()) {
+            std::size_t tail_idx = static_cast<std::size_t>(controller.tail_entity.value());
+            if (tail_idx < positions.size() && positions[tail_idx].has_value()) {
+                auto& pos = positions[tail_idx].value();
+                spawn_boss_explosions(reg, pos.x, pos.y, 4);
+            }
+        }
         auto& level_managers = reg.get_components<level_manager>();
         for (size_t k = 0; k < level_managers.size(); ++k) {
             if (level_managers[k].has_value()) {
                 auto& lvl = level_managers[k].value();
+                std::cout << "[DEBUG SERPENT] Avant: enemies_killed=" << lvl.enemies_killed_this_level 
+                          << ", enemies_needed=" << lvl.enemies_needed_for_next_level 
+                          << ", level_completed=" << lvl.level_completed << std::endl;
                 int remaining = lvl.enemies_needed_for_next_level - lvl.enemies_killed_this_level;
                 for (int m = 0; m < remaining; ++m) {
                     lvl.on_enemy_killed();
                 }
+                std::cout << "[DEBUG SERPENT] Après: enemies_killed=" << lvl.enemies_killed_this_level 
+                          << ", enemies_needed=" << lvl.enemies_needed_for_next_level 
+                          << ", level_completed=" << lvl.level_completed << std::endl;
                 break;
             }
         }
-
+        
         if (controller.nest_entity.has_value()) {
             try {
                 reg.remove_component<entity_tag>(controller.nest_entity.value());
@@ -808,7 +878,7 @@ void BossManager::update_serpent_boss(registry& reg,
                 reg.kill_entity(controller.tail_entity.value());
             } catch (...) {}
         }
-
+        
         try {
             reg.kill_entity(serpent_controller_entity.value());
         } catch (...) {}
@@ -825,6 +895,133 @@ void BossManager::update_serpent_boss(registry& reg,
     update_serpent_parts_follow(reg, controller, dt);
     update_serpent_rotations(reg, controller, client_entity_ids);
 
+    // Gérer les explosions des parties du serpent qui meurent
+    auto& healths = reg.get_components<health>();
+    auto& positions = reg.get_components<position>();
+    auto& explosion_tags = reg.get_components<explosion_tag>();
+    if (controller.head_entity.has_value()) {
+        std::size_t head_idx = static_cast<std::size_t>(controller.head_entity.value());
+        if (head_idx < healths.size() && healths[head_idx].has_value()) {
+            auto& head_health = healths[head_idx].value();
+            bool has_explosion_tag = (head_idx < explosion_tags.size() && explosion_tags[head_idx].has_value());
+            if (!has_explosion_tag && head_health.current <= 0) {
+                if (head_idx < positions.size() && positions[head_idx].has_value()) {
+                    auto& pos = positions[head_idx].value();
+
+                    explosion_tag death_timer(1.2f);
+                    death_timer.elapsed = 0.0f;
+                    reg.add_component(controller.head_entity.value(), death_timer);
+                }
+            }
+            if (has_explosion_tag) {
+                auto& exp_tag = explosion_tags[head_idx].value();
+                exp_tag.elapsed += dt;
+                if (exp_tag.elapsed >= exp_tag.lifetime) {
+                    try {
+                        reg.remove_component<entity_tag>(controller.head_entity.value());
+                        reg.kill_entity(controller.head_entity.value());
+                        controller.head_entity = std::nullopt;
+                    } catch (...) {}
+                }
+            }
+        }
+    }
+    std::vector<entity> body_parts_to_remove;
+    for (auto& body_ent : controller.body_entities) {
+        std::size_t body_idx = static_cast<std::size_t>(body_ent);
+        if (body_idx < healths.size() && healths[body_idx].has_value()) {
+            auto& body_health = healths[body_idx].value();
+            bool has_explosion_tag = (body_idx < explosion_tags.size() && explosion_tags[body_idx].has_value());
+            if (!has_explosion_tag && body_health.current <= 0) {
+                if (body_idx < positions.size() && positions[body_idx].has_value()) {
+                    auto& pos = positions[body_idx].value();
+
+                    explosion_tag death_timer(0.6f);
+                    death_timer.elapsed = 0.0f;
+                    reg.add_component(body_ent, death_timer);
+                }
+            }
+            if (has_explosion_tag) {
+                auto& exp_tag = explosion_tags[body_idx].value();
+                exp_tag.elapsed += dt;
+                if (exp_tag.elapsed >= exp_tag.lifetime) {
+                    body_parts_to_remove.push_back(body_ent);
+                }
+            }
+        }
+    }
+    for (auto& body_ent : body_parts_to_remove) {
+        try {
+            reg.remove_component<entity_tag>(body_ent);
+            reg.kill_entity(body_ent);
+            controller.body_entities.erase(
+                std::remove(controller.body_entities.begin(), controller.body_entities.end(), body_ent),
+                controller.body_entities.end()
+            );
+        } catch (...) {}
+    }
+    std::vector<entity> scale_parts_to_remove;
+    for (auto& scale_ent : controller.scale_entities) {
+        std::size_t scale_idx = static_cast<std::size_t>(scale_ent);
+        if (scale_idx < healths.size() && healths[scale_idx].has_value()) {
+            auto& scale_health = healths[scale_idx].value();
+            bool has_explosion_tag = (scale_idx < explosion_tags.size() && explosion_tags[scale_idx].has_value());
+            if (!has_explosion_tag && scale_health.current <= 0) {
+                if (scale_idx < positions.size() && positions[scale_idx].has_value()) {
+                    auto& pos = positions[scale_idx].value();
+
+                    explosion_tag death_timer(0.8f);
+                    death_timer.elapsed = 0.0f;
+                    reg.add_component(scale_ent, death_timer);
+                }
+            }
+            if (has_explosion_tag) {
+                auto& exp_tag = explosion_tags[scale_idx].value();
+                exp_tag.elapsed += dt;
+                if (exp_tag.elapsed >= exp_tag.lifetime) {
+                    scale_parts_to_remove.push_back(scale_ent);
+                }
+            }
+        }
+    }
+    for (auto& scale_ent : scale_parts_to_remove) {
+        try {
+            reg.remove_component<entity_tag>(scale_ent);
+            reg.kill_entity(scale_ent);
+            controller.scale_entities.erase(
+                std::remove(controller.scale_entities.begin(), controller.scale_entities.end(), scale_ent),
+                controller.scale_entities.end()
+            );
+        } catch (...) {}
+    }
+    if (controller.tail_entity.has_value()) {
+        std::size_t tail_idx = static_cast<std::size_t>(controller.tail_entity.value());
+        if (tail_idx < healths.size() && healths[tail_idx].has_value()) {
+            auto& tail_health = healths[tail_idx].value();
+            bool has_explosion_tag = (tail_idx < explosion_tags.size() && explosion_tags[tail_idx].has_value());
+            if (!has_explosion_tag && tail_health.current <= 0) {
+                if (tail_idx < positions.size() && positions[tail_idx].has_value()) {
+                    auto& pos = positions[tail_idx].value();
+
+                    explosion_tag death_timer(0.7f);
+                    death_timer.elapsed = 0.0f;
+                    reg.add_component(controller.tail_entity.value(), death_timer);
+                }
+            }
+            if (has_explosion_tag) {
+                auto& exp_tag = explosion_tags[tail_idx].value();
+                exp_tag.elapsed += dt;
+                if (exp_tag.elapsed >= exp_tag.lifetime) {
+                    try {
+                        reg.remove_component<entity_tag>(controller.tail_entity.value());
+                        reg.kill_entity(controller.tail_entity.value());
+                        controller.tail_entity = std::nullopt;
+                    } catch (...) {}
+                }
+            }
+        }
+    }
+    
     if (controller.head_entity.has_value()) {
         auto& head_health = reg.get_component<health>(controller.head_entity.value());
         if (head_health.has_value()) {
@@ -1102,14 +1299,12 @@ void BossManager::serpent_laser_attack(
         // End laser after duration
         if (controller.laser_elapsed >= controller.laser_fire_duration) {
             controller.laser_firing = false;
-            std::cout << "[BOSS] Serpent laser attack finished." << std::endl;
         }
     }
 }
 
 
 void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity) {
-    std::cout << "[BOSS] Spawning Compiler Boss (Level 15)..." << std::endl;
 
     entity controller_ent = reg.spawn_entity();
 
@@ -1145,9 +1340,6 @@ void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& comp
         spawn_compiler_part(reg, ctrl, 1, center_x - 50.0f, center_y - 40.0f);
         spawn_compiler_part(reg, ctrl, 2, center_x, center_y + 60.0f);
         spawn_compiler_part(reg, ctrl, 3, center_x + 90.0f, center_y - 40.0f);
-
-        std::cout << "[BOSS] Compiler Boss spawned (invisible) with 3 parts in Assembled state at ("
-                  << center_x << ", " << center_y << ")" << std::endl;
     }
 }
 
@@ -1167,7 +1359,19 @@ void BossManager::spawn_compiler_part(registry& reg, compiler_boss_controller& c
     reg.add_component(part, velocity{0.0f, 0.0f});
     reg.add_component(part, entity_tag{part_type});
     reg.add_component(part, compiler_part_tag{part_index});
-    reg.add_component(part, collision_box{100.0f, 60.0f, 0.0f, 0.0f});
+    
+    switch (part_index) {
+        case 1: 
+            reg.add_component(part, collision_box{180.0f, 110.0f, 0.0f, 0.0f});
+            break;
+        case 2:
+            reg.add_component(part, collision_box{160.0f, 160.0f, 0.0f, 0.0f});
+            break;
+        case 3:
+            reg.add_component(part, collision_box{160.0f, 130.0f, 0.0f, 0.0f});
+            break;
+    }
+    
     reg.add_component(part, damage_on_contact{30, false});
     reg.add_component(part, health{1000, 1000});
     reg.add_component(part, enemy_tag{});
@@ -1179,7 +1383,6 @@ void BossManager::spawn_compiler_part(registry& reg, compiler_boss_controller& c
         case 3: controller.part3_entity = part; break;
     }
 
-    std::cout << "[BOSS] Compiler Part " << part_index << " spawned at (" << x << ", " << y << ")" << std::endl;
 }
 
 void BossManager::update_compiler_boss(registry& reg,
@@ -1194,19 +1397,10 @@ void BossManager::update_compiler_boss(registry& reg,
     std::size_t entity_idx = static_cast<std::size_t>(compiler_controller_entity.value());
 
     if (entity_idx >= controllers.size() || !controllers[entity_idx].has_value()) {
-        std::cout << "[BOSS ERROR] Compiler controller component not found!" << std::endl;
         return;
     }
 
     auto& controller = controllers[entity_idx].value();
-
-    static float debug_log_timer = 0.0f;
-    debug_log_timer += dt;
-    if (debug_log_timer >= 1.0f) {
-        std::cout << "[BOSS DEBUG] update_compiler_boss called - State: " << (int)controller.state 
-                  << " Timer: " << controller.state_timer << std::endl;
-        debug_log_timer = 0.0f;
-    }
 
     auto health_opt = reg.get_component<health>(compiler_controller_entity.value());
     if (health_opt.has_value()) {
@@ -1229,7 +1423,15 @@ void BossManager::update_compiler_boss(registry& reg,
             if (idx < positions.size() && positions[idx].has_value()) {
                 float part_x = positions[idx]->x;
                 float part_y = positions[idx]->y;
-                spawn_boss_explosions(reg, part_x, part_y, 5);
+                
+                if (controller.part1_death_timer < 0.0f) {
+                    spawn_boss_explosions(reg, part_x, part_y, 12);
+                    controller.part1_death_timer = 0.0f;
+                }
+                
+                controller.part1_death_timer += dt;
+                
+                if (controller.part1_death_timer >= controller.death_delay) {
 
                 for (std::size_t p = 0; p < positions.size(); ++p) {
                     if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
@@ -1246,14 +1448,14 @@ void BossManager::update_compiler_boss(registry& reg,
 
                 positions[idx]->x = -9999.0f;
                 positions[idx]->y = -9999.0f;
+            
+                    reg.remove_component<entity_tag>(controller.part1_entity.value());
+                    reg.remove_component<health>(controller.part1_entity.value());
+                    reg.remove_component<collision_box>(controller.part1_entity.value());
+                    reg.kill_entity(controller.part1_entity.value());
+                    controller.part1_entity = std::nullopt;
+                }
             }
-
-            reg.remove_component<entity_tag>(controller.part1_entity.value());
-            reg.remove_component<health>(controller.part1_entity.value());
-            reg.remove_component<collision_box>(controller.part1_entity.value());
-            reg.kill_entity(controller.part1_entity.value());
-            controller.part1_entity = std::nullopt;
-            std::cout << "[BOSS] Compiler Part 1 destroyed!" << std::endl;
         }
     }
     if (controller.part2_entity.has_value()) {
@@ -1266,7 +1468,15 @@ void BossManager::update_compiler_boss(registry& reg,
             if (idx < positions.size() && positions[idx].has_value()) {
                 float part_x = positions[idx]->x;
                 float part_y = positions[idx]->y;
-                spawn_boss_explosions(reg, part_x, part_y, 5);
+                
+                if (controller.part2_death_timer < 0.0f) {
+                    spawn_boss_explosions(reg, part_x, part_y, 10);
+                    controller.part2_death_timer = 0.0f;
+                }
+                
+                controller.part2_death_timer += dt;
+                
+                if (controller.part2_death_timer >= controller.death_delay) {
 
                 for (std::size_t p = 0; p < positions.size(); ++p) {
                     if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
@@ -1283,14 +1493,14 @@ void BossManager::update_compiler_boss(registry& reg,
 
                 positions[idx]->x = -9999.0f;
                 positions[idx]->y = -9999.0f;
+            
+                    reg.remove_component<entity_tag>(controller.part2_entity.value());
+                    reg.remove_component<health>(controller.part2_entity.value());
+                    reg.remove_component<collision_box>(controller.part2_entity.value());
+                    reg.kill_entity(controller.part2_entity.value());
+                    controller.part2_entity = std::nullopt;
+                }
             }
-
-            reg.remove_component<entity_tag>(controller.part2_entity.value());
-            reg.remove_component<health>(controller.part2_entity.value());
-            reg.remove_component<collision_box>(controller.part2_entity.value());
-            reg.kill_entity(controller.part2_entity.value());
-            controller.part2_entity = std::nullopt;
-            std::cout << "[BOSS] Compiler Part 2 destroyed!" << std::endl;
         }
     }
     if (controller.part3_entity.has_value()) {
@@ -1303,7 +1513,15 @@ void BossManager::update_compiler_boss(registry& reg,
             if (idx < positions.size() && positions[idx].has_value()) {
                 float part_x = positions[idx]->x;
                 float part_y = positions[idx]->y;
-                spawn_boss_explosions(reg, part_x, part_y, 5);
+                
+                if (controller.part3_death_timer < 0.0f) {
+                    spawn_boss_explosions(reg, part_x, part_y, 10);
+                    controller.part3_death_timer = 0.0f;
+                }
+                
+                controller.part3_death_timer += dt;
+                
+                if (controller.part3_death_timer >= controller.death_delay) {
 
                 for (std::size_t p = 0; p < positions.size(); ++p) {
                     if (p < projectile_tags.size() && projectile_tags[p].has_value() &&
@@ -1320,19 +1538,18 @@ void BossManager::update_compiler_boss(registry& reg,
 
                 positions[idx]->x = -9999.0f;
                 positions[idx]->y = -9999.0f;
+            
+                    reg.remove_component<entity_tag>(controller.part3_entity.value());
+                    reg.remove_component<health>(controller.part3_entity.value());
+                    reg.remove_component<collision_box>(controller.part3_entity.value());
+                    reg.kill_entity(controller.part3_entity.value());
+                    controller.part3_entity = std::nullopt;
+                }
             }
-
-            reg.remove_component<entity_tag>(controller.part3_entity.value());
-            reg.remove_component<health>(controller.part3_entity.value());
-            reg.remove_component<collision_box>(controller.part3_entity.value());
-            reg.kill_entity(controller.part3_entity.value());
-            controller.part3_entity = std::nullopt;
-            std::cout << "[BOSS] Compiler Part 3 destroyed!" << std::endl;
         }
     }
 
     if (controller.is_defeated()) {
-        std::cout << "[BOSS] Compiler Boss defeated!" << std::endl;
         auto pos_opt = reg.get_component<position>(compiler_controller_entity.value());
         if (pos_opt.has_value()) {
             spawn_boss_explosions(reg, pos_opt->x, pos_opt->y, 10);
@@ -1415,7 +1632,6 @@ void BossManager::update_compiler_entering(registry& reg, compiler_boss_controll
                 controller.entrance_complete = true;
                 controller.state = CompilerState::Assembled;
                 controller.state_timer = 0.0f;
-                std::cout << "[BOSS] Compiler Boss entrance complete, now Assembled" << std::endl;
             }
         }
         break;
@@ -1448,8 +1664,9 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
     float oscillation_x = std::sin(controller.state_timer * 2.0f) * 30.0f;
     float oscillation_y = std::sin(controller.state_timer * 1.5f) * 20.0f;
 
-    auto update_part_position = [&](std::optional<entity>& part_ent, float offset_x, float offset_y) {
+    auto update_part_position = [&](std::optional<entity>& part_ent, float offset_x, float offset_y, float death_timer) {
         if (!part_ent.has_value()) return;
+        if (death_timer >= 0.0f) return; // Ne pas déplacer si en train de mourir
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -1458,9 +1675,9 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
         }
     };
 
-    update_part_position(controller.part1_entity, -50.0f, -40.0f);
-    update_part_position(controller.part2_entity, 0.0f, 60.0f);
-    update_part_position(controller.part3_entity, 70.0f, -40.0f);
+    update_part_position(controller.part1_entity, -50.0f, -40.0f, controller.part1_death_timer);
+    update_part_position(controller.part2_entity, 0.0f, 60.0f, controller.part2_death_timer);
+    update_part_position(controller.part3_entity, 70.0f, -40.0f, controller.part3_death_timer);
 
     controller.special_attack_timer += dt;
 
@@ -1502,7 +1719,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                 createExplosiveGrenade(reg, center_x, center_y, vx, vy, 2.0f, 90.0f, 60);
             }
 
-            std::cout << "[BOSS ATTACK] Stack Overflow Wave - 72 projectiles + 10 GRENADES APOCALYPSE!" << std::endl;
             controller.charging_special = false;
             controller.charge_time = 0.0f;
             controller.special_attack_timer = 0.0f;
@@ -1510,9 +1726,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
     } else if (controller.special_attack_timer >= controller.special_attack_cooldown) {
         controller.charging_special = true;
         controller.charge_time = 0.0f;
-        std::cout << "[BOSS] Charging Stack Overflow Wave..." << std::endl;
     }
-
     controller.attack_timer += dt;
 
     if (controller.attack_timer >= controller.attack_cooldown) {
@@ -1540,7 +1754,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                 createExplosiveGrenade(reg, center_x, center_y, -200.0f, 280.0f, 2.0f, 75.0f, 45);
                 createExplosiveGrenade(reg, center_x, center_y, -180.0f, -350.0f, 2.2f, 80.0f, 50);
                 createExplosiveGrenade(reg, center_x, center_y, -180.0f, 350.0f, 2.2f, 80.0f, 50);
-                std::cout << "[BOSS ATTACK] Syntax Error Barrage (13-shot fan + 4 grenades)" << std::endl;
                 break;
             }
             case 1: {
@@ -1550,7 +1763,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                     float vy = std::sin(angle) * 220.0f;
                     createEnemy2Projectile(reg, center_x, center_y, vx, vy, 20);
                 }
-                std::cout << "[BOSS ATTACK] Memory Leak Spiral (16-way DENSE)" << std::endl;
                 break;
             }
             case 2: {
@@ -1568,7 +1780,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                 createExplosiveGrenade(reg, center_x + 30.0f, center_y - 60.0f, -200.0f, -100.0f, 2.3f, 85.0f, 50);
                 createExplosiveGrenade(reg, center_x + 30.0f, center_y, -200.0f, 0.0f, 2.3f, 85.0f, 50);
                 createExplosiveGrenade(reg, center_x + 30.0f, center_y + 60.0f, -200.0f, 100.0f, 2.3f, 85.0f, 50);
-                std::cout << "[BOSS ATTACK] Null Pointer Rain (16-shot grid + 6 grenades)" << std::endl;
                 break;
             }
             case 3: {
@@ -1577,7 +1788,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                     float vy = -220.0f + (i * 44.0f);
                     createEnemy2Projectile(reg, center_x + delay_offset * 100.0f, center_y, -370.0f, vy, 20);
                 }
-                std::cout << "[BOSS ATTACK] Buffer Overflow (12-wave INTENSE)" << std::endl;
                 break;
             }
             case 4: {
@@ -1587,7 +1797,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                     float vy = std::sin(angle) * 280.0f;
                     createExplosiveGrenade(reg, center_x, center_y, vx, vy, 2.5f, 85.0f, 50);
                 }
-                std::cout << "[BOSS ATTACK] Exception Grenades (16 EXPLOSIVE EYES MAYHEM!)" << std::endl;
                 break;
             }
         }
@@ -1596,8 +1805,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
     }
 
     if (controller.state_timer >= controller.assembled_duration) {
-        std::cout << "[BOSS DEBUG] Assembled duration reached! Timer: " << controller.state_timer 
-                  << " Duration: " << controller.assembled_duration << std::endl;
         controller.state = CompilerState::Splitting;
         controller.state_timer = 0.0f;
 
@@ -1610,16 +1817,6 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
                 set_compiler_separated_targets(controller);
             }
             break;
-        }
-
-        std::cout << "[BOSS] Compiler Boss starting to split!" << std::endl;
-    } else {
-        static float last_log_time = 0.0f;
-        last_log_time += dt;
-        if (last_log_time >= 1.0f) {
-            std::cout << "[BOSS DEBUG] Assembled state timer: " << controller.state_timer 
-                      << "/" << controller.assembled_duration << std::endl;
-            last_log_time = 0.0f;
         }
     }
 }
@@ -1645,8 +1842,9 @@ void BossManager::update_compiler_splitting(registry& reg, compiler_boss_control
         break;
     }
 
-    auto move_part_toward_target = [&](std::optional<entity>& part_ent, float target_x, float target_y) {
+    auto move_part_toward_target = [&](std::optional<entity>& part_ent, float target_x, float target_y, float death_timer) {
         if (!part_ent.has_value()) return;
+        if (death_timer >= 0.0f) return; // Ne pas déplacer si en train de mourir
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -1658,15 +1856,14 @@ void BossManager::update_compiler_splitting(registry& reg, compiler_boss_control
         }
     };
 
-    move_part_toward_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y);
-    move_part_toward_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y);
-    move_part_toward_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y);
+    move_part_toward_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y, controller.part1_death_timer);
+    move_part_toward_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y, controller.part2_death_timer);
+    move_part_toward_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y, controller.part3_death_timer);
 
     if (controller.state_timer >= controller.split_duration) {
         controller.state = CompilerState::Separated;
         controller.state_timer = 0.0f;
         controller.part_movement_timer = 0.0f;
-        std::cout << "[BOSS] Compiler Boss now Separated! Parts moving independently." << std::endl;
     }
 }
 
@@ -1699,8 +1896,9 @@ void BossManager::update_compiler_separated(registry& reg, compiler_boss_control
         set_compiler_separated_targets(controller);
     }
 
-    auto move_part_to_target = [&](std::optional<entity>& part_ent, float target_x, float target_y) {
+    auto move_part_to_target = [&](std::optional<entity>& part_ent, float target_x, float target_y, float death_timer) {
         if (!part_ent.has_value()) return;
+        if (death_timer >= 0.0f) return;
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -1716,9 +1914,9 @@ void BossManager::update_compiler_separated(registry& reg, compiler_boss_control
         }
     };
 
-    move_part_to_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y);
-    move_part_to_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y);
-    move_part_to_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y);
+    move_part_to_target(controller.part1_entity, controller.part1_target_x, controller.part1_target_y, controller.part1_death_timer);
+    move_part_to_target(controller.part2_entity, controller.part2_target_x, controller.part2_target_y, controller.part2_death_timer);
+    move_part_to_target(controller.part3_entity, controller.part3_target_x, controller.part3_target_y, controller.part3_death_timer);
 
     controller.part1_attack_timer += dt;
     if (controller.part1_attack_timer >= 0.5f && controller.part1_entity.has_value()) {
@@ -1788,7 +1986,6 @@ void BossManager::update_compiler_separated(registry& reg, compiler_boss_control
                 }
             }
         }
-        std::cout << "[BOSS] Compiler Boss starting to merge!" << std::endl;
     }
 }
 
@@ -1809,8 +2006,9 @@ void BossManager::update_compiler_merging(registry& reg, compiler_boss_controlle
         }
         break;
     }
-    auto move_part_to_center = [&](std::optional<entity>& part_ent, float offset_x, float offset_y) {
+    auto move_part_to_center = [&](std::optional<entity>& part_ent, float offset_x, float offset_y, float death_timer) {
         if (!part_ent.has_value()) return;
+        if (death_timer >= 0.0f) return;
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -1822,9 +2020,9 @@ void BossManager::update_compiler_merging(registry& reg, compiler_boss_controlle
             pos.y += dy * dt * 3.0f;
         }
     };
-    move_part_to_center(controller.part1_entity, -50.0f, -40.0f);
-    move_part_to_center(controller.part2_entity, 0.0f, 60.0f);
-    move_part_to_center(controller.part3_entity, 70.0f, -40.0f);
+    move_part_to_center(controller.part1_entity, -50.0f, -40.0f, controller.part1_death_timer);
+    move_part_to_center(controller.part2_entity, 0.0f, 60.0f, controller.part2_death_timer);
+    move_part_to_center(controller.part3_entity, 70.0f, -40.0f, controller.part3_death_timer);
     if (controller.state_timer >= controller.merge_duration) {
         auto& projectile_tags = reg.get_components<projectile_tag>();
         auto& proj_positions = reg.get_components<position>();
@@ -1853,7 +2051,6 @@ void BossManager::update_compiler_merging(registry& reg, compiler_boss_controlle
         }
         controller.state = CompilerState::Assembled;
         controller.state_timer = 0.0f;
-        std::cout << "[BOSS] Compiler Boss merged and assembled! Parts forming the boss." << std::endl;
     }
 }
 
@@ -1875,9 +2072,6 @@ void BossManager::set_compiler_separated_targets(compiler_boss_controller& contr
     controller.part2_target_y = 350.0f + (rand() % 200);
     controller.part3_target_x = dist_x(rng_);
     controller.part3_target_y = 600.0f + (rand() % 150);
-    std::cout << "[BOSS] Separation targets set - Part1: (" << controller.part1_target_x << "," << controller.part1_target_y
-              << ") Part2: (" << controller.part2_target_x << "," << controller.part2_target_y
-              << ") Part3: (" << controller.part3_target_x << "," << controller.part3_target_y << ")" << std::endl;
 }
 
 std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<entity>& boss_entity,
@@ -1910,18 +2104,22 @@ std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<en
 }
 
 void BossManager::spawn_boss_explosions(registry& reg, float x, float y, int count) {
-
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<float> offset_dist(-50.0f, 50.0f);
+    float zone_x = 150.0f + (count * 2.0f);
+    float zone_y = 150.0f + (count * 2.0f);
+    std::uniform_real_distribution<float> offset_x_dist(-zone_x, zone_x);
+    std::uniform_real_distribution<float> offset_y_dist(-zone_y, zone_y);
     for (int i = 0; i < count; ++i) {
         entity explosion = reg.spawn_entity();
-        float exp_x = x + offset_dist(gen);
-        float exp_y = y + offset_dist(gen);
+        float exp_x = x + offset_x_dist(gen);
+        float exp_y = y + offset_y_dist(gen);
+        float duration = 1.0f;
         reg.add_component(explosion, position{exp_x, exp_y});
-        reg.add_component(explosion, entity_tag{RType::EntityType::Obstacle});
-        reg.add_component(explosion, explosion_tag{0.8f});
-        std::cout << "[BOSS] Spawned explosion at (" << exp_x << ", " << exp_y << ")" << std::endl;
+        reg.add_component(explosion, entity_tag{RType::EntityType::CompilerExplosion});
+        explosion_tag exp_tag(duration);
+        exp_tag.elapsed = 0.0f;
+        reg.add_component(explosion, exp_tag);
     }
 }
 

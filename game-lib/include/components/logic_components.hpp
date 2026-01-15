@@ -626,6 +626,11 @@ struct compiler_boss_controller {
     float part2_attack_timer = 0.0f;
     float part3_attack_timer = 0.0f;
 
+    float part1_death_timer = -1.0f;
+    float part2_death_timer = -1.0f;
+    float part3_death_timer = -1.0f;
+    float death_delay = 0.3f;
+
     bool entrance_complete = false;
     float entrance_target_x = 1100.0f;
 

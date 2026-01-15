@@ -141,7 +141,7 @@ void collisionSystem(registry& reg) {
                         p_top < e_bottom && p_bottom > e_top) {
                         if (j < entity_tags.size() && entity_tags[j].has_value()) {
                             auto ent_type = static_cast<int>(entity_tags[j]->type);
-                            if (ent_type == 0x21 || ent_type == 0x22 || ent_type == 0x23) {
+                            if (ent_type == 0x1C || ent_type == 0x1D || ent_type == 0x1E) {
                                 std::cout << "[COLLISION] Hit Compiler Part type=" << std::hex << ent_type 
                                          << " HP before=" << enemy_hp.current << " damage=" << proj_dmg.damage_amount << std::endl;
                             }

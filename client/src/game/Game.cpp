@@ -555,27 +555,18 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             return;
         }
     } else if (entity.type == 0x03) {
-        // Détection des grenades explosives (yeux) - vitesse entre 150-280, n'importe quelle direction
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
         bool is_explosive_grenade = (projectile_speed >= 180.0f && projectile_speed <= 320.0f && 
-                                      std::abs(entity.vy) > 50.0f);  // Les grenades ont toujours une composante verticale
-        
-        // Au niveau 15 (Compiler Boss), TOUS les projectiles avec vitesse < 450 sont ennemis (même vers la droite)
-        // Le boss tire dans toutes les directions avec des patterns variés - vitesses augmentées
+                                      std::abs(entity.vy) > 50.0f);
         bool is_compiler_boss_projectile = (current_level_ == 15 && projectile_speed < 450.0f);
-        
-        // Les projectiles joueurs ont vx > 0 ET ne sont pas du boss niveau 15
         bool is_player_projectile = (entity.vx > 0 && !is_compiler_boss_projectile);
-        
         bool is_enemy2_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(entity.vy) > 10.0f && !is_explosive_grenade);
         bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && is_player_projectile);
         bool is_fast_projectile = (projectile_speed > 650.0f && is_player_projectile);
         bool is_enemy3_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 400.0f) < 20.0f);
         bool is_enemy4_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
         bool is_enemy5_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 450.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
-        
-        // Projectiles normaux du boss (vitesse ~280-400, peut aller dans toutes les directions)
-        bool is_compiler_normal_projectile = (is_compiler_boss_projectile && 
+        bool is_compiler_normal_projectile = (is_compiler_boss_projectile &&
                                               projectile_speed >= 280.0f && projectile_speed <= 420.0f && 
                                               !is_explosive_grenade);
 
@@ -653,7 +644,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         } else if (is_compiler_normal_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
-            // Projectiles normaux du boss Compiler - plus gros et plus visibles (3.0x au lieu de 2.0x)
             entity.sprite.setTexture(*texture_mgr.get("assets/ennemi-projectile.png"));
             entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
             entity.frame_duration = 0.1F;
@@ -661,7 +651,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(3.0F, 3.0F);
         } else {
-            // Déterminer si c'est un projectile ennemi ou joueur
             bool is_enemy_proj = (entity.vx < 0 || is_compiler_boss_projectile);
             std::string sprite_sheet = is_enemy_proj ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
@@ -962,6 +951,24 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
+        }
+    } else if (entity.type == 0x1F) {
+        texture_mgr.load("assets/r-typesheet44.gif");
+        if (texture_mgr.has("assets/r-typesheet44.gif")) {
+            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet44.gif"));
+            entity.frames = {
+                {-1, 98, 67, 65},
+                {1, 98, 65, 63},
+                {66, 98, 65, 63},
+                {131, 98, 65, 63},
+                {196, 98, 65, 63},
+                {261, 98, 65, 63}
+            };
+            entity.frame_duration = 0.04F;
+            entity.loop = false;
+            entity.sprite.setTextureRect(entity.frames[0]);
+            entity.sprite.setScale(2.5F, 2.5F);
+            std::cout << "[CLIENT] CompilerExplosion sprite loaded! 6 frames, Scale: 2.5" << std::endl;
         }
     } else if (entity.type == 0x30) {
         // CustomEnemy - handled via custom_entity_id
