@@ -19,6 +19,7 @@ public:
 
     void handle_mouse_move(const sf::Vector2f& mouse_pos);
     void handle_mouse_click(const sf::Vector2f& mouse_pos);
+    void handle_mouse_release(const sf::Vector2f& mouse_pos);
     void handle_key_press(sf::Keyboard::Key key);
     void update(float dt);
     void render(sf::RenderWindow& window);
@@ -59,11 +60,15 @@ private:
     std::vector<std::unique_ptr<::rtype::ui::Button>> m_buttons;
 
     sf::Text m_volume_text;
+    sf::Text m_music_volume_text;
+    sf::Text m_effects_volume_text;
     sf::Text m_resolution_text;
     sf::Text m_fullscreen_text;
     sf::Text m_colorblind_text;
     sf::Text m_controls_text;
     sf::RectangleShape m_volume_bar;
+    sf::RectangleShape m_music_volume_bar;
+    sf::RectangleShape m_effects_volume_bar;
 
     bool m_open{false};
     sf::Vector2u m_window_size;
@@ -79,6 +84,10 @@ private:
     bool m_temp_auto_fire{false};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};
+
+    enum class DraggingBar { None = 0, Master = 1, Music = 2, Effects = 3 };
+    DraggingBar m_dragging_bar{DraggingBar::None};
+
     enum class ControlAction {
         Up = 0,
         Down = 1,

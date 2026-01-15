@@ -191,6 +191,14 @@ void Game::handle_event(const sf::Event& event) {
                 return;
             }
         }
+        if (event.type == sf::Event::MouseButtonReleased) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+                sf::Vector2f release_pos = window_.mapPixelToCoords(pixel_pos);
+                m_settings_panel->handle_mouse_release(release_pos);
+                return;
+            }
+        }
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Escape) {
                 m_settings_panel->close();

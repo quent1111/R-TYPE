@@ -134,6 +134,16 @@ void MenuState::handle_event(const sf::Event& event) {
         }
     }
 
+    if (event.type == sf::Event::MouseButtonReleased) {
+        if (event.mouseButton.button == sf::Mouse::Left) {
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f release_pos = m_window.mapPixelToCoords(pixel_pos);
+            if (m_settings_panel && m_settings_panel->is_open()) {
+                m_settings_panel->handle_mouse_release(release_pos);
+            }
+        }
+    }
+
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             if (m_settings_panel && m_settings_panel->is_open()) {
@@ -187,7 +197,8 @@ void MenuState::update(float dt) {
             m_background.reset();
             m_title.reset();
             m_footer.reset();
-            m_settings_panel.reset();
+            m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+            m_settings_panel->open();
             setup_ui();
         }
     }

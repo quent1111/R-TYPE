@@ -14,6 +14,10 @@ enum class ColorBlindMode {
 
 struct Settings {
     int master_volume = 50;
+    int music_volume = 50;
+    int effects_volume = 70;
+    bool music_muted = false;
+    bool effects_muted = false;
     bool fullscreen = false;
     ColorBlindMode colorblind_mode = ColorBlindMode::Normal;
     bool screen_shake_enabled = true;
