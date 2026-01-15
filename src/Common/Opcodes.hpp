@@ -73,7 +73,8 @@ enum class EntityType : uint8_t {
     CompilerBoss = 0x20,
     CompilerPart1 = 0x21,
     CompilerPart2 = 0x22,
-    CompilerPart3 = 0x23
+    CompilerPart3 = 0x23,
+    CompilerExplosion = 0x24
 };
 
 struct MagicNumber {
