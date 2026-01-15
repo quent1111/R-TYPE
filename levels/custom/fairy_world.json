@@ -1,0 +1,403 @@
+{
+  "metadata": {
+    "id": "fairy_world",
+    "name": "Fairy World",
+    "author": "R-Type Team",
+    "version": "1.0.0",
+    "description": "Enter the enchanted Fairy World! Face waves of magical fairies and their powerful Unicorn Boss!",
+    "difficulty": 3,
+    "preview_image": "assets/levels/fairy-world/fairy-bg.png"
+  },
+  "environment": {
+    "background_texture": "assets/levels/fairy-world/fairy-bg.png",
+    "scroll_speed": 0.0,
+    "scroll_infinite": false,
+    "background_static": true
+  },
+  "enemy_definitions": {
+    "fairy1": {
+      "id": "fairy1",
+      "name": "Pink Fairy",
+      "sprite": {
+        "texture_path": "assets/levels/fairy-world/fairy1.png",
+        "frame_width": 79,
+        "frame_height": 74,
+        "frame_count": 3,
+        "frame_duration": 0.15,
+        "scale_x": 1.5,
+        "scale_y": 1.5,
+        "mirror_x": true,
+        "mirror_y": false,
+        "rotation": 0.0
+      },
+      "health": 30,
+      "speed": 120.0,
+      "damage": 15,
+      "score_value": 100,
+      "behavior": {
+        "type": "straight",
+        "movement": {
+          "type": "linear"
+        }
+      },
+      "attack": {
+        "type": "front",
+        "cooldown": 1.0,
+        "projectile_count": 1,
+        "spread_angle": 0.0,
+        "aim_at_player": false,
+        "projectile": {
+          "type": "fairy_shot",
+          "sprite": {
+            "texture_path": "assets/levels/fairy-world/fairy-projectiles.png",
+            "frame_width": 14,
+            "frame_height": 22,
+            "frame_count": 2,
+            "frame_duration": 0.1,
+            "scale_x": 2.5,
+            "scale_y": 2.5,
+            "mirror_x": false,
+            "mirror_y": false,
+            "rotation": 0.0
+          },
+          "speed": 300.0,
+          "damage": 10
+        }
+      }
+    },
+    "fairy2": {
+      "id": "fairy2",
+      "name": "Blue Fairy",
+      "sprite": {
+        "texture_path": "assets/levels/fairy-world/fairy2.png",
+        "frame_width": 72,
+        "frame_height": 75,
+        "frame_count": 6,
+        "frame_duration": 0.12,
+        "scale_x": 1.5,
+        "scale_y": 1.5,
+        "mirror_x": true,
+        "mirror_y": false,
+        "rotation": 0.0
+      },
+      "health": 40,
+      "speed": 100.0,
+      "damage": 20,
+      "score_value": 150,
+      "behavior": {
+        "type": "straight",
+        "movement": {
+          "type": "sine",
+          "amplitude": 50.0,
+          "frequency": 2.0
+        }
+      },
+      "attack": {
+        "type": "targeted",
+        "cooldown": 1.0,
+        "projectile_count": 1,
+        "spread_angle": 0.0,
+        "aim_at_player": true,
+        "projectile": {
+          "type": "fairy_shot",
+          "sprite": {
+            "texture_path": "assets/levels/fairy-world/fairy-projectiles.png",
+            "frame_width": 14,
+            "frame_height": 22,
+            "frame_count": 2,
+            "frame_duration": 0.1,
+            "scale_x": 2.5,
+            "scale_y": 2.5,
+            "mirror_x": false,
+            "mirror_y": false,
+            "rotation": 0.0
+          },
+          "speed": 350.0,
+          "damage": 15,
+          "homing": false
+        }
+      }
+    },
+    "fairy3": {
+      "id": "fairy3",
+      "name": "Green Fairy",
+      "sprite": {
+        "texture_path": "assets/levels/fairy-world/fairy3.png",
+        "frame_width": 74,
+        "frame_height": 76,
+        "frame_count": 3,
+        "frame_duration": 0.15,
+        "scale_x": 1.5,
+        "scale_y": 1.5,
+        "mirror_x": true,
+        "mirror_y": false,
+        "rotation": 0.0
+      },
+      "health": 50,
+      "speed": 80.0,
+      "damage": 25,
+      "score_value": 200,
+      "behavior": {
+        "type": "straight",
+        "movement": {
+          "type": "linear"
+        }
+      },
+      "attack": {
+        "type": "spread",
+        "cooldown": 1.0,
+        "projectile_count": 5,
+        "spread_angle": 45.0,
+        "aim_at_player": false,
+        "projectile": {
+          "type": "fairy_shot",
+          "sprite": {
+            "texture_path": "assets/levels/fairy-world/fairy-projectiles.png",
+            "frame_width": 14,
+            "frame_height": 22,
+            "frame_count": 2,
+            "frame_duration": 0.1,
+            "scale_x": 2.5,
+            "scale_y": 2.5,
+            "mirror_x": false,
+            "mirror_y": false,
+            "rotation": 0.0
+          },
+          "speed": 250.0,
+          "damage": 12
+        }
+      }
+    },
+    "unicorn_boss": {
+      "id": "unicorn_boss",
+      "name": "Unicorn Guardian",
+      "sprite": {
+        "texture_path": "assets/levels/fairy-world/unicornboss.png",
+        "frame_width": 93,
+        "frame_height": 73,
+        "frame_count": 2,
+        "frame_duration": 0.2,
+        "scale_x": 3.0,
+        "scale_y": 3.0,
+        "mirror_x": false,
+        "mirror_y": false,
+        "rotation": 0.0
+      },
+      "health": 1500,
+      "speed": 50.0,
+      "damage": 40,
+      "score_value": 5000,
+      "behavior": {
+        "type": "boss",
+        "movement": {
+          "type": "sine",
+          "amplitude": 150.0,
+          "frequency": 0.5
+        }
+      },
+      "attack": {
+        "type": "spread",
+        "cooldown": 2.0,
+        "projectile_count": 8,
+        "spread_angle": 60.0,
+        "aim_at_player": false,
+        "projectile": {
+          "type": "fairy_missile",
+          "sprite": {
+            "texture_path": "assets/levels/fairy-world/fairy-missiles.png",
+            "frame_width": 20,
+            "frame_height": 35,
+            "frame_count": 2,
+            "frame_duration": 0.1,
+            "scale_x": 2.0,
+            "scale_y": 2.0,
+            "mirror_x": false,
+            "mirror_y": false,
+            "rotation": 90.0
+          },
+          "speed": 400.0,
+          "damage": 25
+        }
+      }
+    }
+  },
+  "waves": [
+    {
+      "wave_number": 1,
+      "name": "First Encounter",
+      "wave_delay": 2.0,
+      "is_boss_wave": false,
+      "enemies": [
+        {
+          "enemy_id": "fairy1",
+          "count": 4,
+          "spawn_delay": 1.0,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 100,
+            "offset_y": 0
+          }
+        }
+      ]
+    },
+    {
+      "wave_number": 2,
+      "name": "Blue Arrival",
+      "wave_delay": 3.0,
+      "is_boss_wave": false,
+      "enemies": [
+        {
+          "enemy_id": "fairy1",
+          "count": 3,
+          "spawn_delay": 0.8,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 50,
+            "offset_y": -200
+          }
+        },
+        {
+          "enemy_id": "fairy2",
+          "count": 3,
+          "spawn_delay": 1.2,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 50,
+            "offset_y": 200
+          }
+        }
+      ]
+    },
+    {
+      "wave_number": 3,
+      "name": "Green Menace",
+      "wave_delay": 3.0,
+      "is_boss_wave": false,
+      "enemies": [
+        {
+          "enemy_id": "fairy3",
+          "count": 4,
+          "spawn_delay": 1.5,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 100,
+            "offset_y": 0
+          }
+        }
+      ]
+    },
+    {
+      "wave_number": 4,
+      "name": "Fairy Swarm",
+      "wave_delay": 2.5,
+      "is_boss_wave": false,
+      "enemies": [
+        {
+          "enemy_id": "fairy1",
+          "count": 3,
+          "spawn_delay": 0.5,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 0,
+            "offset_y": -300
+          }
+        },
+        {
+          "enemy_id": "fairy2",
+          "count": 3,
+          "spawn_delay": 0.7,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 100,
+            "offset_y": 0
+          }
+        },
+        {
+          "enemy_id": "fairy3",
+          "count": 2,
+          "spawn_delay": 1.0,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 0,
+            "offset_y": 300
+          }
+        }
+      ]
+    },
+    {
+      "wave_number": 5,
+      "name": "Final Assault",
+      "wave_delay": 3.0,
+      "is_boss_wave": false,
+      "enemies": [
+        {
+          "enemy_id": "fairy1",
+          "count": 5,
+          "spawn_delay": 0.4,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 50,
+            "offset_y": 0
+          }
+        },
+        {
+          "enemy_id": "fairy2",
+          "count": 4,
+          "spawn_delay": 0.6,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 150,
+            "offset_y": 0
+          }
+        },
+        {
+          "enemy_id": "fairy3",
+          "count": 3,
+          "spawn_delay": 0.8,
+          "spawn_point": {
+            "position_type": "screen_right",
+            "offset_x": 250,
+            "offset_y": 0
+          }
+        }
+      ]
+    },
+    {
+      "wave_number": 6,
+      "name": "Unicorn Guardian",
+      "wave_delay": 4.0,
+      "is_boss_wave": true,
+      "enemies": [
+        {
+          "enemy_id": "unicorn_boss",
+          "count": 1,
+          "spawn_delay": 0.0,
+          "spawn_point": {
+            "position_type": "absolute",
+            "x": 1600,
+            "y": 540
+          }
+        }
+      ]
+    }
+  ],
+  "powerups": [
+    {
+      "powerup_type": "health",
+      "spawn_chance": 0.15,
+      "spawn_on_wave": 2
+    },
+    {
+      "powerup_type": "attack",
+      "spawn_chance": 0.1,
+      "spawn_on_wave": 3
+    },
+    {
+      "powerup_type": "shield",
+      "spawn_chance": 0.1,
+      "spawn_on_wave": 4
+    }
+  ],
+  "max_players": 4,
+  "lives": 3
+}
