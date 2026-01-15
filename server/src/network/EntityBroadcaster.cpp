@@ -123,7 +123,10 @@ void EntityBroadcaster::broadcast_entity_positions(
                 tags[i]->type == RType::EntityType::SerpentHead ||
                 tags[i]->type == RType::EntityType::SerpentBody ||
                 tags[i]->type == RType::EntityType::SerpentScale ||
-                tags[i]->type == RType::EntityType::SerpentTail) {
+                tags[i]->type == RType::EntityType::SerpentTail ||
+                tags[i]->type == RType::EntityType::CompilerPart1 ||
+                tags[i]->type == RType::EntityType::CompilerPart2 ||
+                tags[i]->type == RType::EntityType::CompilerPart3) {
                 auto health_opt = reg.get_component<health>(entity_obj);
                 int current_health = health_opt.has_value() ? health_opt->current : 100;
                 int max_health = health_opt.has_value() ? health_opt->maximum : 100;
@@ -134,8 +137,7 @@ void EntityBroadcaster::broadcast_entity_positions(
                 bool grayscale = sprite_opt.has_value() ? sprite_opt->grayscale : false;
                 broadcast_serializer_ << static_cast<uint8_t>(grayscale ? 1 : 0);
 
-                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at
-                // player)
+                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at player)
                 if (tags[i]->type == RType::EntityType::SerpentHead ||
                     tags[i]->type == RType::EntityType::SerpentBody ||
                     tags[i]->type == RType::EntityType::SerpentScale ||
@@ -166,7 +168,6 @@ void EntityBroadcaster::broadcast_entity_positions(
 
     broadcast_serializer_.data()[count_position] = static_cast<uint8_t>(entity_count);
 
-    // 🗜️ COMPRESS before sending (LZ4)
     broadcast_serializer_.compress();
 
     server.send_to_clients(lobby_client_ids, broadcast_serializer_.data());

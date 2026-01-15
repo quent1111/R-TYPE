@@ -1,5 +1,6 @@
 #include "ui/SettingsPanel.hpp"
 
+#include "common/Settings.hpp"
 #include "managers/AudioManager.hpp"
 
 #include <SFML/Graphics.hpp>
@@ -272,6 +273,42 @@ void SettingsPanel::create_buttons() {
         vol_up->update(0.0f);
         m_buttons.push_back(std::move(vol_up));
 
+        // Music mute toggle
+        float music_y = vol_y + 60.0f;
+        auto music_toggle = std::make_unique<Button>(
+            sf::Vector2f(bx, music_y), sf::Vector2f(220.0f, 45.0f), 
+            managers::AudioManager::instance().is_music_muted() ? "Music: OFF" : "Music: ON");
+        music_toggle->set_callback([this]() {
+            auto& audio = managers::AudioManager::instance();
+            audio.set_music_muted(!audio.is_music_muted());
+            create_buttons();
+        });
+        if (managers::AudioManager::instance().is_music_muted()) {
+            music_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255), sf::Color(120, 20, 20, 255));
+        } else {
+            music_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+        }
+        music_toggle->update(0.0f);
+        m_buttons.push_back(std::move(music_toggle));
+
+        // Sound effects mute toggle
+        float sound_y = music_y + 60.0f;
+        auto sound_toggle = std::make_unique<Button>(
+            sf::Vector2f(bx, sound_y), sf::Vector2f(220.0f, 45.0f), 
+            managers::AudioManager::instance().is_sound_muted() ? "Effects: OFF" : "Effects: ON");
+        sound_toggle->set_callback([this]() {
+            auto& audio = managers::AudioManager::instance();
+            audio.set_sound_muted(!audio.is_sound_muted());
+            create_buttons();
+        });
+        if (managers::AudioManager::instance().is_sound_muted()) {
+            sound_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255), sf::Color(120, 20, 20, 255));
+        } else {
+            sound_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+        }
+        sound_toggle->update(0.0f);
+        m_buttons.push_back(std::move(sound_toggle));
+
     } else if (m_current_tab == Tab::Video) {
         auto res_prev =
             std::make_unique<Button>(sf::Vector2f(bx, by), sf::Vector2f(100.0f, 45.0f), "<");
@@ -313,15 +350,36 @@ void SettingsPanel::create_buttons() {
         m_buttons.push_back(std::move(fullscreen_btn));
 
         float cb_y = by + 145.0f;
+        
+        // Helper pour obtenir le nom du mode
+        auto get_mode_name = [](ColorBlindMode mode) -> std::string {
+            switch (mode) {
+                case ColorBlindMode::Normal: return "Mode: Normal";
+                case ColorBlindMode::Protanopia: return "Mode: Protanopia";
+                case ColorBlindMode::Deuteranopia: return "Mode: Deuteranopia";
+                case ColorBlindMode::Tritanopia: return "Mode: Tritanopia";
+                case ColorBlindMode::HighContrast: return "Mode: Contraste++";
+                default: return "Mode: Normal";
+            }
+        };
+        
         auto colorblind_btn = std::make_unique<Button>(
-            sf::Vector2f(bx, cb_y), sf::Vector2f(250.0f, 45.0f), "Mode Daltonien");
+            sf::Vector2f(bx, cb_y), sf::Vector2f(250.0f, 45.0f), get_mode_name(m_temp_colorblind));
         colorblind_btn->set_callback([this]() {
-            m_temp_colorblind = !m_temp_colorblind;
+            // Cycle entre les modes à chaque clic
+            int current = static_cast<int>(m_temp_colorblind);
+            current = (current + 1) % 5;  // 5 modes au total
+            m_temp_colorblind = static_cast<ColorBlindMode>(current);
+            
+            // Appliquer immédiatement pour voir le changement en direct
+            Settings::instance().colorblind_mode = m_temp_colorblind;
+            
             create_buttons();
         });
-        if (m_temp_colorblind) {
-            colorblind_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255),
-                                       sf::Color(160, 90, 20, 255));
+        
+        // Couleur différente selon le mode actif
+        if (m_temp_colorblind != ColorBlindMode::Normal) {
+            colorblind_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
         } else {
             colorblind_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
                                        sf::Color(60, 60, 80, 255));
@@ -345,6 +403,21 @@ void SettingsPanel::create_buttons() {
         }
         shake_btn->update(0.0f);
         m_buttons.push_back(std::move(shake_btn));
+
+        float af_x = bx + 270.0f;
+        auto autofire_btn = std::make_unique<Button>(
+            sf::Vector2f(af_x, ss_y), sf::Vector2f(250.0f, 45.0f), "Tir Automatique");
+        autofire_btn->set_callback([this]() {
+            m_temp_auto_fire = !m_temp_auto_fire;
+            create_buttons();
+        });
+        if (m_temp_auto_fire) {
+            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+        } else {
+            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        }
+        autofire_btn->update(0.0f);
+        m_buttons.push_back(std::move(autofire_btn));
 
         sf::FloatRect bounds = m_resolution_text.getLocalBounds();
         m_resolution_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -430,6 +503,7 @@ void SettingsPanel::apply_settings() {
     s.fullscreen = m_temp_fullscreen;
     s.colorblind_mode = m_temp_colorblind;
     s.screen_shake_enabled = m_temp_screen_shake;
+    s.auto_fire_enabled = m_temp_auto_fire;
 
     if (changed) {
         m_needs_window_recreate = true;

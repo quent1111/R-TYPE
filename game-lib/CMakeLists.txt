@@ -9,6 +9,7 @@ add_library(game_logic STATIC
     src/systems/cleanup_system.cpp
     src/systems/wave_system.cpp
     src/systems/custom_wave_system.cpp
+    src/systems/explosive_system.cpp
     src/entities/player_factory.cpp
     src/entities/enemy_factory.cpp
     src/entities/boss_factory.cpp

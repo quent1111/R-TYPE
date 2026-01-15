@@ -11,6 +11,9 @@
 
 #include <map>
 
+#include <AccessibilityManager.hpp>
+#include <ProjectileShapeRenderer.hpp>
+
 namespace rendering {
 
 class GameRenderer {
@@ -65,6 +68,7 @@ private:
     sf::Sprite ruins_bg2_sprite1_;
     sf::Sprite ruins_bg2_sprite2_;
     sf::Sprite boss_fight_bg_sprite_;
+    sf::Sprite compiler_boss_bg_sprite_;
     float ruins_bg_scroll_offset_ = 0.0f;
     bool bg_fade_active_ = false;
     float bg_fade_timer_ = 0.0f;
@@ -100,6 +104,8 @@ private:
     std::map<uint32_t, LaserParticleSystem> laser_particle_systems_;
     std::map<uint32_t, SerpentLaserSystem> serpent_laser_systems_;
     SerpentEffectsSystem serpent_effects_;
+
+    accessibility::ProjectileShapeRenderer projectile_shape_renderer_;
 };
 
 }  // namespace rendering

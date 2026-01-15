@@ -2,6 +2,8 @@
 
 #include "common/Settings.hpp"
 #include "managers/TextureManager.hpp"
+#include "managers/FontManager.hpp"
+#include <ColorBlindnessMode.hpp>
 
 #include <cmath>
 
@@ -72,12 +74,22 @@ void GameRenderer::init(sf::RenderWindow& window) {
     boss_fight_bg_sprite_.setScale(scale_x, scale_y);
     boss_fight_bg_sprite_.setPosition(0, 0);
 
-    std::vector<std::string> top_files = {"assets/ruins-top1.png", "assets/ruins-top2.png",
-                                          "assets/ruins-top3.png", "assets/ruins-top4.png",
-                                          "assets/ruins-top5.png"};
-    std::vector<std::string> bottom_files = {"assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
-                                             "assets/ruins-bottom3.png",
-                                             "assets/ruins-bottom4.png"};
+    sf::Texture& boss3_texture = texture_mgr.load("assets/background-boss3.png");
+    compiler_boss_bg_sprite_.setTexture(boss3_texture);
+    sf::Vector2u tex_size3 = boss3_texture.getSize();
+    float scale_x3 = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(tex_size3.x);
+    float scale_y3 = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size3.y);
+    compiler_boss_bg_sprite_.setScale(scale_x3, scale_y3);
+    compiler_boss_bg_sprite_.setPosition(0, 0);
+
+    std::vector<std::string> top_files = {
+        "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
+        "assets/ruins-top4.png", "assets/ruins-top5.png"
+    };
+    std::vector<std::string> bottom_files = {
+        "assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
+        "assets/ruins-bottom3.png", "assets/ruins-bottom4.png"
+    };
     const float RUIN_SCALE = 5.0f;
     float x_pos = 0.0f;
     int top_index = 0;
@@ -170,7 +182,7 @@ void GameRenderer::update(float dt) {
             }
         }
 
-        if (current_bg_level_ >= 10) {
+        if (current_bg_level_ >= 12) {
             ruins_bg2_sprite1_.setPosition(-ruins_bg_scroll_offset_, 0);
             ruins_bg2_sprite2_.setPosition(
                 static_cast<float>(WINDOW_WIDTH) - ruins_bg_scroll_offset_, 0);
@@ -236,7 +248,37 @@ void GameRenderer::render_background(sf::RenderWindow& window) {
         return;
     }
 
-    if (current_bg_level_ >= 6) {
+    if (current_bg_level_ == 15) {
+        window.draw(compiler_boss_bg_sprite_);
+        return;
+    }
+
+    if (current_bg_level_ >= 12) {
+        if (bg_fade_active_ && bg_fade_timer_ < bg_fade_duration_) {
+            float progress = bg_fade_timer_ / bg_fade_duration_;
+            sf::Uint8 old_alpha = static_cast<sf::Uint8>((1.0f - progress) * 255);
+            ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, old_alpha));
+            ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, old_alpha));
+            window.draw(ruins_bg_sprite1_);
+            window.draw(ruins_bg_sprite2_);
+            sf::Uint8 new_alpha = static_cast<sf::Uint8>(progress * 255);
+            ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, new_alpha));
+            ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, new_alpha));
+            window.draw(ruins_bg2_sprite1_);
+            window.draw(ruins_bg2_sprite2_);
+        } else {
+            ruins_bg2_sprite1_.setColor(sf::Color(255, 255, 255, 255));
+            ruins_bg2_sprite2_.setColor(sf::Color(255, 255, 255, 255));
+            window.draw(ruins_bg2_sprite1_);
+            window.draw(ruins_bg2_sprite2_);
+        }
+        for (const auto& sprite : ruins_top_sprites_) {
+            window.draw(sprite);
+        }
+        for (const auto& sprite : ruins_bottom_sprites_) {
+            window.draw(sprite);
+        }
+    } else if (current_bg_level_ >= 6) {
         ruins_bg_sprite1_.setColor(sf::Color(255, 255, 255, 255));
         ruins_bg_sprite2_.setColor(sf::Color(255, 255, 255, 255));
         window.draw(ruins_bg_sprite1_);
@@ -297,6 +339,11 @@ void GameRenderer::set_background_level(uint8_t level) {
         transition_active_ = true;
         transition_timer_ = 0.0f;
     } else if (level == 10 && current_bg_level_ == 9) {
+        bg_fade_active_ = true;
+        bg_fade_timer_ = 0.0f;
+        current_bg_level_ = level;
+    } else if (level == 12 && current_bg_level_ == 11) {
+        target_bg_level_ = level;
         bg_fade_active_ = true;
         bg_fade_timer_ = 0.0f;
         current_bg_level_ = level;
@@ -436,6 +483,10 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
     const auto interp_delay = std::chrono::milliseconds(50);
     const auto render_time = std::chrono::steady_clock::now() - interp_delay;
 
+    auto& accessibility_mgr = accessibility::AccessibilityManager::instance();
+    int client_mode = static_cast<int>(Settings::instance().colorblind_mode);
+    accessibility_mgr.setColorBlindMode(accessibility::fromClientColorBlindMode(client_mode));
+
     Entity* serpent_nest = nullptr;
 
     for (auto& pair : entities) {
@@ -512,13 +563,18 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setRotation(e.rotation);
         }
 
-        if (e.type == 0x08 && e.damage_flash_timer > 0.0f) {
+        // Flash damage for Boss and CompilerParts (0x1C, 0x1D, 0x1E)
+        if ((e.type == 0x08 || e.type == 0x1C || e.type == 0x1D || e.type == 0x1E) && e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
         } else if (e.grayscale) {
             e.sprite.setColor(sf::Color(128, 128, 128, 255));
         } else {
             e.sprite.setColor(sf::Color(255, 255, 255, 255));
         }
+
+        sf::Color current_color = e.sprite.getColor();
+        sf::Color transformed_color = accessibility_mgr.transformColor(current_color);
+        e.sprite.setColor(transformed_color);
 
         if (e.type == 0x01 && e.health <= 0) {
             continue;
@@ -528,7 +584,28 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
-        window.draw(e.sprite);
+        // Rendu spécial pour les projectiles (player vs enemy)
+        bool is_projectile = (e.type == 0x03 || e.type == 0x04 || e.type == 0x05 || e.type == 0x06);
+        bool is_player_projectile = (e.type == 0x03 || e.type == 0x04); // Projectiles joueur
+        bool is_enemy_projectile = (e.type == 0x05 || e.type == 0x06);  // Projectiles ennemis
+        
+        if (is_projectile && client_mode != 0) { // Si mode daltonien activé
+            sf::FloatRect bounds = e.sprite.getGlobalBounds();
+            float size = std::max(bounds.width, bounds.height);
+            
+            if (is_player_projectile) {
+                // Cercle pour projectiles joueur (vert)
+                sf::Color player_color = accessibility_mgr.transformColor(sf::Color(0, 255, 0));
+                projectile_shape_renderer_.drawPlayerProjectile(window, draw_x, draw_y, size, player_color);
+            } else if (is_enemy_projectile) {
+                // Diamant pour projectiles ennemis (rouge)
+                sf::Color enemy_color = accessibility_mgr.transformColor(sf::Color(255, 0, 0));
+                projectile_shape_renderer_.drawEnemyProjectile(window, draw_x, draw_y, size, enemy_color);
+            }
+        } else {
+            // Rendu normal du sprite
+            window.draw(e.sprite);
+        }
     }
 
     if (serpent_nest != nullptr) {
@@ -627,10 +704,67 @@ void GameRenderer::render_damage_flash(sf::RenderWindow& window) {
 }
 
 void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
-    if (Settings::instance().colorblind_mode) {
-        sf::RectangleShape colorblind_overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-        colorblind_overlay.setFillColor(sf::Color(255, 200, 100, 40));
-        window.draw(colorblind_overlay);
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+
+    if (mode != ColorBlindMode::Normal) {
+        sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
+
+        switch (mode) {
+            case ColorBlindMode::Protanopia:
+                overlay.setFillColor(sf::Color(255, 255, 0, 90));
+                break;
+
+            case ColorBlindMode::Deuteranopia:
+                overlay.setFillColor(sf::Color(255, 100, 255, 90));
+                break;
+
+            case ColorBlindMode::Tritanopia:
+                overlay.setFillColor(sf::Color(255, 100, 50, 90));
+                break;
+
+            case ColorBlindMode::HighContrast:
+                overlay.setFillColor(sf::Color(150, 150, 255, 110));
+                break;
+            default:
+                overlay.setFillColor(sf::Color(255, 200, 100, 80));
+                break;
+        }
+        window.draw(overlay);
+        sf::Text mode_indicator;
+        auto& font_mgr = managers::FontManager::instance();
+        const sf::Font* font = font_mgr.get_default();
+        if (font != nullptr) {
+            mode_indicator.setFont(*font);
+            mode_indicator.setCharacterSize(18);
+            mode_indicator.setFillColor(sf::Color(255, 255, 100, 220));
+            mode_indicator.setOutlineColor(sf::Color::Black);
+            mode_indicator.setOutlineThickness(2);
+            std::string mode_text;
+            switch (mode) {
+                case ColorBlindMode::Protanopia:
+                    mode_text = "Protanopia";
+                    break;
+                case ColorBlindMode::Deuteranopia:
+                    mode_text = "Deuteranopia";
+                    break;
+                case ColorBlindMode::Tritanopia:
+                    mode_text = "Tritanopia";
+                    break;
+                case ColorBlindMode::HighContrast:
+                    mode_text = "Contraste++";
+                    break;
+                default:
+                    mode_text = "";
+                    break;
+            }
+
+            if (!mode_text.empty()) {
+                mode_indicator.setString(mode_text);
+                sf::FloatRect bounds = mode_indicator.getLocalBounds();
+                mode_indicator.setPosition(WINDOW_WIDTH - bounds.width - 20, 20);
+                window.draw(mode_indicator);
+            }
+        }
     }
 }
 

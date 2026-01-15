@@ -1,5 +1,6 @@
 #include "states/MenuState.hpp"
 
+#include "common/Settings.hpp"
 #include "managers/AudioManager.hpp"
 #include "ui/SettingsPanel.hpp"
 
@@ -218,6 +219,30 @@ void MenuState::render(sf::RenderWindow& window) {
     }
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window);
+    }
+
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    if (mode != ColorBlindMode::Normal) {
+        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
+
+        switch (mode) {
+            case ColorBlindMode::Protanopia:
+                overlay.setFillColor(sf::Color(255, 255, 0, 90));
+                break;
+            case ColorBlindMode::Deuteranopia:
+                overlay.setFillColor(sf::Color(255, 100, 255, 90));
+                break;
+            case ColorBlindMode::Tritanopia:
+                overlay.setFillColor(sf::Color(255, 100, 50, 90));
+                break;
+            case ColorBlindMode::HighContrast:
+                overlay.setFillColor(sf::Color(150, 150, 255, 110));
+                break;
+            default:
+                break;
+        }
+
+        window.draw(overlay);
     }
 }
 

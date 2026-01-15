@@ -80,6 +80,7 @@ private:
     bool boss_spawn_triggered_ = false;
     float boss_roar_timer_ = 0.0f;
     float boss_roar_delay_ = 2.5f;
+    std::unordered_map<uint32_t, float> prev_boss_damage_timer_;
 
     std::optional<level::CustomLevelConfig> custom_level_config_;
     std::string current_custom_level_id_;
@@ -98,13 +99,10 @@ private:
     void load_custom_level(const std::string& level_id);
     void load_custom_level_textures();
 
-    // Settings panel for in-game and menu
     std::unique_ptr<rtype::ui::SettingsPanel> m_settings_panel;
-    // Request to return to menu (set by SettingsPanel quit button)
     bool m_request_return_to_menu{false};
 
 public:
-    // Called by SettingsPanel quit callback
     void request_return_to_menu() { m_request_return_to_menu = true; }
     bool should_return_to_menu() const { return m_request_return_to_menu; }
 

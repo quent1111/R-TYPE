@@ -34,6 +34,7 @@ public:
         m_temp_fullscreen = Settings::instance().fullscreen;
         m_temp_colorblind = Settings::instance().colorblind_mode;
         m_temp_screen_shake = Settings::instance().screen_shake_enabled;
+        m_temp_auto_fire = Settings::instance().auto_fire_enabled;
         create_buttons();
     }
     void close() { m_open = false; }
@@ -73,8 +74,9 @@ private:
     std::function<void()> m_quit_callback;
     size_t m_temp_resolution_index{0};
     bool m_temp_fullscreen{false};
-    bool m_temp_colorblind{false};
+    ColorBlindMode m_temp_colorblind{ColorBlindMode::Normal};
     bool m_temp_screen_shake{true};
+    bool m_temp_auto_fire{false};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};
     enum class ControlAction {

@@ -149,7 +149,12 @@ void HUDRenderer::render_timer(sf::RenderWindow& window) {
 
 void HUDRenderer::render_health_bar(sf::RenderWindow& window,
                                     const std::map<uint32_t, Entity>& entities,
-                                    uint32_t my_network_id) {
+                                    uint32_t my_network_id,
+                                    bool show_level_intro) {
+    if (show_level_intro) {
+        return;
+    }
+
     for (const auto& [id, entity] : entities) {
         if (entity.type == 0x01 && id == my_network_id) {
             float health_percentage =
@@ -295,6 +300,13 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window,
             boss_found = true;
             boss_name = "SERPENT GUARDIAN";
             break;
+        }
+        // CompilerParts: 0x1C, 0x1D, 0x1E
+        if (current_level_ == 15 && (entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E)) {
+            boss_current_hp += entity.health;
+            boss_max_hp += entity.max_health;
+            boss_found = true;
+            boss_name = "COMPILER CORE";
         }
     }
 

@@ -439,6 +439,7 @@ struct player_tag {};
 struct enemy_tag {};
 struct boss_tag {};
 struct projectile_tag {};
+struct ally_projectile_tag {};
 struct explosion_tag {
     float lifetime;
     float elapsed;
@@ -545,17 +546,17 @@ struct serpent_boss_controller {
     std::vector<entity> scale_entities;
     std::optional<entity> tail_entity;
     std::optional<entity> laser_entity;
-    
+
     serpent_boss_controller() = default;
     serpent_boss_controller(int hp, int body_count = 12, int scale_count = 3)
-        : total_health(hp), current_health(hp), 
+        : total_health(hp), current_health(hp),
           num_body_parts(body_count), num_scale_parts(scale_count) {}
-    
+
     void take_global_damage(int damage) {
         current_health -= damage;
         if (current_health < 0) current_health = 0;
     }
-    
+
     [[nodiscard]] bool is_defeated() const { return current_health <= 0; }
     [[nodiscard]] float health_percentage() const {
         return total_health > 0 ? static_cast<float>(current_health) / static_cast<float>(total_health) : 0.0f;
@@ -564,20 +565,105 @@ struct serpent_boss_controller {
 
 struct serpent_nest_tag {};
 
+enum class CompilerState : uint8_t {
+    Entering = 0,
+    Assembled = 1,
+    Splitting = 2,
+    Separated = 3,
+    Merging = 4
+};
+
+struct compiler_boss_controller {
+    int total_health = 3000;
+    int current_health = 3000;
+
+    CompilerState state = CompilerState::Entering;
+    float state_timer = 0.0f;
+
+    float assembled_duration = 8.0f;
+    float split_duration = 2.0f;
+    float separated_duration = 15.0f;
+    float merge_duration = 2.0f;
+
+    float target_x = 1100.0f;
+    float target_y = 400.0f;
+    float movement_speed = 120.0f;
+
+    float min_x = 900.0f;
+    float max_x = 1600.0f;
+    float min_y = 150.0f;
+    float max_y = 750.0f;
+
+    float follow_offset_x = 400.0f;
+    float follow_smoothing = 2.0f;
+
+    float light_timer = 0.0f;
+    float light_duration = 0.5f;
+    bool light_on = true;
+
+    std::optional<entity> part1_entity;
+    std::optional<entity> part2_entity;
+    std::optional<entity> part3_entity;
+
+    float part1_target_x = 0.0f, part1_target_y = 0.0f;
+    float part2_target_x = 0.0f, part2_target_y = 0.0f;
+    float part3_target_x = 0.0f, part3_target_y = 0.0f;
+
+    float part_movement_timer = 0.0f;
+    float part_movement_interval = 1.5f;
+
+    float attack_timer = 0.0f;
+    float attack_cooldown = 1.2f;
+    int attack_pattern = 0;
+
+    float special_attack_timer = 0.0f;
+    float special_attack_cooldown = 6.0f;
+    bool charging_special = false;
+    float charge_time = 0.0f;
+    float charge_duration = 1.5f;
+
+    float part1_attack_timer = 0.0f;
+    float part2_attack_timer = 0.0f;
+    float part3_attack_timer = 0.0f;
+
+    bool entrance_complete = false;
+    float entrance_target_x = 1100.0f;
+
+    compiler_boss_controller() = default;
+    compiler_boss_controller(int hp) : total_health(hp), current_health(hp) {}
+
+    void take_damage(int damage) {
+        current_health -= damage;
+        if (current_health < 0) current_health = 0;
+    }
+
+    [[nodiscard]] bool is_defeated() const {
+        return !part1_entity.has_value() && !part2_entity.has_value() && !part3_entity.has_value();
+    }
+    [[nodiscard]] float health_percentage() const {
+        return total_health > 0 ? static_cast<float>(current_health) / static_cast<float>(total_health) : 0.0f;
+    }
+};
+
+struct compiler_part_tag {
+    int part_index;
+    compiler_part_tag(int idx = 1) : part_index(idx) {}
+};
+
 struct position_history {
     static constexpr size_t MAX_HISTORY = 60;
     std::vector<std::pair<float, float>> positions;
     size_t current_index = 0;
-    
+
     position_history() {
         positions.resize(MAX_HISTORY, {0.0f, 0.0f});
     }
-    
+
     void add_position(float x, float y) {
         positions[current_index] = {x, y};
         current_index = (current_index + 1) % MAX_HISTORY;
     }
-    
+
     std::pair<float, float> get_delayed_position(int frames_delay) const {
         if (frames_delay >= static_cast<int>(MAX_HISTORY)) {
             frames_delay = MAX_HISTORY - 1;
@@ -587,3 +673,11 @@ struct position_history {
     }
 };
 
+struct game_settings {
+    bool friendly_fire_enabled = false;
+    float difficulty_multiplier = 1.0f;
+    
+    constexpr game_settings() noexcept = default;
+    constexpr explicit game_settings(bool ff_enabled, float diff_mult = 1.0f) noexcept 
+        : friendly_fire_enabled(ff_enabled), difficulty_multiplier(diff_mult) {}
+};

@@ -53,7 +53,10 @@ enum class EntityType : uint8_t {
     Powerup      = 0x04,
     Obstacle     = 0x05,
     Enemy2       = 0x06,
+    Enemy3       = 0x07,
     Boss         = 0x08,
+    Enemy4       = 0x0E,
+    Enemy5       = 0x0F,
     HomingEnemy  = 0x09,
     Ally         = 0x0A,
     LaserBeam    = 0x0B,
@@ -69,10 +72,16 @@ enum class EntityType : uint8_t {
     SerpentLaserSegment = 0x17,
     SerpentScream = 0x18,
     SerpentLaserCharge = 0x19,
+    FlyingEnemy = 0x1A,
+    // New bosses and parts (level 15+)
+    CompilerBoss = 0x1B,
+    CompilerPart1 = 0x1C,
+    CompilerPart2 = 0x1D,
+    CompilerPart3 = 0x1E,
     // Custom level entities (separate from standard game)
-    CustomEnemy = 0x20,
-    CustomBoss = 0x21,
-    CustomProjectile = 0x22
+    CustomEnemy = 0x30,
+    CustomBoss = 0x31,
+    CustomProjectile = 0x32
 };
 
 struct MagicNumber {

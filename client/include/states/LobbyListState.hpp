@@ -13,6 +13,12 @@
 
 namespace rtype {
 
+enum class DifficultyLevel {
+    Easy = 0,
+    Normal = 1,
+    Hard = 2
+};
+
 struct LobbyInfo {
     int lobby_id;
     std::string name;
@@ -76,10 +82,18 @@ private:
 
     bool m_creating_lobby{false};
     bool m_matchmaking{false};
+    bool m_friendly_fire{false};
+    DifficultyLevel m_difficulty{DifficultyLevel::Easy};
     std::string m_new_lobby_name;
     sf::Text m_input_text;
     sf::RectangleShape m_input_box;
     sf::Text m_input_label;
+    sf::RectangleShape m_checkbox_box;
+    sf::RectangleShape m_checkbox_check;
+    sf::Text m_checkbox_label;
+    sf::Text m_difficulty_label;
+    std::vector<sf::RectangleShape> m_difficulty_boxes;
+    std::vector<sf::Text> m_difficulty_texts;
 };
 
 }  // namespace rtype

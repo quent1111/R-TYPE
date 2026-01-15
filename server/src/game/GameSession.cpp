@@ -46,11 +46,15 @@ GameSession::GameSession() {
     reg.register_component<laser_damage_immunity>();
     reg.register_component<custom_attack_config>();
     reg.register_component<custom_entity_id>();
+    reg.register_component<ally_projectile_tag>();
+    reg.register_component<explosive_projectile>();
+    reg.register_component<game_settings>();
 
     _engine.register_system(std::make_unique<ShootingSystem>());
     _engine.register_system(std::make_unique<EnemyShootingSystem>());
     _engine.register_system(std::make_unique<WaveSystem>());
     _engine.register_system(std::make_unique<MovementSystem>());
+    _engine.register_system(std::make_unique<ExplosiveProjectileSystem>());
     _engine.register_system(std::make_unique<CollisionSystem>());
     _engine.register_system(std::make_unique<CleanupSystem>());
 
@@ -123,7 +127,9 @@ void GameSession::check_start_game(UDPServer& server) {
 }
 
 void GameSession::start_game(UDPServer& server) {
-    std::cout << "[Game] Starting game at level " << _starting_level << "..." << std::endl;
+    std::cout << "[Game] Starting game at level " << _starting_level 
+              << " (Friendly Fire: " << (_friendly_fire ? "ON" : "OFF")
+              << ", Difficulty: " << static_cast<int>(_difficulty) << ")..." << std::endl;
 
     if (!_custom_level_id.empty()) {
         std::cout << "[Game] Custom level selected: " << _custom_level_id << std::endl;
@@ -133,7 +139,22 @@ void GameSession::start_game(UDPServer& server) {
     _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
     _game_phase = GamePhase::InGame;
 
-    auto& level_managers = _engine.get_registry().get_components<level_manager>();
+    auto& reg = _engine.get_registry();
+    
+    // Create game settings entity with difficulty multiplier
+    // Easy = 1.0x, Normal = 2.0x, Hard = 4.0x
+    float difficulty_multiplier = 1.0f;
+    switch (_difficulty) {
+        case 0: difficulty_multiplier = 1.0f; break;  // Easy
+        case 1: difficulty_multiplier = 2.0f; break;  // Normal
+        case 2: difficulty_multiplier = 4.0f; break;  // Hard
+        default: difficulty_multiplier = 1.0f; break;
+    }
+    
+    auto settings_entity = reg.spawn_entity();
+    reg.emplace_component<game_settings>(settings_entity, _friendly_fire, difficulty_multiplier);
+
+    auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
             if (_is_custom_level) {
@@ -159,17 +180,21 @@ void GameSession::start_game(UDPServer& server) {
     std::cout << "[Game] Game started with " << _client_ready_status.size() << " players"
               << std::endl;
 
+    // Spawn boss if starting directly at a boss level (skip for custom levels)
     if (!_is_custom_level) {
         if (_starting_level == 5) {
             std::cout << "[SERVER] *** Starting at Level 5 - Spawning BOSS! ***" << std::endl;
-            _boss_manager.spawn_boss_level_5(
-                _engine.get_registry(), _boss_entity, _boss_animation_timer, _boss_shoot_timer,
-                _boss_animation_complete, _boss_entrance_complete, _boss_target_x);
+            _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
+                                             _boss_shoot_timer, _boss_animation_complete,
+                                             _boss_entrance_complete, _boss_target_x);
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         } else if (_starting_level == 10) {
-            std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***"
-                      << std::endl;
+            std::cout << "[SERVER] *** Starting at Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
             _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        } else if (_starting_level == 15) {
+            std::cout << "[SERVER] *** Starting at Level 15 - Spawning COMPILER BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity);
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
@@ -550,6 +575,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
         _boss_manager.update_serpent_boss(_engine.get_registry(), _serpent_controller_entity,
                                           _client_entity_ids, dt);
     }
+
+    _boss_manager.update_compiler_boss(_engine.get_registry(), _compiler_controller_entity, _client_entity_ids, dt);
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
@@ -1175,6 +1202,11 @@ void GameSession::advance_level(UDPServer& server) {
         } else if (current_level == 10) {
             std::cout << "[SERVER] *** Level 10 - Spawning SERPENT BOSS! ***" << std::endl;
             _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity);
+
+            _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
+        } else if (current_level == 15) {
+            std::cout << "[SERVER] *** Level 15 - Spawning COMPILER BOSS! ***" << std::endl;
+            _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity);
 
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }

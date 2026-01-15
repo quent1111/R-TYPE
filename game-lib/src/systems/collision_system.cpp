@@ -29,7 +29,6 @@ void collisionSystem(registry& reg) {
             if (p < collision_boxes.size() && collision_boxes[p].has_value() && !collision_boxes[p]->enabled) {
                 continue;
             }
-            
             auto& player_pos = positions[p].value();
             auto& player_shield = shields[p].value();
 
@@ -120,13 +119,13 @@ void collisionSystem(registry& reg) {
                 if (projectile_consumed) break;
 
                 if (j < projectile_tags.size() && projectile_tags[j].has_value()) continue;
-                
                 if (j < serpent_parts.size() && serpent_parts[j].has_value()) continue;
 
                 if (enemy_tags[j] && positions[j] && collision_boxes[j] && healths[j]) {
                     auto& enemy_pos = positions[j].value();
                     auto& enemy_box = collision_boxes[j].value();
                     auto& enemy_hp = healths[j].value();
+                    if (!enemy_box.enabled) continue;
 
                     float p_left = proj_pos.x + proj_box.offset_x;
                     float p_top = proj_pos.y + proj_box.offset_y;
@@ -140,8 +139,19 @@ void collisionSystem(registry& reg) {
 
                     if (p_left < e_right && p_right > e_left &&
                         p_top < e_bottom && p_bottom > e_top) {
+                        if (j < entity_tags.size() && entity_tags[j].has_value()) {
+                            auto ent_type = static_cast<int>(entity_tags[j]->type);
+                            if (ent_type == 0x21 || ent_type == 0x22 || ent_type == 0x23) {
+                                std::cout << "[COLLISION] Hit Compiler Part type=" << std::hex << ent_type 
+                                         << " HP before=" << enemy_hp.current << " damage=" << proj_dmg.damage_amount << std::endl;
+                            }
+                        }
                         enemy_hp.current -= proj_dmg.damage_amount;
                         if (enemy_hp.current < 0) enemy_hp.current = 0;
+
+                        if (j < damage_flashes.size() && damage_flashes[j].has_value()) {
+                            damage_flashes[j]->trigger();
+                        }
 
                         if (proj_dmg.destroy_on_hit) {
                             auto proj_entity = reg.entity_from_index(i);
@@ -153,9 +163,12 @@ void collisionSystem(registry& reg) {
                         if (enemy_hp.is_dead()) {
                             createExplosion(reg, enemy_pos.x, enemy_pos.y);
 
-                            bool is_serpent_homing = (j < entity_tags.size() && entity_tags[j].has_value() &&
-                                                      entity_tags[j]->type == RType::EntityType::SerpentHoming);
-                            if (!is_serpent_homing) {
+                            bool is_boss_part = (j < entity_tags.size() && entity_tags[j].has_value() &&
+                                                (entity_tags[j]->type == RType::EntityType::SerpentHoming ||
+                                                 entity_tags[j]->type == RType::EntityType::CompilerPart1 ||
+                                                 entity_tags[j]->type == RType::EntityType::CompilerPart2 ||
+                                                 entity_tags[j]->type == RType::EntityType::CompilerPart3));
+                            if (!is_boss_part) {
                                 for (size_t k = 0; k < level_managers.size(); ++k) {
                                     if (level_managers[k].has_value()) {
                                         level_managers[k]->on_enemy_killed();
@@ -168,7 +181,6 @@ void collisionSystem(registry& reg) {
                     }
                 }
             }
-            
             if (projectile_consumed) continue;
 
             for (std::size_t j = 0; j < positions.size() && j < boss_tags.size(); ++j) {
@@ -249,7 +261,6 @@ void collisionSystem(registry& reg) {
                     }
                 }
             }
-            
             if (projectile_consumed) continue;
 
             for (std::size_t j = 0; j < positions.size() && j < serpent_parts.size(); ++j) {
@@ -257,7 +268,7 @@ void collisionSystem(registry& reg) {
 
                 if (j < projectile_tags.size() && projectile_tags[j].has_value()) continue;
 
-                if (serpent_parts[j].has_value() && positions[j].has_value() && 
+                if (serpent_parts[j].has_value() && positions[j].has_value() &&
                     j < collision_boxes.size() && collision_boxes[j].has_value()) {
                     auto& part_pos = positions[j].value();
                     auto& part_box = collision_boxes[j].value();
@@ -274,14 +285,12 @@ void collisionSystem(registry& reg) {
 
                     if (p_left < s_right && p_right > s_left &&
                         p_top < s_bottom && p_bottom > s_top) {
-                        
                         for (std::size_t c = 0; c < serpent_controllers.size(); ++c) {
                             if (serpent_controllers[c].has_value()) {
                                 serpent_controllers[c].value().take_global_damage(proj_dmg.damage_amount);
                                 break;
                             }
                         }
-                        
                         if (j < damage_flashes.size() && damage_flashes[j].has_value()) {
                             damage_flashes[j]->trigger();
                         }
@@ -298,7 +307,6 @@ void collisionSystem(registry& reg) {
                     }
                 }
             }
-            
             if (projectile_consumed) continue;
 
             for (std::size_t j = 0; j < positions.size() && j < homing_comps.size(); ++j) {
@@ -334,7 +342,6 @@ void collisionSystem(registry& reg) {
 
                         if (homing_hp.is_dead()) {
                             createExplosion(reg, homing_pos.x, homing_pos.y);
-                            
                             auto homing_entity = reg.entity_from_index(j);
                             reg.remove_component<entity_tag>(homing_entity);
                             reg.kill_entity(homing_entity);
@@ -364,11 +371,9 @@ void collisionSystem(registry& reg) {
                             auto type = entity_tags[enemy_idx]->type;
                             is_boss_projectile = (type == static_cast<RType::EntityType>(0x07));
                         }
-                        
                         if (is_boss_projectile) {
                             continue;
                         }
-                        
                         auto& proj_pos_j = positions[j].value();
                         auto& proj_box_j = collision_boxes[j].value();
 
@@ -426,7 +431,6 @@ void collisionSystem(registry& reg) {
                     auto& player_pos = positions[j].value();
                     auto& player_box = collision_boxes[j].value();
                     auto& player_hp = healths[j].value();
-                    
                     if (!player_box.enabled) {
                         continue;
                     }
@@ -455,7 +459,6 @@ void collisionSystem(registry& reg) {
 
                             if (player_hp.is_dead()) {
                                 createExplosion(reg, player_pos.x, player_pos.y);
-                                
                                 if (j < sprite_components.size() && sprite_components[j].has_value()) {
                                     sprite_components[j]->visible = false;
                                 }
@@ -481,45 +484,35 @@ void collisionSystem(registry& reg) {
     auto& laser_immunities = reg.get_components<laser_damage_immunity>();
 
     for (std::size_t s = 0; s < positions.size() && s < serpent_parts.size(); ++s) {
-        if (serpent_parts[s].has_value() && positions[s].has_value() && 
+        if (serpent_parts[s].has_value() && positions[s].has_value() &&
             s < collision_boxes.size() && collision_boxes[s].has_value() &&
             s < damage_contacts.size() && damage_contacts[s].has_value()) {
-            
             auto& part_pos = positions[s].value();
             auto& part_box = collision_boxes[s].value();
             auto& part_dmg = damage_contacts[s].value();
-            
             for (std::size_t p = 0; p < positions.size() && p < player_tags.size(); ++p) {
                 if (s == p) continue;
-                
-                if (player_tags[p].has_value() && positions[p].has_value() && 
+                if (player_tags[p].has_value() && positions[p].has_value() &&
                     p < collision_boxes.size() && collision_boxes[p].has_value() &&
                     p < healths.size() && healths[p].has_value()) {
-                    
                     auto& player_pos = positions[p].value();
                     auto& player_box = collision_boxes[p].value();
                     auto& player_hp = healths[p].value();
-                    
                     if (!player_box.enabled) continue;
-                    
                     float s_left = part_pos.x + part_box.offset_x;
                     float s_top = part_pos.y + part_box.offset_y;
                     float s_right = s_left + part_box.width;
                     float s_bottom = s_top + part_box.height;
-                    
                     float p_left = player_pos.x + player_box.offset_x;
                     float p_top = player_pos.y + player_box.offset_y;
                     float p_right = p_left + player_box.width;
                     float p_bottom = p_top + player_box.height;
-                    
                     if (s_left < p_right && s_right > p_left &&
                         s_top < p_bottom && s_bottom > p_top) {
-                        
                         bool has_active_shield = false;
                         if (p < shields.size() && shields[p].has_value()) {
                             has_active_shield = shields[p]->is_active();
                         }
-                        
                         if (!has_active_shield) {
                             if (p < laser_immunities.size() && laser_immunities[p].has_value()) {
                                 if (laser_immunities[p]->is_immune()) {
@@ -527,13 +520,10 @@ void collisionSystem(registry& reg) {
                                 }
                                 laser_immunities[p]->trigger();
                             }
-                            
                             player_hp.current -= part_dmg.damage_amount;
                             if (player_hp.current < 0) player_hp.current = 0;
-                            
                             if (player_hp.is_dead()) {
                                 createExplosion(reg, player_pos.x, player_pos.y);
-                                
                                 if (p < sprite_components.size() && sprite_components[p].has_value()) {
                                     sprite_components[p]->visible = false;
                                 }
@@ -558,11 +548,10 @@ void collisionSystem(registry& reg) {
             auto& proj_pos = positions[i].value();
             auto& proj_box = collision_boxes[i].value();
             auto& proj_dmg = damage_contacts[i].value();
-            
             bool is_laser = false;
             if (i < entity_tags.size() && entity_tags[i].has_value()) {
                 auto type = entity_tags[i]->type;
-                is_laser = (type == RType::EntityType::SerpentLaser || 
+                is_laser = (type == RType::EntityType::SerpentLaser ||
                            type == static_cast<RType::EntityType>(0x17));
             }
 
@@ -573,7 +562,6 @@ void collisionSystem(registry& reg) {
                     auto& player_pos = positions[j].value();
                     auto& player_box = collision_boxes[j].value();
                     auto& player_hp = healths[j].value();
-                    
                     if (!player_box.enabled) {
                         continue;
                     }
@@ -603,14 +591,12 @@ void collisionSystem(registry& reg) {
                                 }
                                 laser_immunities[j]->trigger();
                             }
-                            
                             player_hp.current -= proj_dmg.damage_amount;
                             if (player_hp.current < 0) player_hp.current = 0;
 
                             if (player_hp.is_dead()) {
                                 std::cout << "[Collision] Player killed!" << std::endl;
                                 createExplosion(reg, player_pos.x, player_pos.y);
-                                
                                 if (j < sprite_components.size() && sprite_components[j].has_value()) {
                                     sprite_components[j]->visible = false;
                                 }
@@ -631,5 +617,88 @@ void collisionSystem(registry& reg) {
                 }
             }
         }
+
+    auto& game_settings_comps = reg.get_components<game_settings>();
+    bool friendly_fire_enabled = false;
+    for (const auto& settings_opt : game_settings_comps) {
+        if (settings_opt.has_value()) {
+            friendly_fire_enabled = settings_opt->friendly_fire_enabled;
+            break;
+        }
     }
+
+    if (friendly_fire_enabled) {
+        auto& ally_projectile_tags = reg.get_components<ally_projectile_tag>();
+
+        for (std::size_t ff_i = 0; ff_i < positions.size() && ff_i < projectile_tags.size(); ++ff_i) {
+            if (!projectile_tags[ff_i] || !positions[ff_i] || !collision_boxes[ff_i] || !damage_contacts[ff_i]) continue;
+
+            bool is_player_projectile = !(ff_i < enemy_tags.size() && enemy_tags[ff_i].has_value());
+            if (!is_player_projectile) continue;
+
+            if (ff_i < ally_projectile_tags.size() && ally_projectile_tags[ff_i].has_value()) {
+                continue;
+            }
+
+            auto& proj_pos = positions[ff_i].value();
+            auto& proj_box = collision_boxes[ff_i].value();
+            auto& proj_dmg = damage_contacts[ff_i].value();
+
+            for (std::size_t ff_j = 0; ff_j < positions.size() && ff_j < player_tags.size(); ++ff_j) {
+                if (!player_tags[ff_j] || !positions[ff_j] || !collision_boxes[ff_j] || !healths[ff_j]) continue;
+
+                auto& player_pos = positions[ff_j].value();
+                auto& player_box = collision_boxes[ff_j].value();
+                auto& player_hp = healths[ff_j].value();
+
+                float p_left = proj_pos.x + proj_box.offset_x;
+                float p_top = proj_pos.y + proj_box.offset_y;
+                float p_right = p_left + proj_box.width;
+                float p_bottom = p_top + proj_box.height;
+
+                float pl_left = player_pos.x + player_box.offset_x;
+                float pl_top = player_pos.y + player_box.offset_y;
+                float pl_right = pl_left + player_box.width;
+                float pl_bottom = pl_top + player_box.height;
+
+                if (p_left < pl_right && p_right > pl_left &&
+                    p_top < pl_bottom && p_bottom > pl_top) {
+
+                    bool has_active_shield = false;
+                    if (ff_j < shields.size() && shields[ff_j].has_value()) {
+                        has_active_shield = shields[ff_j]->is_active();
+                    }
+
+                    if (!has_active_shield) {
+                        player_hp.current -= proj_dmg.damage_amount;
+                        if (player_hp.current < 0) player_hp.current = 0;
+
+                        std::cout << "[Collision] Friendly fire! Player hit by ally projectile for " 
+                                  << proj_dmg.damage_amount << " damage" << std::endl;
+
+                        if (player_hp.is_dead()) {
+                            std::cout << "[Collision] Player killed by friendly fire!" << std::endl;
+                            createExplosion(reg, player_pos.x, player_pos.y);
+
+                            if (ff_j < sprite_components.size() && sprite_components[ff_j].has_value()) {
+                                sprite_components[ff_j]->visible = false;
+                            }
+                            if (ff_j < collision_boxes.size() && collision_boxes[ff_j].has_value()) {
+                                collision_boxes[ff_j]->enabled = false;
+                            }
+                        }
+                    }
+
+                    if (proj_dmg.destroy_on_hit) {
+                        auto proj_entity = reg.entity_from_index(ff_i);
+                        reg.remove_component<entity_tag>(proj_entity);
+                        reg.kill_entity(proj_entity);
+                    }
+
+                    break;
+                }
+            }
+        }
+    }
+}
 }

@@ -1,5 +1,6 @@
 #include "states/LobbyListState.hpp"
 
+#include "common/Settings.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
@@ -108,11 +109,15 @@ void LobbyListState::request_lobby_list() {
 }
 
 void LobbyListState::send_create_lobby_request(const std::string& lobby_name) {
-    std::cout << "[LobbyListState] Creating lobby: " << lobby_name << std::endl;
+    std::cout << "[LobbyListState] Creating lobby: " << lobby_name 
+              << " (Friendly Fire: " << (m_friendly_fire ? "ON" : "OFF") 
+              << ", Difficulty: " << static_cast<int>(m_difficulty) << ")" << std::endl;
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::CreateLobby;
     serializer << lobby_name;
+    serializer << m_friendly_fire;
+    serializer << static_cast<uint8_t>(m_difficulty);
     serializer.compress();
 
     GameToNetwork::Message msg(GameToNetwork::MessageType::RawPacket, serializer.data());
@@ -184,14 +189,15 @@ void LobbyListState::on_create_clicked() {
     std::cout << "[LobbyListState] Create clicked" << std::endl;
     m_creating_lobby = true;
     m_new_lobby_name = "";
+    m_friendly_fire = false;
+    m_difficulty = DifficultyLevel::Easy;
 
     auto window_size = m_window.getSize();
     m_input_box.setSize(sf::Vector2f(600.0f, 60.0f));
     m_input_box.setFillColor(sf::Color(20, 20, 30, 240));
     m_input_box.setOutlineColor(sf::Color(100, 180, 220));
     m_input_box.setOutlineThickness(3.0f);
-    m_input_box.setPosition(static_cast<float>(window_size.x) / 2.0f - 300.0f,
-                            static_cast<float>(window_size.y) / 2.0f - 30.0f);
+    m_input_box.setPosition(static_cast<float>(window_size.x) / 2.0f - 300.0f, static_cast<float>(window_size.y) / 2.0f - 100.0f);
 
     m_input_text.setFont(m_font);
     m_input_text.setCharacterSize(22);
@@ -206,8 +212,61 @@ void LobbyListState::on_create_clicked() {
     m_input_label.setString(
         "Nom du lobby (max 12 caracteres, Entree pour valider, Echap pour annuler):");
     auto label_bounds = m_input_label.getLocalBounds();
-    m_input_label.setPosition(static_cast<float>(window_size.x) / 2.0f - label_bounds.width / 2.0f,
-                              m_input_box.getPosition().y - 40.0f);
+    m_input_label.setPosition(static_cast<float>(window_size.x) / 2.0f - label_bounds.width / 2.0f, m_input_box.getPosition().y - 40.0f);
+
+    m_checkbox_box.setSize(sf::Vector2f(25.0f, 25.0f));
+    m_checkbox_box.setFillColor(sf::Color(20, 20, 30, 240));
+    m_checkbox_box.setOutlineColor(sf::Color(100, 180, 220));
+    m_checkbox_box.setOutlineThickness(2.0f);
+    m_checkbox_box.setPosition(m_input_box.getPosition().x + 15.0f, m_input_box.getPosition().y + 80.0f);
+
+    m_checkbox_check.setSize(sf::Vector2f(15.0f, 15.0f));
+    m_checkbox_check.setFillColor(sf::Color(100, 220, 100));
+    m_checkbox_check.setPosition(m_checkbox_box.getPosition().x + 5.0f, m_checkbox_box.getPosition().y + 5.0f);
+
+    m_checkbox_label.setFont(m_font);
+    m_checkbox_label.setCharacterSize(20);
+    m_checkbox_label.setFillColor(sf::Color::White);
+    m_checkbox_label.setString("Friendly Fire");
+    m_checkbox_label.setPosition(m_checkbox_box.getPosition().x + 35.0f, m_checkbox_box.getPosition().y);
+
+    m_difficulty_label.setFont(m_font);
+    m_difficulty_label.setCharacterSize(20);
+    m_difficulty_label.setFillColor(sf::Color::White);
+    m_difficulty_label.setString("Difficulte:");
+    m_difficulty_label.setPosition(m_input_box.getPosition().x + 15.0f, m_input_box.getPosition().y + 130.0f);
+
+    m_difficulty_boxes.clear();
+    m_difficulty_texts.clear();
+
+    std::vector<std::string> difficulty_names = {"Facile", "Moyen", "Difficile"};
+    float button_width = 120.0f;
+    float button_height = 40.0f;
+    float button_spacing = 20.0f;
+    float start_x = m_input_box.getPosition().x + 15.0f;
+    float start_y = m_input_box.getPosition().y + 170.0f;
+
+    for (size_t i = 0; i < 3; ++i) {
+        sf::RectangleShape box;
+        box.setSize(sf::Vector2f(button_width, button_height));
+        box.setFillColor(i == 0 ? sf::Color(50, 150, 50, 240) : sf::Color(20, 20, 30, 240));
+        box.setOutlineColor(sf::Color(100, 180, 220));
+        box.setOutlineThickness(2.0f);
+        box.setPosition(start_x + i * (button_width + button_spacing), start_y);
+        m_difficulty_boxes.push_back(box);
+
+        sf::Text text;
+        text.setFont(m_font);
+        text.setCharacterSize(18);
+        text.setFillColor(sf::Color::White);
+        text.setString(difficulty_names[i]);
+        auto text_bounds = text.getLocalBounds();
+        text.setPosition(
+            box.getPosition().x + button_width / 2.0f - text_bounds.width / 2.0f,
+            box.getPosition().y + button_height / 2.0f - text_bounds.height / 2.0f - 5.0f
+        );
+        m_difficulty_texts.push_back(text);
+    }
 }
 
 void LobbyListState::on_join_clicked(int lobby_id) {
@@ -373,7 +432,36 @@ void LobbyListState::handle_event(const sf::Event& event) {
         sf::Vector2f click_pos(static_cast<float>(event.mouseButton.x),
                                static_cast<float>(event.mouseButton.y));
         if (m_creating_lobby) {
-            if (!m_input_box.getGlobalBounds().contains(click_pos)) {
+            if (m_checkbox_box.getGlobalBounds().contains(click_pos)) {
+                m_friendly_fire = !m_friendly_fire;
+                return;
+            }
+            for (size_t i = 0; i < m_difficulty_boxes.size(); ++i) {
+                if (m_difficulty_boxes[i].getGlobalBounds().contains(click_pos)) {
+                    m_difficulty = static_cast<DifficultyLevel>(i);
+                    for (size_t j = 0; j < m_difficulty_boxes.size(); ++j) {
+                        if (j == i) {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(50, 150, 50, 240));
+                        } else {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(20, 20, 30, 240));
+                        }
+                    }
+                    return;
+                }
+            }
+            bool clicked_on_ui = m_input_box.getGlobalBounds().contains(click_pos) ||
+                                m_checkbox_box.getGlobalBounds().contains(click_pos) ||
+                                m_checkbox_label.getGlobalBounds().contains(click_pos) ||
+                                m_difficulty_label.getGlobalBounds().contains(click_pos);
+
+            for (const auto& box : m_difficulty_boxes) {
+                if (box.getGlobalBounds().contains(click_pos)) {
+                    clicked_on_ui = true;
+                    break;
+                }
+            }
+
+            if (!clicked_on_ui) {
                 m_creating_lobby = false;
             }
             return;
@@ -478,10 +566,47 @@ void LobbyListState::render(sf::RenderWindow& window) {
         window.draw(m_input_box);
         window.draw(m_input_label);
         window.draw(m_input_text);
+
+        window.draw(m_checkbox_box);
+        if (m_friendly_fire) {
+            window.draw(m_checkbox_check);
+        }
+        window.draw(m_checkbox_label);
+
+        window.draw(m_difficulty_label);
+        for (const auto& box : m_difficulty_boxes) {
+            window.draw(box);
+        }
+        for (const auto& text : m_difficulty_texts) {
+            window.draw(text);
+        }
     }
 
-    if (m_footer)
-        m_footer->render(window);
+    if (m_footer) m_footer->render(window);
+
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    if (mode != ColorBlindMode::Normal) {
+        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
+
+        switch (mode) {
+            case ColorBlindMode::Protanopia:
+                overlay.setFillColor(sf::Color(255, 255, 0, 90));
+                break;
+            case ColorBlindMode::Deuteranopia:
+                overlay.setFillColor(sf::Color(255, 100, 255, 90));
+                break;
+            case ColorBlindMode::Tritanopia:
+                overlay.setFillColor(sf::Color(255, 100, 50, 90));
+                break;
+            case ColorBlindMode::HighContrast:
+                overlay.setFillColor(sf::Color(150, 150, 255, 110));
+                break;
+            default:
+                break;
+        }
+
+        window.draw(overlay);
+    }
 }
 
 }  // namespace rtype
