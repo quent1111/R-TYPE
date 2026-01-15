@@ -393,7 +393,7 @@ void UDPServer::send_reliable(int client_id, uint8_t opcode, const std::vector<u
     // Stocker pour retry
     state.pending_acks.emplace_back(seq_id, opcode, compressor.data());
 
-    std::cout << "[Reliable] Sent packet seq=" << seq_id << " opcode=0x" << std::hex << (int)opcode
+    std::cout << "[Reliable] Sent packet seq=" << seq_id << " opcode=0x" << std::hex << static_cast<int>(opcode)
               << std::dec << " to client " << client_id << std::endl;
 }
 

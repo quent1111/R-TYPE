@@ -779,8 +779,8 @@ void BossManager::update_serpent_rotations(
     }
 }
 
-void BossManager::handle_serpent_part_damage(registry& reg, serpent_boss_controller& controller,
-                                             entity part_entity, int damage) {
+void BossManager::handle_serpent_part_damage([[maybe_unused]] registry& reg, serpent_boss_controller& controller,
+                                             [[maybe_unused]] entity part_entity, int damage) {
     controller.take_global_damage(damage);
 }
 
@@ -906,8 +906,6 @@ void BossManager::update_serpent_boss(registry& reg,
             bool has_explosion_tag = (head_idx < explosion_tags.size() && explosion_tags[head_idx].has_value());
             if (!has_explosion_tag && head_health.current <= 0) {
                 if (head_idx < positions.size() && positions[head_idx].has_value()) {
-                    auto& pos = positions[head_idx].value();
-
                     explosion_tag death_timer(1.2f);
                     death_timer.elapsed = 0.0f;
                     reg.add_component(controller.head_entity.value(), death_timer);
@@ -934,8 +932,6 @@ void BossManager::update_serpent_boss(registry& reg,
             bool has_explosion_tag = (body_idx < explosion_tags.size() && explosion_tags[body_idx].has_value());
             if (!has_explosion_tag && body_health.current <= 0) {
                 if (body_idx < positions.size() && positions[body_idx].has_value()) {
-                    auto& pos = positions[body_idx].value();
-
                     explosion_tag death_timer(0.6f);
                     death_timer.elapsed = 0.0f;
                     reg.add_component(body_ent, death_timer);
@@ -968,8 +964,6 @@ void BossManager::update_serpent_boss(registry& reg,
             bool has_explosion_tag = (scale_idx < explosion_tags.size() && explosion_tags[scale_idx].has_value());
             if (!has_explosion_tag && scale_health.current <= 0) {
                 if (scale_idx < positions.size() && positions[scale_idx].has_value()) {
-                    auto& pos = positions[scale_idx].value();
-
                     explosion_tag death_timer(0.8f);
                     death_timer.elapsed = 0.0f;
                     reg.add_component(scale_ent, death_timer);
@@ -1001,8 +995,6 @@ void BossManager::update_serpent_boss(registry& reg,
             bool has_explosion_tag = (tail_idx < explosion_tags.size() && explosion_tags[tail_idx].has_value());
             if (!has_explosion_tag && tail_health.current <= 0) {
                 if (tail_idx < positions.size() && positions[tail_idx].has_value()) {
-                    auto& pos = positions[tail_idx].value();
-
                     explosion_tag death_timer(0.7f);
                     death_timer.elapsed = 0.0f;
                     reg.add_component(controller.tail_entity.value(), death_timer);
@@ -1410,7 +1402,6 @@ void BossManager::update_compiler_boss(registry& reg,
     auto& healths = reg.get_components<health>();
     auto& positions = reg.get_components<position>();
     auto& projectile_tags = reg.get_components<projectile_tag>();
-    auto& entity_tags = reg.get_components<entity_tag>();
     auto& collision_boxes = reg.get_components<collision_box>();
 
     if (controller.part1_entity.has_value()) {
@@ -1850,7 +1841,6 @@ void BossManager::update_compiler_splitting(registry& reg, compiler_boss_control
             auto& pos = positions[idx].value();
             float dx = target_x - pos.x;
             float dy = target_y - pos.y;
-            float speed = 250.0f;
             pos.x += dx * dt * 2.5f;
             pos.y += dy * dt * 2.5f;
         }
@@ -1875,8 +1865,6 @@ void BossManager::update_compiler_separated(registry& reg, compiler_boss_control
     controller.part_movement_timer += dt;
 
     auto& positions = reg.get_components<position>();
-    auto& velocities = reg.get_components<velocity>();
-    auto& part_tags = reg.get_components<compiler_part_tag>();
     auto& controllers = reg.get_components<compiler_boss_controller>();
 
     for (std::size_t i = 0; i < controllers.size(); ++i) {

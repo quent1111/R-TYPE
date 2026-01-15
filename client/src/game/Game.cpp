@@ -403,7 +403,7 @@ void Game::update() {
     }
 }
 
-void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
+void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_id) {
     auto& texture_mgr = managers::TextureManager::instance();
 
     if (entity.type == 0x01) {

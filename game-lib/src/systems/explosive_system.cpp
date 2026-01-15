@@ -9,7 +9,6 @@ void explosiveProjectileSystem(registry& reg, float dt) {
     auto& positions = reg.get_components<position>();
     auto& explosives = reg.get_components<explosive_projectile>();
     auto& healths = reg.get_components<health>();
-    auto& collision_boxes = reg.get_components<collision_box>();
     auto& player_tags = reg.get_components<player_tag>();
     auto& shields = reg.get_components<shield>();
 

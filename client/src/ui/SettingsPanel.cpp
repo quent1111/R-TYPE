@@ -134,7 +134,6 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
 
     float content_x = m_panel_bg.getPosition().x + 24.0f;
     float content_y = m_panel_bg.getPosition().y + 160.0f;
-    float line_h = 36.0f;
 
     m_volume_text.setFont(m_font);
     m_volume_text.setCharacterSize(22);

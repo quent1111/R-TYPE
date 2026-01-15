@@ -114,7 +114,7 @@ TEST_F(FullCompressionIntegrationTest, ClientJoinLobbyPacket) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::JoinLobby;
-    serializer << static_cast<int32_t>(42); // Lobby ID
+    serializer << int32_t(42); // Lobby ID
     
     verify_packet_round_trip(serializer);
 }
@@ -182,20 +182,20 @@ TEST_F(FullCompressionIntegrationTest, ServerListLobbiesPacket) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::ListLobbies;
-    serializer << static_cast<int32_t>(2); // Nombre de lobbies
+    serializer << int32_t(2); // Nombre de lobbies
     
     // Lobby 1
-    serializer << static_cast<int32_t>(1);      // Lobby ID
+    serializer << int32_t(1);      // Lobby ID
     serializer << std::string("Lobby One");     // Name
-    serializer << static_cast<int32_t>(2);      // Current players
-    serializer << static_cast<int32_t>(4);      // Max players
+    serializer << int32_t(2);      // Current players
+    serializer << int32_t(4);      // Max players
     serializer << static_cast<uint8_t>(0);      // State
     
     // Lobby 2
-    serializer << static_cast<int32_t>(2);
+    serializer << int32_t(2);
     serializer << std::string("Lobby Two");
-    serializer << static_cast<int32_t>(1);
-    serializer << static_cast<int32_t>(4);
+    serializer << int32_t(1);
+    serializer << int32_t(4);
     serializer << static_cast<uint8_t>(1);
     
     verify_packet_round_trip(serializer);
@@ -206,7 +206,7 @@ TEST_F(FullCompressionIntegrationTest, ServerLobbyJoinedPacket) {
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::LobbyJoined;
     serializer << static_cast<uint8_t>(1);      // Success
-    serializer << static_cast<int32_t>(42);     // Lobby ID
+    serializer << int32_t(42);     // Lobby ID
     
     verify_packet_round_trip(serializer);
 }
@@ -376,9 +376,9 @@ TEST_F(FullCompressionIntegrationTest, StressTestManyLobbies) {
     
     for (int32_t i = 0; i < lobby_count; ++i) {
         serializer << i;
-        serializer << std::string("Lobby_" + std::to_string(i));
-        serializer << static_cast<int32_t>(i % 4);      // Current players
-        serializer << static_cast<int32_t>(4);          // Max players
+        serializer << ("Lobby_" + std::to_string(i));
+        serializer << int32_t(i % 4);      // Current players
+        serializer << int32_t(4);          // Max players
         serializer << static_cast<uint8_t>(i % 3);      // State
     }
     

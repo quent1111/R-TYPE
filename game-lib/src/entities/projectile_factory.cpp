@@ -217,7 +217,7 @@ entity createCustomProjectile(registry& reg, float x, float y, float vx, float v
     return projectile;
 }
 
-entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float vy, int damage, int projectile_type) {
+entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float vy, int damage, [[maybe_unused]] int projectile_type) {
     entity projectile = reg.spawn_entity();
 
     reg.register_component<position>();
