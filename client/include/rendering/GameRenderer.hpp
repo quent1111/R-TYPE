@@ -4,12 +4,15 @@
 #include "managers/EffectsManager.hpp"
 #include "managers/TextureManager.hpp"
 #include "rendering/LaserParticleSystem.hpp"
-#include "rendering/SerpentLaserSystem.hpp"
 #include "rendering/SerpentEffectsSystem.hpp"
+#include "rendering/SerpentLaserSystem.hpp"
 
 #include <SFML/Graphics.hpp>
 
 #include <map>
+
+#include <AccessibilityManager.hpp>
+#include <ProjectileShapeRenderer.hpp>
 
 namespace rendering {
 
@@ -28,13 +31,16 @@ public:
     void render_background(sf::RenderWindow& window);
 
     void set_background_level(uint8_t level);
+    void set_custom_background(const std::string& texture_path, bool is_static = false);
     void render_level_transition(sf::RenderWindow& window);
     bool is_transitioning() const { return transition_active_; }
 
     void render_entities(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
-                         uint32_t my_network_id, float dt, float predicted_x = -1.0f, float predicted_y = -1.0f);
+                         uint32_t my_network_id, float dt, float predicted_x = -1.0f,
+                         float predicted_y = -1.0f);
 
-    void render_laser_particles(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities, float dt);
+    void render_laser_particles(sf::RenderWindow& window, std::map<uint32_t, Entity>& entities,
+                                float dt);
 
     void render_effects(sf::RenderWindow& window);
 
@@ -87,11 +93,19 @@ private:
     sf::Text transition_text_;
     sf::Font transition_font_;
 
+    bool custom_bg_active_ = false;
+    bool custom_bg_static_ = false;
+    sf::Sprite custom_bg_sprite1_;
+    sf::Sprite custom_bg_sprite2_;
+    float custom_bg_scroll_offset_ = 0.0f;
+
     sf::View game_view_;
 
     std::map<uint32_t, LaserParticleSystem> laser_particle_systems_;
     std::map<uint32_t, SerpentLaserSystem> serpent_laser_systems_;
     SerpentEffectsSystem serpent_effects_;
+
+    accessibility::ProjectileShapeRenderer projectile_shape_renderer_;
 };
 
 }  // namespace rendering

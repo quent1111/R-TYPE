@@ -4,7 +4,8 @@
 
 namespace server {
 
-void GameBroadcaster::broadcast_level_info(UDPServer& server, registry& reg, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_level_info(UDPServer& server, registry& reg,
+                                           const std::vector<int>& lobby_client_ids) {
     auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
@@ -22,7 +23,8 @@ void GameBroadcaster::broadcast_level_info(UDPServer& server, registry& reg, con
     }
 }
 
-void GameBroadcaster::broadcast_level_complete(UDPServer& server, registry& reg, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_level_complete(UDPServer& server, registry& reg,
+                                               const std::vector<int>& lobby_client_ids) {
     auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
@@ -39,19 +41,30 @@ void GameBroadcaster::broadcast_level_complete(UDPServer& server, registry& reg,
     }
 }
 
-void GameBroadcaster::broadcast_level_start(UDPServer& server, uint8_t level, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_level_start(UDPServer& server, uint8_t level,
+                                            const std::string& custom_level_id,
+                                            const std::vector<int>& lobby_client_ids) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::LevelStart;
     serializer << level;
+    uint8_t id_len = static_cast<uint8_t>(custom_level_id.size());
+    serializer << id_len;
+    for (char c : custom_level_id) {
+        serializer << static_cast<uint8_t>(c);
+    }
     serializer.compress();
     server.send_to_clients(lobby_client_ids, serializer.data());
     std::cout << "[Game] Sent Level " << static_cast<int>(level)
-              << " start screen (opcode: 0x30, level: " << static_cast<int>(level) << ")"
-              << std::endl;
+              << " start screen (opcode: 0x30, level: " << static_cast<int>(level);
+    if (!custom_level_id.empty()) {
+        std::cout << ", custom: " << custom_level_id;
+    }
+    std::cout << ")" << std::endl;
 }
 
-void GameBroadcaster::broadcast_boss_spawn(UDPServer& server, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_boss_spawn(UDPServer& server,
+                                           const std::vector<int>& lobby_client_ids) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::BossSpawn;
@@ -60,7 +73,8 @@ void GameBroadcaster::broadcast_boss_spawn(UDPServer& server, const std::vector<
     std::cout << "[Game] Broadcasting Boss Spawn (opcode 0x50) - Music & Roar trigger" << std::endl;
 }
 
-void GameBroadcaster::broadcast_start_game(UDPServer& server, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_start_game(UDPServer& server,
+                                           const std::vector<int>& lobby_client_ids) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::StartGame;
@@ -68,7 +82,8 @@ void GameBroadcaster::broadcast_start_game(UDPServer& server, const std::vector<
     server.send_to_clients(lobby_client_ids, serializer.data());
 }
 
-void GameBroadcaster::broadcast_game_over(UDPServer& server, const std::vector<int>& lobby_client_ids) {
+void GameBroadcaster::broadcast_game_over(UDPServer& server,
+                                          const std::vector<int>& lobby_client_ids) {
     std::cout << "[Game] Broadcasting GameOver (opcode 0x40) to lobby clients..." << std::endl;
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;

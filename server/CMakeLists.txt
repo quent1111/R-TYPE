@@ -48,7 +48,9 @@ link_platform_libraries(r-type_server)
 add_custom_command(TARGET r-type_server POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:r-type_server>/assets
-    COMMENT "Copying assets to build directory"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/levels $<TARGET_FILE_DIR:r-type_server>/levels
+    COMMENT "Copying assets and levels to build directory"
 )
 
 message(STATUS "Server executable configured: r-type_server")

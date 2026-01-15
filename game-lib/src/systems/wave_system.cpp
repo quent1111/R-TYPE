@@ -40,12 +40,19 @@ void waveSystem(registry& reg, float dt) {
             auto& manager = wave_managers[i].value();
 
             bool is_boss_level = false;
+            bool is_custom_level = false;
             int current_level = 1;
             for (size_t j = 0; j < level_managers.size(); ++j) {
                 if (level_managers[j].has_value()) {
                     auto& lvl_mgr = level_managers[j].value();
                     int level = lvl_mgr.current_level;
                     current_level = level;
+
+                    // Check if this is a custom level (flag-based, not level number)
+                    if (lvl_mgr.is_custom_level) {
+                        is_custom_level = true;
+                        break;
+                    }
 
                     if (level == 5 || level == 10 || level == 15) {
                         is_boss_level = true;
@@ -66,7 +73,7 @@ void waveSystem(registry& reg, float dt) {
                 }
             }
 
-            if (!is_boss_level) {
+            if (!is_boss_level && !is_custom_level) {
                 manager.timer += dt;
                 if (manager.timer >= manager.spawn_interval) {
                     manager.timer = 0.0f;

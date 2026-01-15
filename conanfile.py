@@ -12,6 +12,7 @@ class RTypeConan(ConanFile):
         self.requires("boost/1.86.0")
         self.requires("gtest/1.14.0")
         self.requires("lz4/1.9.4")
+        self.requires("nlohmann_json/3.11.3")
 
     def configure(self):
         if self.settings.os == "Macos" and self.settings.arch == "armv8":

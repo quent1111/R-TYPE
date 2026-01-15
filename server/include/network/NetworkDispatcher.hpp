@@ -1,11 +1,12 @@
 #pragma once
 
-#include "INetworkCommand.hpp"
-#include "UDPServer.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
-#include <queue>
+#include "INetworkCommand.hpp"
+#include "UDPServer.hpp"
+
 #include <memory>
+#include <queue>
 
 namespace server {
 
@@ -36,10 +37,7 @@ private:
      * @param server UDP server reference.
      * @return Command object or nullptr if parsing failed.
      */
-    std::unique_ptr<INetworkCommand> parse_packet(
-        const NetworkPacket& packet,
-        UDPServer& server
-    );
+    std::unique_ptr<INetworkCommand> parse_packet(const NetworkPacket& packet, UDPServer& server);
 };
 
 }  // namespace server

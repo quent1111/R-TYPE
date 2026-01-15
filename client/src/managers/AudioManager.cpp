@@ -24,7 +24,8 @@ void AudioManager::play_sound([[maybe_unused]] SoundType type) {
     // No-op: audio disabled
 }
 
-void AudioManager::play_music([[maybe_unused]] const std::string& music_path, [[maybe_unused]] bool loop) {
+void AudioManager::play_music([[maybe_unused]] const std::string& music_path,
+                              [[maybe_unused]] bool loop) {
     // No-op: audio disabled
 }
 
@@ -72,6 +73,22 @@ float AudioManager::get_master_volume() const {
     return master_volume_;
 }
 
+void AudioManager::set_music_muted(bool muted) {
+    music_muted_ = muted;
+}
+
+void AudioManager::set_sound_muted(bool muted) {
+    sound_muted_ = muted;
+}
+
+bool AudioManager::is_music_muted() const {
+    return music_muted_;
+}
+
+bool AudioManager::is_sound_muted() const {
+    return sound_muted_;
+}
+
 float AudioManager::get_effective_volume(float base_volume) const {
     return (base_volume * master_volume_) / 100.0f;
 }
@@ -111,6 +128,10 @@ bool AudioManager::load_sounds() {
 }
 
 void AudioManager::play_sound(SoundType type) {
+    if (sound_muted_) {
+        return;
+    }
+
     auto it = sound_buffers_.find(type);
     if (it == sound_buffers_.end()) {
         return;
@@ -162,6 +183,11 @@ sf::Sound& AudioManager::get_next_sound() {
 }
 
 void AudioManager::play_music(const std::string& music_path, bool loop) {
+    if (music_muted_) {
+        current_music_path_ = music_path;
+        return;
+    }
+
     if (current_music_path_ == music_path && music_.getStatus() == sf::Music::Playing) {
         return;
     }
@@ -225,6 +251,29 @@ float AudioManager::get_music_volume() const {
 
 float AudioManager::get_master_volume() const {
     return master_volume_;
+}
+
+void AudioManager::set_music_muted(bool muted) {
+    music_muted_ = muted;
+    if (muted) {
+        music_.pause();
+    } else {
+        if (!current_music_path_.empty() && music_.getStatus() == sf::Music::Paused) {
+            music_.play();
+        }
+    }
+}
+
+void AudioManager::set_sound_muted(bool muted) {
+    sound_muted_ = muted;
+}
+
+bool AudioManager::is_music_muted() const {
+    return music_muted_;
+}
+
+bool AudioManager::is_sound_muted() const {
+    return sound_muted_;
 }
 
 float AudioManager::get_effective_volume(float base_volume) const {

@@ -1,6 +1,7 @@
 #include "rendering/HUDRenderer.hpp"
 
 #include "managers/EffectsManager.hpp"
+
 #include <iostream>
 
 namespace rendering {
@@ -148,7 +149,12 @@ void HUDRenderer::render_timer(sf::RenderWindow& window) {
 
 void HUDRenderer::render_health_bar(sf::RenderWindow& window,
                                     const std::map<uint32_t, Entity>& entities,
-                                    uint32_t my_network_id) {
+                                    uint32_t my_network_id,
+                                    bool show_level_intro) {
+    if (show_level_intro) {
+        return;
+    }
+
     for (const auto& [id, entity] : entities) {
         if (entity.type == 0x01 && id == my_network_id) {
             float health_percentage =
@@ -177,12 +183,15 @@ void HUDRenderer::render_health_bar(sf::RenderWindow& window,
     }
 }
 
-void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro) {
+void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro,
+                                   bool is_custom_level) {
     if (show_level_intro) {
         return;
     }
 
-    bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
+    // Only show boss wave styling for standard game, not custom levels
+    bool is_boss_wave =
+        !is_custom_level && (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
 
     if (is_boss_wave) {
         level_text_.setFillColor(sf::Color(255, 50, 50));
@@ -265,7 +274,8 @@ void HUDRenderer::render_combo_bar(sf::RenderWindow& window) {
     window.draw(combo_text_);
 }
 
-void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::map<uint32_t, Entity>& entities) {
+void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window,
+                                         const std::map<uint32_t, Entity>& entities) {
     bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
     if (!is_boss_wave) {
         return;
@@ -291,7 +301,8 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
             boss_name = "SERPENT GUARDIAN";
             break;
         }
-        if (current_level_ == 15 && (entity.type == 0x21 || entity.type == 0x22 || entity.type == 0x23)) {
+        // CompilerParts: 0x1C, 0x1D, 0x1E
+        if (current_level_ == 15 && (entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E)) {
             boss_current_hp += entity.health;
             boss_max_hp += entity.max_health;
             boss_found = true;
@@ -325,7 +336,8 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window, const std::ma
     }
 
     const float boss_bar_width = 800.0f;
-    boss_health_bar_fill_.setSize(sf::Vector2f(boss_bar_width * health_pct, boss_health_bar_fill_.getSize().y));
+    boss_health_bar_fill_.setSize(
+        sf::Vector2f(boss_bar_width * health_pct, boss_health_bar_fill_.getSize().y));
     boss_health_bar_fill_.setFillColor(bar_color);
     window.draw(boss_health_bar_fill_);
 }

@@ -1,12 +1,12 @@
+#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 #include "common/SafeQueue.hpp"
 #include "network/Messages.hpp"
 #include "network/NetworkClient.hpp"
 #include "states/GameState.hpp"
-#include "states/LobbyState.hpp"
 #include "states/LobbyListState.hpp"
+#include "states/LobbyState.hpp"
 #include "states/MenuState.hpp"
 #include "states/StateManager.hpp"
-#include "../../game-lib/include/powerup/PowerupRegistry.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -17,7 +17,7 @@
 int main(int argc, char* argv[]) {
     std::cout << "[Client] Initializing power-up system..." << std::endl;
     powerup::PowerupRegistry::instance().initialize();
-    
+
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-TYPE - Multiplayer");
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(60);

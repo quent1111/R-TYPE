@@ -11,6 +11,9 @@
 #include "../../game-lib/include/entities/enemy_factory.hpp"
 #include "../../game-lib/include/entities/player_factory.hpp"
 #include "../../game-lib/include/entities/projectile_factory.hpp"
+#include "../../game-lib/include/level/CustomLevelManager.hpp"
+#include "../../game-lib/include/level/LevelConfig.hpp"
+#include "../../game-lib/include/systems/custom_wave_system.hpp"
 #include "../../game-lib/include/systems/system_wrappers.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
@@ -86,16 +89,25 @@ private:
 
     std::string _lobby_name;
     int _starting_level = 1;
+    std::string _custom_level_id;
+    std::string _current_custom_level_id;
+    bool _friendly_fire = false;
+    uint8_t _difficulty = 0;
+
+    bool _is_custom_level = false;
+    custom_wave_state _custom_wave_state;
+    std::optional<rtype::level::LevelConfig> _loaded_custom_level;
 
     void process_network_events(UDPServer& server);
     void update_game_state(UDPServer& server, float dt);
     void send_periodic_updates(UDPServer& server, float dt);
+    void update_custom_level(float dt);
 
     void check_level_completion(UDPServer& server);
     void advance_level(UDPServer& server);
     void reset_game(UDPServer& server);
 
-    std::function<void()> _game_reset_callback = [](){};
+    std::function<void()> _game_reset_callback = []() {};
 
 public:
     void set_game_reset_callback(std::function<void()> callback) {
@@ -107,6 +119,10 @@ public:
     void start_game(UDPServer& server);
     void set_lobby_clients(const std::vector<int>& client_ids) { _lobby_client_ids = client_ids; }
     void set_lobby_name(const std::string& name);
+    void set_friendly_fire(bool enabled) { _friendly_fire = enabled; }
+    bool get_friendly_fire() const { return _friendly_fire; }
+    void set_difficulty(uint8_t difficulty) { _difficulty = difficulty; }
+    uint8_t get_difficulty() const { return _difficulty; }
     void broadcast_lobby_status(UDPServer& server);
     void remove_player(int client_id);
     void create_player_for_client(int client_id, float start_x, float start_y);
@@ -119,6 +135,11 @@ public:
     void process_inputs(UDPServer& server);
     void handle_packet(UDPServer& server, int client_id, const std::vector<uint8_t>& data);
     registry& getRegistry() { return _engine.get_registry(); }
+
+    void set_custom_level_id(const std::string& id) { _custom_level_id = id; }
+    const std::string& get_custom_level_id() const { return _custom_level_id; }
+    bool is_custom_level() const { return _is_custom_level; }
+    void load_custom_level();
 };
 
 }  // namespace server

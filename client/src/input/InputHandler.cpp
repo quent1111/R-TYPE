@@ -1,7 +1,8 @@
 #include "input/InputHandler.hpp"
 
-#include <iostream>
 #include "common/Settings.hpp"
+
+#include <iostream>
 
 namespace input {
 
@@ -97,21 +98,22 @@ void InputHandler::handle_input(float dt) {
 
     uint8_t input_mask = 0;
 
-    auto& s = Settings::instance();
-    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_up))) {
-        input_mask |= KEY_Z;
-    }
-    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_left))) {
-        input_mask |= KEY_Q;
-    }
-    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_down))) {
-        input_mask |= KEY_S;
-    }
-    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_right))) {
-        input_mask |= KEY_D;
-    }
-
+    // Bloquer les mouvements et le tir pendant la sélection de power-up
     if (!show_powerup_selection_) {
+        auto& s = Settings::instance();
+        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_up))) {
+            input_mask |= KEY_Z;
+        }
+        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_left))) {
+            input_mask |= KEY_Q;
+        }
+        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_down))) {
+            input_mask |= KEY_S;
+        }
+        if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_right))) {
+            input_mask |= KEY_D;
+        }
+
         if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_powerup1))) {
             if (!was_activating_cannon_ && powerup_activate_callback_) {
                 powerup_activate_callback_(0);
@@ -138,28 +140,34 @@ void InputHandler::handle_input(float dt) {
         } else {
             was_activating_friend_ = false;
         }
-    }
 
-    if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot))) {
-        input_mask |= KEY_SPACE;
+        bool is_shooting = sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_shoot)) || s.auto_fire_enabled;
+        
+        if (is_shooting) {
+            input_mask |= KEY_SPACE;
 
-        if (!was_shooting_) {
-            if (shoot_sound_callback_) {
-                shoot_sound_callback_();
-            }
-            shoot_sound_timer_ = 0.0f;
-        } else {
-            shoot_sound_timer_ += dt;
-            if (shoot_sound_timer_ >= shoot_sound_interval_) {
+            if (!was_shooting_) {
                 if (shoot_sound_callback_) {
                     shoot_sound_callback_();
                 }
                 shoot_sound_timer_ = 0.0f;
+            } else {
+                shoot_sound_timer_ += dt;
+                if (shoot_sound_timer_ >= shoot_sound_interval_) {
+                    if (shoot_sound_callback_) {
+                        shoot_sound_callback_();
+                    }
+                    shoot_sound_timer_ = 0.0f;
+                }
             }
-        }
 
-        was_shooting_ = true;
+            was_shooting_ = true;
+        } else {
+            was_shooting_ = false;
+            shoot_sound_timer_ = 0.0f;
+        }
     } else {
+        // Réinitialiser l'état de tir quand on est en sélection de power-up
         was_shooting_ = false;
         shoot_sound_timer_ = 0.0f;
     }

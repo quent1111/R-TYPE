@@ -2,7 +2,8 @@
 
 namespace server {
 
-void PowerupBroadcaster::broadcast_powerup_selection(UDPServer& server, const std::vector<int>& lobby_client_ids) {
+void PowerupBroadcaster::broadcast_powerup_selection(UDPServer& server,
+                                                     const std::vector<int>& lobby_client_ids) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpChoice;
@@ -11,9 +12,8 @@ void PowerupBroadcaster::broadcast_powerup_selection(UDPServer& server, const st
     server.send_to_clients(lobby_client_ids, serializer.data());
 }
 
-void PowerupBroadcaster::broadcast_powerup_cards(
-    UDPServer& server, int client_id, const std::vector<powerup::PowerupCard>& cards) {
-
+void PowerupBroadcaster::broadcast_powerup_cards(UDPServer& server, int client_id,
+                                                 const std::vector<powerup::PowerupCard>& cards) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::PowerUpCards;
@@ -28,13 +28,12 @@ void PowerupBroadcaster::broadcast_powerup_cards(
     serializer.compress();
     server.send_to_client(client_id, serializer.data());
 
-    std::cout << "[PowerupBroadcaster] Sent " << cards.size() << " power-up cards to client " 
+    std::cout << "[PowerupBroadcaster] Sent " << cards.size() << " power-up cards to client "
               << client_id << std::endl;
 }
 
 void PowerupBroadcaster::broadcast_powerup_status(
-    UDPServer& server, registry& reg,
-    const std::unordered_map<int, std::size_t>& client_entity_ids,
+    UDPServer& server, registry& reg, const std::unordered_map<int, std::size_t>& client_entity_ids,
     const std::vector<int>& lobby_client_ids) {
     for (const auto& [client_id, entity_id] : client_entity_ids) {
         auto player = reg.entity_from_index(entity_id);
@@ -79,9 +78,7 @@ void PowerupBroadcaster::broadcast_powerup_status(
 }
 
 void PowerupBroadcaster::broadcast_activable_slots(
-    UDPServer& server, int client_id,
-    const powerup::PlayerPowerups::ActivableSlot slots[2]) {
-
+    UDPServer& server, int client_id, const powerup::PlayerPowerups::ActivableSlot slots[2]) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::ActivableSlots;

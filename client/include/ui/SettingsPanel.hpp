@@ -5,9 +5,9 @@
 
 #include <SFML/Graphics.hpp>
 
+#include <functional>
 #include <memory>
 #include <vector>
-#include <functional>
 
 namespace rtype::ui {
 
@@ -34,6 +34,7 @@ public:
         m_temp_fullscreen = Settings::instance().fullscreen;
         m_temp_colorblind = Settings::instance().colorblind_mode;
         m_temp_screen_shake = Settings::instance().screen_shake_enabled;
+        m_temp_auto_fire = Settings::instance().auto_fire_enabled;
         create_buttons();
     }
     void close() { m_open = false; }
@@ -73,11 +74,21 @@ private:
     std::function<void()> m_quit_callback;
     size_t m_temp_resolution_index{0};
     bool m_temp_fullscreen{false};
-    bool m_temp_colorblind{false};
+    ColorBlindMode m_temp_colorblind{ColorBlindMode::Normal};
     bool m_temp_screen_shake{true};
+    bool m_temp_auto_fire{false};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};
-    enum class ControlAction { Up = 0, Down = 1, Left = 2, Right = 3, Shoot = 4, Power1 = 5, Power2 = 6 };
+    enum class ControlAction {
+        Up = 0,
+        Down = 1,
+        Left = 2,
+        Right = 3,
+        Shoot = 4,
+        Power1 = 5,
+        Power2 = 6
+    };
+
 public:
     void set_quit_callback(std::function<void()> cb) { m_quit_callback = std::move(cb); }
 };

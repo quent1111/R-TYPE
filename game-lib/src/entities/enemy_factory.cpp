@@ -3,6 +3,16 @@
 #include "components/game_components.hpp"
 #include <random>
 
+static float get_difficulty_multiplier(registry& reg) {
+    auto& settings = reg.get_components<game_settings>();
+    for (const auto& setting : settings) {
+        if (setting.has_value()) {
+            return setting->difficulty_multiplier;
+        }
+    }
+    return 1.0f;
+}
+
 entity createBasicEnemy(registry& reg, float x, float y) {
     entity enemy = reg.spawn_entity();
 
@@ -17,9 +27,13 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.register_component<entity_tag>();
     reg.register_component<weapon>();
 
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 10;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
-    reg.add_component(enemy, health{10});
+    reg.add_component(enemy, health{scaled_health});
 
     reg.add_component(enemy, weapon{0.5f, 300.0f, 15});
 
@@ -64,9 +78,13 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     reg.register_component<entity_tag>();
     reg.register_component<weapon>();
 
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    int base_health = 15;
+    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-120.0f, 0.0f});
-    reg.add_component(enemy, health{15});
+    reg.add_component(enemy, health{scaled_health});
 
     reg.add_component(enemy, weapon{0.7f, 250.0f, 20});
 

@@ -177,6 +177,7 @@ struct level_manager {
     int enemies_needed_for_next_level = 1;
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
+    bool is_custom_level = false;  // Flag to differentiate custom levels from standard game
     float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
     
@@ -438,6 +439,7 @@ struct player_tag {};
 struct enemy_tag {};
 struct boss_tag {};
 struct projectile_tag {};
+struct ally_projectile_tag {};
 struct explosion_tag {
     float lifetime;
     float elapsed;
@@ -676,3 +678,11 @@ struct position_history {
     }
 };
 
+struct game_settings {
+    bool friendly_fire_enabled = false;
+    float difficulty_multiplier = 1.0f;
+    
+    constexpr game_settings() noexcept = default;
+    constexpr explicit game_settings(bool ff_enabled, float diff_mult = 1.0f) noexcept 
+        : friendly_fire_enabled(ff_enabled), difficulty_multiplier(diff_mult) {}
+};
