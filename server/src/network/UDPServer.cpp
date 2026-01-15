@@ -96,17 +96,19 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
             std::vector<uint8_t> data(recv_buffer_->begin(),
                                       recv_buffer_->begin() + bytes_received);
 
-            try {
-                RType::CompressionSerializer decompressor(data);
-                decompressor.decompress();
-                data = decompressor.data();
-            } catch (const RType::CompressionException& e) {
-                std::cerr << "[Security] Decompression error from " << remote_endpoint_ 
-                          << ": " << e.what() << std::endl;
-                if (running_) {
-                    start_receive();
+            if (!data.empty() && (data[0] == 0x00 || data[0] == 0x01)) {
+                try {
+                    RType::CompressionSerializer decompressor(data);
+                    decompressor.decompress();
+                    data = decompressor.data();
+                } catch (const RType::CompressionException& e) {
+                    std::cerr << "[Security] Decompression error from " << remote_endpoint_ 
+                              << ": " << e.what() << std::endl;
+                    if (running_) {
+                        start_receive();
+                    }
+                    return;
                 }
-                return;
             }
 
             if (data.size() >= 2) {
@@ -129,10 +131,8 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
                         }
                         // Ne pas traiter comme paquet normal
                     } else if (data.size() >= 7) {
-                        // Vérifier si c'est un OpCode critique (avec sequence ID)
                         uint8_t opcode = data[2];
                         bool is_reliable_opcode = (opcode == 0x02 ||  // LoginAck
-                                                  opcode == 0x22 ||  // StartGame
                                                   opcode == 0x30 ||  // LevelStart
                                                   opcode == 0x50 ||  // BossSpawn
                                                   opcode == 0x40 ||  // GameOver

@@ -40,7 +40,12 @@ void ServerCore::process_network_events(UDPServer& server) {
             deserializer >> magic;
 
             if (!RType::MagicNumber::is_valid(magic)) {
-                std::cerr << "[ServerCore] Invalid magic number from " << packet.sender << std::endl;
+                std::cerr << "[ServerCore] Invalid magic number from " << packet.sender 
+                          << " (first bytes: ";
+                for (size_t i = 0; i < std::min(packet.data.size(), size_t(10)); ++i) {
+                    std::cerr << std::hex << static_cast<int>(packet.data[i]) << " ";
+                }
+                std::cerr << std::dec << ")" << std::endl;
                 continue;
             }
 
@@ -73,9 +78,28 @@ void ServerCore::process_network_events(UDPServer& server) {
                 case RType::OpCode::LeaveLobby:
                     _lobby_command_handler.handle_leave_lobby(server, client_id);
                     continue;
-                case RType::OpCode::StartGame:
-                    _lobby_command_handler.handle_start_game(server, client_id);
+                case RType::OpCode::StartGame: {
+                    std::cout << "[ServerCore] StartGame received from client " << client_id << std::endl;
+                    std::string level_id;
+                    if (deserializer.remaining() > 0) {
+                        uint8_t id_len = 0;
+                        deserializer >> id_len;
+                        for (uint8_t i = 0; i < id_len && deserializer.remaining() > 0; ++i) {
+                            uint8_t c;
+                            deserializer >> c;
+                            level_id += static_cast<char>(c);
+                        }
+                    }
+                    _lobby_command_handler.handle_start_game(server, client_id, level_id);
                     continue;
+                }
+                case RType::OpCode::RequestGameState: {
+                    Lobby* lobby = _lobby_manager.get_client_lobby_ptr(client_id);
+                    if (lobby && lobby->get_game_session()) {
+                        lobby->get_game_session()->handle_packet(server, client_id, packet.data);
+                    }
+                    continue;
+                }
                 case RType::OpCode::AdminLogin: {
                     std::string password;
                     deserializer >> password;
@@ -138,7 +162,12 @@ void ServerCore::process_network_events(UDPServer& server) {
                     break;
                 default:
                     std::cout << "[ServerCore] Unknown opcode from client " << client_id
-                              << ": " << RType::opcode_to_string(opcode) << std::endl;
+                              << ": " << RType::opcode_to_string(opcode)
+                              << " (packet size: " << packet.data.size() << ", bytes: ";
+                    for (size_t i = 0; i < std::min(packet.data.size(), size_t(15)); ++i) {
+                        std::cout << std::hex << static_cast<int>(packet.data[i]) << " ";
+                    }
+                    std::cout << std::dec << ")" << std::endl;
                     break;
             }
 

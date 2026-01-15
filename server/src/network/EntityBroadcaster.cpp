@@ -78,7 +78,13 @@ void EntityBroadcaster::broadcast_entity_positions(
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Boss) {
                 network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::CustomEnemy) {
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::CustomBoss) {
+                network_id = ENEMY_ID_OFFSET + static_cast<uint32_t>(i);
             } else if (tags[i]->type == RType::EntityType::Projectile) {
+                network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
+            } else if (tags[i]->type == RType::EntityType::CustomProjectile) {
                 network_id = PROJECTILE_ID_OFFSET + static_cast<uint32_t>(i);
             } else {
                 network_id = OTHER_ID_OFFSET + static_cast<uint32_t>(i);
@@ -92,9 +98,25 @@ void EntityBroadcaster::broadcast_entity_positions(
             float vx = vel_opt.has_value() ? vel_opt->vx : 0.0f;
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             broadcast_serializer_.write_velocity(vx, vy);
+            
+            // Send custom entity ID for custom entities (enemy, boss, projectile)
+            if (tags[i]->type == RType::EntityType::CustomEnemy ||
+                tags[i]->type == RType::EntityType::CustomBoss ||
+                tags[i]->type == RType::EntityType::CustomProjectile) {
+                auto custom_id_opt = reg.get_component<custom_entity_id>(entity_obj);
+                std::string entity_id_str = custom_id_opt.has_value() ? custom_id_opt->entity_id : "";
+                
+                // Send string length (uint8_t) then string data
+                uint8_t id_length = static_cast<uint8_t>(std::min(entity_id_str.length(), size_t(255)));
+                broadcast_serializer_ << id_length;
+                for (uint8_t j = 0; j < id_length; ++j) {
+                    broadcast_serializer_ << static_cast<uint8_t>(entity_id_str[j]);
+                }
+            }
 
             // Send health for boss and serpent parts
             if (tags[i]->type == RType::EntityType::Boss ||
+                tags[i]->type == RType::EntityType::CustomBoss ||
                 tags[i]->type == RType::EntityType::SerpentHead ||
                 tags[i]->type == RType::EntityType::SerpentBody ||
                 tags[i]->type == RType::EntityType::SerpentScale ||

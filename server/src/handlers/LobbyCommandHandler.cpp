@@ -104,13 +104,18 @@ void LobbyCommandHandler::handle_leave_lobby(UDPServer& server, int client_id) {
     }
 }
 
-void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id) {
-    std::cout << "[LobbyCommandHandler] Client " << client_id << " requesting game start" << std::endl;
+void LobbyCommandHandler::handle_start_game(UDPServer& server, int client_id, const std::string& level_id) {
+    std::cout << "[LobbyCommandHandler] Client " << client_id << " requesting game start with level id: " 
+              << (level_id.empty() ? "(standard)" : level_id) << std::endl;
 
     Lobby* lobby = _lobby_manager.get_client_lobby_ptr(client_id);
     if (!lobby) {
         std::cerr << "[LobbyCommandHandler] Client " << client_id << " not in any lobby" << std::endl;
         return;
+    }
+
+    if (lobby->get_game_session()) {
+        lobby->get_game_session()->set_custom_level_id(level_id);
     }
 
     lobby->start_game(server);
