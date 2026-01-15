@@ -6,6 +6,7 @@
 #include "collision_system.hpp"
 #include "wave_system.hpp"
 #include "cleanup_system.hpp"
+#include "explosive_system.hpp"
 
 
 class ShootingSystem : public engine::ISystem {
@@ -58,6 +59,15 @@ public:
     void init([[maybe_unused]] registry& reg) override {}
     void update(registry& reg, [[maybe_unused]] float dt) override {
         cleanupSystem(reg);
+    }
+    void shutdown([[maybe_unused]] registry& reg) override {}
+};
+
+class ExplosiveProjectileSystem : public engine::ISystem {
+public:
+    void init([[maybe_unused]] registry& reg) override {}
+    void update(registry& reg, float dt) override {
+        explosiveProjectileSystem(reg, dt);
     }
     void shutdown([[maybe_unused]] registry& reg) override {}
 };

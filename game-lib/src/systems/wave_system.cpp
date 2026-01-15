@@ -40,10 +40,12 @@ void waveSystem(registry& reg, float dt) {
             auto& manager = wave_managers[i].value();
 
             bool is_boss_level = false;
+            int current_level = 1;
             for (size_t j = 0; j < level_managers.size(); ++j) {
                 if (level_managers[j].has_value()) {
                     auto& lvl_mgr = level_managers[j].value();
                     int level = lvl_mgr.current_level;
+                    current_level = level;
 
                     if (level == 5 || level == 10 || level == 15) {
                         is_boss_level = true;
@@ -53,8 +55,13 @@ void waveSystem(registry& reg, float dt) {
                     manager.spawn_interval = 3.0f - static_cast<float>(level - 1) * 0.2f;
                     if (manager.spawn_interval < 1.0f) manager.spawn_interval = 1.0f;
 
-                    manager.enemies_per_wave = 3 + (level - 1);
-                    if (manager.enemies_per_wave > 8) manager.enemies_per_wave = 8;
+                    if (level >= 11) {
+                        manager.enemies_per_wave = 4 + (level - 11) / 2;
+                        if (manager.enemies_per_wave > 7) manager.enemies_per_wave = 7;
+                    } else {
+                        manager.enemies_per_wave = 3 + (level - 1);
+                        if (manager.enemies_per_wave > 8) manager.enemies_per_wave = 8;
+                    }
                     break;
                 }
             }
@@ -63,7 +70,7 @@ void waveSystem(registry& reg, float dt) {
                 manager.timer += dt;
                 if (manager.timer >= manager.spawn_interval) {
                     manager.timer = 0.0f;
-                    spawnEnemyWave(reg, manager.enemies_per_wave);
+                    spawnEnemyWave(reg, manager.enemies_per_wave, current_level);
                 }
             }
         }

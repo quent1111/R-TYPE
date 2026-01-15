@@ -82,7 +82,8 @@ private:
     int _boss_shoot_counter = 0;
 
     std::optional<entity> _serpent_controller_entity;
-    
+    std::optional<entity> _compiler_controller_entity;
+
     std::string _lobby_name;
     int _starting_level = 1;
 
