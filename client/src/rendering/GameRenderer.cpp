@@ -4,6 +4,7 @@
 #include "managers/TextureManager.hpp"
 
 #include <cmath>
+#include <iostream>
 
 #include <chrono>
 
@@ -219,6 +220,16 @@ void GameRenderer::update(float dt) {
 }
 
 void GameRenderer::render_background(sf::RenderWindow& window) {
+    if (custom_bg_active_) {
+        if (custom_bg_static_) {
+            window.draw(custom_bg_sprite1_);
+        } else {
+            window.draw(custom_bg_sprite1_);
+            window.draw(custom_bg_sprite2_);
+        }
+        return;
+    }
+    
     if (current_bg_level_ == 10) {
         window.draw(boss_fight_bg_sprite_);
         return;
@@ -242,7 +253,41 @@ void GameRenderer::render_background(sf::RenderWindow& window) {
     }
 }
 
+void GameRenderer::set_custom_background(const std::string& texture_path, bool is_static) {
+    auto& texture_mgr = managers::TextureManager::instance();
+    
+    if (!texture_mgr.has(texture_path)) {
+        std::cout << "[GameRenderer] Custom background not found: " << texture_path << std::endl;
+        return;
+    }
+    
+    sf::Texture* tex = texture_mgr.get(texture_path);
+    custom_bg_sprite1_.setTexture(*tex);
+    custom_bg_sprite2_.setTexture(*tex);
+    
+    sf::Vector2u tex_size = tex->getSize();
+    float scale_x = static_cast<float>(WINDOW_WIDTH) / static_cast<float>(tex_size.x);
+    float scale_y = static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(tex_size.y);
+    float scale = std::max(scale_x, scale_y);
+    
+    custom_bg_sprite1_.setScale(scale, scale);
+    custom_bg_sprite2_.setScale(scale, scale);
+    
+    custom_bg_sprite1_.setPosition(0, 0);
+    custom_bg_sprite2_.setPosition(static_cast<float>(tex_size.x) * scale, 0);
+    
+    custom_bg_static_ = is_static;
+    custom_bg_active_ = true;
+    custom_bg_scroll_offset_ = 0.0f;
+    
+    std::cout << "[GameRenderer] Custom background set: " << texture_path << " (static: " << is_static << ")" << std::endl;
+}
+
 void GameRenderer::set_background_level(uint8_t level) {
+    if (level == 99) {
+        return;
+    }
+    custom_bg_active_ = false;
     if (current_bg_level_ == level) return;
     if (level == 6 && current_bg_level_ == 5) {
         target_bg_level_ = level;

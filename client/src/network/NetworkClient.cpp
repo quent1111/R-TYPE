@@ -167,6 +167,12 @@ void NetworkClient::send_loop() {
 
             case GameToNetwork::MessageType::RawPacket:
                 if (!msg.raw_data.empty()) {
+                    std::cout << "[NetworkClient] Sending RawPacket, size=" << msg.raw_data.size() 
+                              << ", first bytes: ";
+                    for (size_t i = 0; i < std::min(msg.raw_data.size(), size_t(10)); ++i) {
+                        std::cout << std::hex << static_cast<int>(msg.raw_data[i]) << " ";
+                    }
+                    std::cout << std::dec << std::endl;
                     socket_.send_to(asio::buffer(msg.raw_data), server_endpoint_);
                 }
                 break;
@@ -242,6 +248,18 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vy = vy;
             entity.curr_time = std::chrono::steady_clock::now();
 
+            // Read custom_entity_id string for custom entities
+            if (type_val == 0x20 || type_val == 0x21 || type_val == 0x22) {
+                uint8_t str_length;
+                deserializer >> str_length;
+                entity.custom_entity_id.resize(str_length);
+                for (int j = 0; j < str_length; ++j) {
+                    uint8_t ch;
+                    deserializer >> ch;
+                    entity.custom_entity_id[j] = static_cast<char>(ch);
+                }
+            }
+
             if (type_val == 0x01) {
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
@@ -251,7 +269,8 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                        type_val == 0x11 || 
                        type_val == 0x12 ||
                        type_val == 0x13 ||
-                       type_val == 0x14) {
+                       type_val == 0x14 ||
+                       type_val == 0x21) {  // CustomBoss
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
@@ -381,9 +400,21 @@ void NetworkClient::decode_level_start(const std::vector<uint8_t>& buffer, std::
 
         uint8_t level;
         deserializer >> level;
+        
+        std::string custom_level_id;
+        if (deserializer.remaining() >= 1) {
+            uint8_t id_len;
+            deserializer >> id_len;
+            if (deserializer.remaining() >= id_len) {
+                for (uint8_t i = 0; i < id_len; ++i) {
+                    uint8_t c;
+                    deserializer >> c;
+                    custom_level_id += static_cast<char>(c);
+                }
+            }
+        }
 
-        NetworkToGame::Message msg(NetworkToGame::MessageType::LevelStart);
-        msg.level = level;
+        NetworkToGame::Message msg = NetworkToGame::Message::level_start(level, custom_level_id);
         network_to_game_queue_.push(msg);
 
     } catch (const std::exception& e) {

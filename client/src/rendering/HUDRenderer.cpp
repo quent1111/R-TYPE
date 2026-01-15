@@ -177,12 +177,13 @@ void HUDRenderer::render_health_bar(sf::RenderWindow& window,
     }
 }
 
-void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro) {
+void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_intro, bool is_custom_level) {
     if (show_level_intro) {
         return;
     }
 
-    bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
+    // Only show boss wave styling for standard game, not custom levels
+    bool is_boss_wave = !is_custom_level && (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
 
     if (is_boss_wave) {
         level_text_.setFillColor(sf::Color(255, 50, 50));

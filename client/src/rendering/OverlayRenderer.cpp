@@ -204,12 +204,13 @@ void OverlayRenderer::init(const sf::Font& font) {
 }
 
 void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, uint8_t level,
-                                         uint16_t enemies_needed) {
+                                         uint16_t enemies_needed, bool is_custom_level) {
     if (!show) {
         return;
     }
 
-    bool is_boss_wave = (level == 5 || level == 10 || level == 15);
+    // Only show boss wave banner for standard game, not custom levels
+    bool is_boss_wave = !is_custom_level && (level == 5 || level == 10 || level == 15);
 
     if (is_boss_wave) {
         level_intro_overlay_.setFillColor(sf::Color(40, 0, 0, 200));
