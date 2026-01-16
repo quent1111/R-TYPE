@@ -93,6 +93,7 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     entities_.clear();
     has_server_position_ = false;
     boss_spawn_triggered_ = false;
+    
     show_game_over_ = false;
     game_over_timer_ = 0.0f;
 
@@ -338,6 +339,7 @@ void Game::update() {
             boss_spawn_triggered_ = false;
         }
     }
+    
 
     for (auto& [id, entity] : entities_) {
         if ((entity.type == 0x08 || entity.type == 0x11 || entity.type == 0x12 ||
@@ -1041,6 +1043,24 @@ void Game::process_network_messages() {
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
+                        if (incoming.type == 0x11) {
+                            std::cout << "[Game] SERPENT HEAD SPAWNED! Playing roar sound..." << std::endl;
+                            managers::AudioManager::instance().play_sound(
+                                managers::AudioManager::SoundType::SnakeRoar);
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/bossfight.mp3", true);
+                        }
+                        if ((incoming.type == 0x1C || incoming.type == 0x1D || incoming.type == 0x1E) && !boss_spawn_triggered_) {
+                            std::cout
+                                << "[Game] COMPILER BOSS DETECTED! Launching Spacecrusher music..."
+                                << std::endl;
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/Spacecrusher.ogg", true);
+                            managers::AudioManager::instance().play_sound(
+                                managers::AudioManager::SoundType::RobotRoar);
+                            boss_spawn_triggered_ = true;
+                            boss_roar_timer_ = 0.0f;
+                        }
                         if (incoming.type == 0x1F) {
                             boss_explosion_count_++;
                             if (boss_explosion_count_ % 5 == 1) {
@@ -1091,6 +1111,10 @@ void Game::process_network_messages() {
                             managers::AudioManager::instance().play_sound(
                                 managers::AudioManager::SoundType::Coin);
                         }
+                    }
+                    if ((entity.type == 0x11 || entity.type == 0x12 || entity.type == 0x13 || entity.type == 0x14) &&
+                        next.find(id) == next.end()) {
+                        // Serpent part removed (boss death) — no periodic roar to stop anymore.
                     }
                 }
 

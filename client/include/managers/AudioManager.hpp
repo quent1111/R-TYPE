@@ -29,7 +29,10 @@ public:
         Plop,
         Coin,
         BossRoar,
-        BossExplosion
+        BossExplosion,
+        Spark,
+        RobotRoar,
+        SnakeRoar
     };
 
     static AudioManager& instance();
