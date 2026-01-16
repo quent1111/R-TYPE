@@ -262,7 +262,7 @@ void SettingsPanel::create_buttons() {
         float center_y = m_panel_bg.getPosition().y + (m_panel_bg.getSize().y - 100.0f) / 2.0f;
 
         auto quit_btn = std::make_unique<Button>(sf::Vector2f(center_x, center_y),
-                                                 sf::Vector2f(220.0f, 50.0f), "Quitter la partie");
+                                                 sf::Vector2f(220.0f, 50.0f), "Quit Game");
         quit_btn->set_callback([this]() {
             if (m_quit_callback)
                 m_quit_callback();
@@ -396,7 +396,7 @@ void SettingsPanel::create_buttons() {
 
         float ss_y = cb_y + 60.0f;
         auto shake_btn = std::make_unique<Button>(sf::Vector2f(bx, ss_y),
-                                                  sf::Vector2f(250.0f, 45.0f), "Secousse Camera");
+                                                  sf::Vector2f(250.0f, 45.0f), "Screen Shake");
         shake_btn->set_callback([this]() {
             m_temp_screen_shake = !m_temp_screen_shake;
             create_buttons();
@@ -410,21 +410,6 @@ void SettingsPanel::create_buttons() {
         }
         shake_btn->update(0.0f);
         m_buttons.push_back(std::move(shake_btn));
-
-        float af_x = bx + 270.0f;
-        auto autofire_btn = std::make_unique<Button>(
-            sf::Vector2f(af_x, ss_y), sf::Vector2f(250.0f, 45.0f), "Tir Automatique");
-        autofire_btn->set_callback([this]() {
-            m_temp_auto_fire = !m_temp_auto_fire;
-            create_buttons();
-        });
-        if (m_temp_auto_fire) {
-            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
-        } else {
-            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
-        }
-        autofire_btn->update(0.0f);
-        m_buttons.push_back(std::move(autofire_btn));
 
         sf::FloatRect bounds = m_resolution_text.getLocalBounds();
         m_resolution_text.setOrigin(bounds.width / 2.0f, bounds.height / 2.0f);
@@ -473,13 +458,29 @@ void SettingsPanel::create_buttons() {
         cy_right += 60.0f;
         make_btn_at("Power2", s.key_powerup2, static_cast<int>(ControlAction::Power2), right_x,
                     cy_right);
+        cy_right += 60.0f;
+        
+        // Auto Fire toggle
+        auto autofire_btn = std::make_unique<Button>(
+            sf::Vector2f(right_x, cy_right), sf::Vector2f(220.0f, 45.0f), "Auto Fire");
+        autofire_btn->set_callback([this]() {
+            m_temp_auto_fire = !m_temp_auto_fire;
+            create_buttons();
+        });
+        if (m_temp_auto_fire) {
+            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+        } else {
+            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+        }
+        autofire_btn->update(0.0f);
+        m_buttons.push_back(std::move(autofire_btn));
     }
 
     float bottom_y = m_panel_bg.getPosition().y + m_panel_bg.getSize().y - 70.0f;
 
     auto apply_btn =
         std::make_unique<Button>(sf::Vector2f(m_panel_bg.getPosition().x + 24.0f, bottom_y),
-                                 sf::Vector2f(180.0f, 50.0f), "Appliquer");
+                                 sf::Vector2f(180.0f, 50.0f), "Apply");
     apply_btn->set_callback([this]() { this->apply_settings(); });
     apply_btn->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255),
                           sf::Color(20, 120, 60, 255));
@@ -488,7 +489,7 @@ void SettingsPanel::create_buttons() {
 
     auto back_btn = std::make_unique<Button>(
         sf::Vector2f(m_panel_bg.getPosition().x + m_panel_bg.getSize().x - 204.0f, bottom_y),
-        sf::Vector2f(180.0f, 50.0f), "Fermer");
+        sf::Vector2f(180.0f, 50.0f), "Close");
     back_btn->set_callback([this]() { this->close(); });
     back_btn->set_colors(sf::Color(180, 50, 60, 220), sf::Color(220, 70, 80, 255),
                          sf::Color(140, 30, 40, 255));
@@ -498,6 +499,7 @@ void SettingsPanel::create_buttons() {
 
 void SettingsPanel::switch_tab(Tab new_tab) {
     m_current_tab = new_tab;
+    m_selected_button = 0;
     create_buttons();
 }
 
@@ -526,51 +528,77 @@ void SettingsPanel::get_new_window_settings(sf::Vector2u& size, bool& fullscreen
 }
 
 void SettingsPanel::handle_key_press(sf::Keyboard::Key key) {
+    // Si on est en train d'écouter pour une touche de contrôle
+    if (m_listening_control >= 0) {
+        auto& s = Settings::instance();
+        int code = static_cast<int>(key);
+        switch (static_cast<ControlAction>(m_listening_control)) {
+            case ControlAction::Up:
+                s.key_up = code;
+                break;
+            case ControlAction::Down:
+                s.key_down = code;
+                break;
+            case ControlAction::Left:
+                s.key_left = code;
+                break;
+            case ControlAction::Right:
+                s.key_right = code;
+                break;
+            case ControlAction::Shoot:
+                s.key_shoot = code;
+                break;
+            case ControlAction::Power1:
+                s.key_powerup1 = code;
+                break;
+            case ControlAction::Power2:
+                s.key_powerup2 = code;
+                break;
+        }
+        m_listening_control = -1;
+        create_buttons();
+        return;
+    }
+
+    // Navigation : gauche/droite pour les onglets, haut/bas pour les boutons, Entrée pour activer
     if (key == sf::Keyboard::Left) {
+        // Changer d'onglet vers la gauche
         int current = static_cast<int>(m_current_tab);
-        if (current > 0) {
+        int min_index = m_in_game_mode ? 0 : 1;
+        if (current > min_index) {
             switch_tab(static_cast<Tab>(current - 1));
         }
     } else if (key == sf::Keyboard::Right) {
+        // Changer d'onglet vers la droite
         int current = static_cast<int>(m_current_tab);
-        int max_index = m_in_game_mode ? 3 : 2;
+        int max_index = 3;  // Controls est toujours à l'index 3
         if (current < max_index) {
             switch_tab(static_cast<Tab>(current + 1));
         }
-    } else {
-        if (m_listening_control >= 0) {
-            auto& s = Settings::instance();
-            int code = static_cast<int>(key);
-            switch (static_cast<ControlAction>(m_listening_control)) {
-                case ControlAction::Up:
-                    s.key_up = code;
-                    break;
-                case ControlAction::Down:
-                    s.key_down = code;
-                    break;
-                case ControlAction::Left:
-                    s.key_left = code;
-                    break;
-                case ControlAction::Right:
-                    s.key_right = code;
-                    break;
-                case ControlAction::Shoot:
-                    s.key_shoot = code;
-                    break;
-                case ControlAction::Power1:
-                    s.key_powerup1 = code;
-                    break;
-                case ControlAction::Power2:
-                    s.key_powerup2 = code;
-                    break;
-            }
-            m_listening_control = -1;
-            create_buttons();
+    } else if (key == sf::Keyboard::Up) {
+        m_keyboard_navigation = true;
+        if (m_selected_button > 0) {
+            m_selected_button--;
+            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+        }
+    } else if (key == sf::Keyboard::Down) {
+        m_keyboard_navigation = true;
+        if (m_selected_button + 1 < m_buttons.size()) {
+            m_selected_button++;
+            managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+        }
+    } else if (key == sf::Keyboard::Return || key == sf::Keyboard::Space) {
+        // Activer le bouton sélectionné
+        if (m_selected_button < m_buttons.size()) {
+            m_buttons[m_selected_button]->trigger();
         }
     }
 }
 
 void SettingsPanel::handle_mouse_move(const sf::Vector2f& mouse_pos) {
+    // Désactiver la navigation clavier dès que la souris bouge
+    m_keyboard_navigation = false;
+    
     // Handle volume bar dragging
     if (m_dragging_bar != DraggingBar::None && m_current_tab == Tab::Audio) {
         auto& s = Settings::instance();
@@ -679,8 +707,19 @@ void SettingsPanel::update(float dt) {
 
     for (auto& b : m_tab_buttons)
         b->update(dt);
-    for (auto& b : m_buttons)
-        b->update(dt);
+    
+    // Mettre à jour tous les boutons
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        // Si on est en mode navigation clavier, gérer le highlight manuellement
+        if (m_keyboard_navigation) {
+            // Reset tous les boutons puis highlight uniquement le sélectionné
+            m_buttons[i]->set_hovered(false);
+            if (i == m_selected_button) {
+                m_buttons[i]->set_hovered(true);
+            }
+        }
+        m_buttons[i]->update(dt);
+    }
 }
 
 void SettingsPanel::render(sf::RenderWindow& window) {

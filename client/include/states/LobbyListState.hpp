@@ -79,6 +79,8 @@ private:
     int m_selected_lobby_id = -1;
 
     sf::Vector2f m_mouse_pos;
+    size_t m_selected_button{0};
+    bool m_keyboard_navigation{false};
 
     bool m_creating_lobby{false};
     bool m_matchmaking{false};

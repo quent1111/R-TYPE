@@ -4,7 +4,7 @@
 #include <cmath>
 
 entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage, 
-                        WeaponUpgradeType upgrade_type, bool power_cannon_active) {
+                        WeaponUpgradeType upgrade_type, bool power_cannon_active, bool is_drone_projectile) {
     entity projectile = reg.spawn_entity();
 
     reg.register_component<position>();
@@ -15,6 +15,7 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
     reg.register_component<damage_on_contact>();
     reg.register_component<projectile_tag>();
     reg.register_component<entity_tag>();
+    reg.register_component<ally_projectile_tag>();
 
     std::vector<sf::IntRect> projectile_frames = {
         {231, 102, 16, 17},
@@ -84,6 +85,10 @@ entity createProjectile(registry& reg, float x, float y, float vx, float vy, int
     reg.add_component(projectile, damage_on_contact{damage, true});
     reg.add_component(projectile, projectile_tag{});
     reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
+
+    if (is_drone_projectile) {
+        reg.add_component(projectile, ally_projectile_tag{});
+    }
 
     return projectile;
 }

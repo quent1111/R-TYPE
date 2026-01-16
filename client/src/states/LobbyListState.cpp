@@ -1,6 +1,7 @@
 #include "states/LobbyListState.hpp"
 
 #include "common/Settings.hpp"
+#include "managers/AudioManager.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
 
@@ -393,7 +394,34 @@ void LobbyListState::handle_event(const sf::Event& event) {
         return;
     }
 
+    if (!m_creating_lobby && event.type == sf::Event::KeyPressed) {
+        if (event.key.code == sf::Keyboard::Up) {
+            m_keyboard_navigation = true;
+            if (m_selected_button > 0) {
+                m_selected_button--;
+                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Down) {
+            m_keyboard_navigation = true;
+            size_t total_buttons = m_buttons.size() + m_lobby_buttons.size();
+            if (m_selected_button + 1 < total_buttons) {
+                m_selected_button++;
+                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Return || event.key.code == sf::Keyboard::Space) {
+            if (m_selected_button < m_buttons.size()) {
+                m_buttons[m_selected_button]->trigger();
+            } else {
+                size_t lobby_index = m_selected_button - m_buttons.size();
+                if (lobby_index < m_lobby_buttons.size()) {
+                    m_lobby_buttons[lobby_index]->trigger();
+                }
+            }
+        }
+    }
+
     if (event.type == sf::Event::MouseMoved) {
+        m_keyboard_navigation = false;
         m_mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x),
                                    static_cast<float>(event.mouseMove.y));
         for (auto& btn : m_buttons) {
@@ -467,6 +495,39 @@ void LobbyListState::handle_event(const sf::Event& event) {
                     m_refresh_timer = 0.5f;
                 }
                 return;
+            } else if (event.key.code == sf::Keyboard::Left) {
+                // Changer difficulté vers la gauche
+                int current = static_cast<int>(m_difficulty);
+                if (current > 0) {
+                    m_difficulty = static_cast<DifficultyLevel>(current - 1);
+                    for (size_t j = 0; j < m_difficulty_boxes.size(); ++j) {
+                        if (j == static_cast<size_t>(current - 1)) {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(50, 150, 50, 240));
+                        } else {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(20, 20, 30, 240));
+                        }
+                    }
+                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                }
+                return;
+            } else if (event.key.code == sf::Keyboard::Right) {
+                int current = static_cast<int>(m_difficulty);
+                if (current < 2) {
+                    m_difficulty = static_cast<DifficultyLevel>(current + 1);
+                    for (size_t j = 0; j < m_difficulty_boxes.size(); ++j) {
+                        if (j == static_cast<size_t>(current + 1)) {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(50, 150, 50, 240));
+                        } else {
+                            m_difficulty_boxes[j].setFillColor(sf::Color(20, 20, 30, 240));
+                        }
+                    }
+                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                }
+                return;
+            } else if (event.key.code == sf::Keyboard::Space) {
+                m_friendly_fire = !m_friendly_fire;
+                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                return;
             }
         }
         if (event.type == sf::Event::TextEntered) {
@@ -494,12 +555,19 @@ void LobbyListState::update(float dt) {
         panel->update(dt);
     }
 
-    for (auto& btn : m_buttons) {
-        btn->update(dt);
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        if (m_keyboard_navigation) {
+            m_buttons[i]->set_hovered(i == m_selected_button);
+        }
+        m_buttons[i]->update(dt);
     }
 
-    for (auto& btn : m_lobby_buttons) {
-        btn->update(dt);
+    for (size_t i = 0; i < m_lobby_buttons.size(); ++i) {
+        size_t total_index = m_buttons.size() + i;
+        if (m_keyboard_navigation) {
+            m_lobby_buttons[i]->set_hovered(total_index == m_selected_button);
+        }
+        m_lobby_buttons[i]->update(dt);
     }
 
     if (m_refresh_timer > 0.0f) {

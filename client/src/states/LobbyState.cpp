@@ -302,6 +302,7 @@ void LobbyState::process_network_messages() {
 
 void LobbyState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
+        m_keyboard_navigation = false;
         sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
         m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         for (auto& button : m_buttons) {
@@ -322,6 +323,22 @@ void LobbyState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             on_back_clicked();
+        } else if (event.key.code == sf::Keyboard::Up) {
+            m_keyboard_navigation = true;
+            if (m_selected_button > 0) {
+                m_selected_button--;
+                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Down) {
+            m_keyboard_navigation = true;
+            if (m_selected_button + 1 < m_buttons.size()) {
+                m_selected_button++;
+                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Return || event.key.code == sf::Keyboard::Space) {
+            if (m_selected_button < m_buttons.size()) {
+                m_buttons[m_selected_button]->trigger();
+            }
         }
     }
 }
@@ -341,8 +358,12 @@ void LobbyState::update(float dt) {
     if (m_title) {
         m_title->update(dt);
     }
-    for (auto& button : m_buttons) {
-        button->update(dt);
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        if (m_keyboard_navigation) {
+            // En mode clavier, reset tous puis highlight uniquement le sélectionné
+            m_buttons[i]->set_hovered(i == m_selected_button);
+        }
+        m_buttons[i]->update(dt);
     }
     for (auto& corner : m_corners) {
         corner->update(dt);

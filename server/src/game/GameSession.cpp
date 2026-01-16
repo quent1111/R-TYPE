@@ -901,7 +901,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                 ::createProjectile(_engine.get_registry(),
                                                    friend_pos_opt->x + 20.0f, friend_pos_opt->y, vx,
                                                    vy, lf.damage, WeaponUpgradeType::AllyMissile,
-                                                   false);
+                                                   false, true);
                             }
                         }
 
@@ -1068,7 +1068,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                         ::createProjectile(_engine.get_registry(),
                                                            drone_pos_opt->x + 20.0f,
                                                            drone_pos_opt->y, vx, vy, 20,
-                                                           WeaponUpgradeType::AllyMissile, false);
+                                                           WeaponUpgradeType::AllyMissile, false, true);
                                     }
                                 }
                             }
