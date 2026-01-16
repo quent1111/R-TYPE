@@ -7,6 +7,7 @@
 #include "states/LobbyState.hpp"
 #include "states/MenuState.hpp"
 #include "states/StateManager.hpp"
+#include "rendering/ColorBlindShader.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -17,6 +18,9 @@
 int main(int argc, char* argv[]) {
     std::cout << "[Client] Initializing power-up system..." << std::endl;
     powerup::PowerupRegistry::instance().initialize();
+    
+    std::cout << "[Client] Initializing colorblind shader..." << std::endl;
+    rendering::ColorBlindShader::instance().init();
 
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "R-TYPE - Multiplayer");
     window.setVerticalSyncEnabled(false);

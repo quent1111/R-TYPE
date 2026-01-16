@@ -98,8 +98,8 @@ void InputHandler::handle_input(float dt) {
 
     uint8_t input_mask = 0;
 
-    // Bloquer les mouvements et le tir pendant la sélection de power-up
-    if (!show_powerup_selection_) {
+    // Bloquer les mouvements et le tir pendant la sélection de power-up ou si le joueur est mort
+    if (!show_powerup_selection_ && !is_player_dead_) {
         auto& s = Settings::instance();
         if (sf::Keyboard::isKeyPressed(static_cast<sf::Keyboard::Key>(s.key_up))) {
             input_mask |= KEY_Z;
@@ -167,7 +167,7 @@ void InputHandler::handle_input(float dt) {
             shoot_sound_timer_ = 0.0f;
         }
     } else {
-        // Réinitialiser l'état de tir quand on est en sélection de power-up
+        // Réinitialiser l'état de tir quand on est mort ou en sélection de power-up
         was_shooting_ = false;
         shoot_sound_timer_ = 0.0f;
     }

@@ -103,6 +103,9 @@ private:
 
     std::unique_ptr<rtype::ui::SettingsPanel> m_settings_panel;
     bool m_request_return_to_menu{false};
+    
+    sf::RenderTexture render_texture_;
+    bool use_render_texture_ = false;
 
 public:
     void request_return_to_menu() { m_request_return_to_menu = true; }

@@ -37,6 +37,7 @@ public:
         powerup_type_ = type;
         powerup_time_remaining_ = time_remaining;
     }
+    void set_player_dead(bool dead) { is_player_dead_ = dead; }
 
     void set_powerup_card_bounds(const sf::FloatRect& card1, const sf::FloatRect& card2,
                                  const sf::FloatRect& card3) {
@@ -62,6 +63,7 @@ private:
 
     bool has_focus_ = true;
     bool show_powerup_selection_ = false;
+    bool is_player_dead_ = false;
     uint8_t powerup_type_ = 0;
     float powerup_time_remaining_ = 0.0f;
 

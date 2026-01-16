@@ -33,44 +33,17 @@ This document describes the high-level game design for R-TYPE, including core me
 - Readability: distinct sprite silhouettes and color palette to separate players, enemies, projectiles, and effects.
 - Responsiveness: controls must feel tight and predictable to maintain player confidence.
 
-## Accessibility & Inclusive Design
+## Accessibility
 
-R-TYPE is designed to be playable and enjoyable by the widest possible audience. Accessibility is not an afterthought—it's a core design principle that enhances the experience for all players.
+R-TYPE includes comprehensive accessibility features to ensure the game is playable by everyone. For complete details on:
 
-### Visual Accessibility
+- **Color blindness filters** (GLSL shaders with Protanopia, Deuteranopia, Tritanopia, High Contrast modes)
+- **Keyboard navigation** (full arrow key support in menus and settings)
+- **Control schemes** (arrow keys, WASD alternatives)
+- **Gameplay options** (friendly fire configuration, difficulty settings)
+- **Visual and auditory accommodations**
 
-#### Color Blindness Support
-- Palette Design: Primary UI and gameplay elements use color combinations that are distinguishable across all types of color vision deficiency (Protanopia, Deuteranopia, Tritanopia).
-- Color Blind Modes: Provide preset color schemes optimized for different types of color blindness:
-  - Protanopia mode (red-green, red appears darker)
-  - Deuteranopia mode (red-green, green appears darker)
-  - Tritanopia mode (blue-yellow)
-  - High contrast mode for low vision players
-- Projectile Clarity: Player bullets vs. enemy bullets use different shapes (e.g., circles vs. diamonds) and border styles.
-
-#### Visual Clarity
-- Contrast Ratios: UI text and critical gameplay elements maintain WCAG AAA contrast ratios (minimum 7:1) against backgrounds.
-- Particle Effect Reduction: Option to reduce or disable non-essential visual effects (screen shake, background particles) to minimize visual noise.
-
-### Auditory Accessibility
-
-#### Sound Design
-- Visual Subtitles for Audio Cues: Important audio events (enemy spawn warnings, power-up drops, boss phase changes) have optional on-screen text indicators.
-- Volume Mixing: Separate volume controls for:
-  - Music
-  - Sound Effects (SFX)
-  - UI sounds
-
-### Motor/Input Accessibility
-
-#### Control Customization
-- Full Key Remapping: Every action (movement, shoot, special, pause, etc.) can be rebound to any key/button.
-- Multiple Control Schemes: Ship with preset configurations:
-  - Classic (arrow keys + Z/X)
-  - WASD + Mouse
-  - Gamepad (with multiple layouts)
-  - One-handed mode (all actions accessible with one hand)
-- Auto-Fire Mode: Hold-to-shoot can be toggled to auto-fire (tap once to start/stop).
+See the dedicated **[Accessibility Guide](accessibility.md)** for full documentation.
 
 ## Balancing Guidelines
 

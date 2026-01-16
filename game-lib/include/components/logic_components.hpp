@@ -180,6 +180,7 @@ struct level_manager {
     bool is_custom_level = false;
     float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
+    float difficulty_multiplier = 1.0f;
     
     constexpr level_manager() noexcept = default;
     
@@ -196,7 +197,8 @@ struct level_manager {
         enemies_killed_this_level = 0;
         level_completed = false;
         awaiting_upgrade_choice = false;
-        enemies_needed_for_next_level = current_level;
+        // Appliquer le multiplicateur de difficulté au nombre d'ennemis requis
+        enemies_needed_for_next_level = static_cast<int>(current_level * difficulty_multiplier);
         level_start_timer = 0.0f;
     }
     

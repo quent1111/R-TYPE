@@ -80,6 +80,11 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     game_renderer_.init(window_);
     hud_renderer_.init(font_);
     overlay_renderer_.init(font_);
+    
+    // Créer la RenderTexture pour le post-processing shader
+    if (!render_texture_.create(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+        std::cerr << "[Game] Failed to create render texture for colorblind shader" << std::endl;
+    }
 
     setup_input_handler();
 
@@ -380,6 +385,24 @@ void Game::update() {
                 player_shield_anim_timer_.erase(player_id);
                 player_shield_frame_.erase(player_id);
             }
+        }
+    }
+
+    // Vérifier si le joueur est mort ou vivant
+    if (my_network_id_ != 0) {
+        auto player_it = entities_.find(my_network_id_);
+        if (player_it != entities_.end() && player_it->second.type == 0x01) {
+            // Le joueur existe et c'est bien un joueur
+            if (player_it->second.health <= 0) {
+                // Le joueur est mort - bloquer les inputs
+                input_handler_.set_player_dead(true);
+            } else {
+                // Le joueur est vivant - autoriser les inputs
+                input_handler_.set_player_dead(false);
+            }
+        } else {
+            // Le joueur n'existe pas dans la liste des entités (probablement mort)
+            input_handler_.set_player_dead(true);
         }
     }
 
@@ -1195,6 +1218,15 @@ void Game::process_network_messages() {
 }
 
 void Game::render() {
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    use_render_texture_ = (mode != ColorBlindMode::Normal);
+
+    if (use_render_texture_) {
+        render_texture_.clear(sf::Color(0, 0, 0));
+        sf::View temp_view = window_.getView();
+        render_texture_.setView(temp_view);
+    }
+
     window_.clear(sf::Color(0, 0, 0));
 
     float dt = 1.0F / 60.0F;
@@ -1237,7 +1269,13 @@ void Game::render() {
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
     }
-
+    
+    // Appliquer le shader daltonien si nécessaire
+    if (use_render_texture_) {
+        game_renderer_.apply_colorblind_shader(window_, render_texture_);
+    }
+    
+    // Afficher l'indicateur de mode daltonien
     game_renderer_.render_colorblind_overlay(window_);
 }
 
