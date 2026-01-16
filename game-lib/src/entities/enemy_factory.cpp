@@ -153,8 +153,8 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(40.0f * combined_mult);
-    int scaled_damage = static_cast<int>(50.0f * combined_mult);
-    int scaled_weapon_damage = static_cast<int>(35.0f * combined_mult);
+    int scaled_damage = static_cast<int>(15.0f * combined_mult); // Reduced from 50 to 15
+    int scaled_weapon_damage = static_cast<int>(12.0f * combined_mult); // Reduced from 35 to 12
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -208,8 +208,8 @@ entity createWaveEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(30.0f * combined_mult);
-    int scaled_damage = static_cast<int>(35.0f * combined_mult);
-    int scaled_weapon_damage = static_cast<int>(25.0f * combined_mult);
+    int scaled_damage = static_cast<int>(12.0f * combined_mult); // Reduced from 35 to 12
+    int scaled_weapon_damage = static_cast<int>(10.0f * combined_mult); // Reduced from 25 to 10
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -261,8 +261,8 @@ entity createTankEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(50.0f * combined_mult);
-    int scaled_damage = static_cast<int>(40.0f * combined_mult);
-    int scaled_weapon_damage = static_cast<int>(30.0f * combined_mult);
+    int scaled_damage = static_cast<int>(18.0f * combined_mult); // Reduced from 40 to 18
+    int scaled_weapon_damage = static_cast<int>(15.0f * combined_mult); // Reduced from 30 to 15
 
     reg.register_component<position>();
     reg.register_component<velocity>();
