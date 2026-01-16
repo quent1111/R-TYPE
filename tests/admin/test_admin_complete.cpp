@@ -4,6 +4,7 @@
 #include "../../admin-client/include/LoginScreen.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
+#include <cstdlib>
 
 // ============================================================================
 // PlayerInfo, LobbyInfo, ServerStatus Struct Tests
@@ -207,6 +208,11 @@ TEST(AdminClient, GetServerStatusDefaultValues) {
 class AdminUITest : public ::testing::Test {
 protected:
     void SetUp() override {
+        // Skip SFML window tests in CI environment (no X11 display)
+        if (std::getenv("CI") != nullptr) {
+            GTEST_SKIP() << "Skipping UI tests in CI environment (no display)";
+        }
+        
         window = std::make_unique<sf::RenderWindow>(
             sf::VideoMode(800, 600), "TestWindow", sf::Style::None
         );
@@ -216,7 +222,9 @@ protected:
     }
     
     void TearDown() override {
-        window->close();
+        if (window) {
+            window->close();
+        }
     }
     
     std::unique_ptr<sf::RenderWindow> window;
