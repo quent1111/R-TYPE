@@ -1045,6 +1045,15 @@ void Game::process_network_messages() {
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
+                        if ((incoming.type == 0x1C || incoming.type == 0x1D || incoming.type == 0x1E) && !boss_spawn_triggered_) {
+                            std::cout
+                                << "[Game] COMPILER BOSS DETECTED! Launching Spacecrusher music..."
+                                << std::endl;
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/Spacecrusher.ogg", true);
+                            boss_spawn_triggered_ = true;
+                            boss_roar_timer_ = 0.0f;
+                        }
                         if (incoming.type == 0x1F) {
                             boss_explosion_count_++;
                             if (boss_explosion_count_ % 5 == 1) {
