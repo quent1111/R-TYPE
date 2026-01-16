@@ -189,6 +189,14 @@ void Game::handle_event(const sf::Event& event) {
                 return;
             }
         }
+        if (event.type == sf::Event::MouseButtonReleased) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+                sf::Vector2f release_pos = window_.mapPixelToCoords(pixel_pos);
+                m_settings_panel->handle_mouse_release(release_pos);
+                return;
+            }
+        }
         if (event.type == sf::Event::KeyPressed) {
             if (event.key.code == sf::Keyboard::Escape) {
                 m_settings_panel->close();
@@ -332,16 +340,13 @@ void Game::update() {
         if ((entity.type == 0x08 || entity.type == 0x11 || entity.type == 0x12 || 
              entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E) && 
             entity.damage_flash_timer > 0.0f) {
-            
             float prev_timer = prev_boss_damage_timer_[id];
             if (prev_timer <= 0.0f && entity.damage_flash_timer > 0.0f) {
                 sf::Vector2f boss_pos(entity.x, entity.y);
                 managers::EffectsManager::instance().spawn_explosion(boss_pos, 8);
                 managers::EffectsManager::instance().trigger_screen_shake(8.0f, 0.15f);
             }
-            
             prev_boss_damage_timer_[id] = entity.damage_flash_timer;
-            
             entity.damage_flash_timer -= dt;
             if (entity.damage_flash_timer < 0.0f) {
                 entity.damage_flash_timer = 0.0f;
@@ -536,15 +541,9 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
             return;
         }
     } else if (entity.type == 0x17) {
-        if (texture_mgr.has("assets/r-typesheet7.gif")) {
-            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet7.gif"));
-            entity.frames = {{66, 34, 33, 33}};
-            entity.frame_duration = 0.1F;
-            entity.loop = true;
-            entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);
-            return;
-        }
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        return;
     } else if (entity.type == 0x03) {
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
         bool is_explosive_grenade = (projectile_speed >= 180.0f && projectile_speed <= 320.0f && 
@@ -1046,6 +1045,14 @@ void Game::process_network_messages() {
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
+                        if (incoming.type == 0x1F) {
+                            boss_explosion_count_++;
+                            if (boss_explosion_count_ % 5 == 1) {
+                                managers::AudioManager::instance().play_sound(
+                                    managers::AudioManager::SoundType::BossExplosion);
+                                std::cout << "[CLIENT] Boss explosion sound #" << (boss_explosion_count_ / 5 + 1) << std::endl;
+                            }
+                        }
                         incoming.prev_x = incoming.x;
                         incoming.prev_y = incoming.y;
                         incoming.prev_time = now;
@@ -1110,6 +1117,8 @@ void Game::process_network_messages() {
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
+                boss_spawn_triggered_ = false;
+                boss_explosion_count_ = 0;
                 if (!msg.custom_level_id.empty()) {
                     load_custom_level(msg.custom_level_id);
                     if (custom_level_config_) {

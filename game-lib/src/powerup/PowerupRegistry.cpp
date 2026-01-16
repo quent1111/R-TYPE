@@ -215,23 +215,23 @@ void PowerupRegistry::initialize() {
         
         def.level_effects.push_back({
             0.0f,
-            1.3f,
+            1.1f,
             0.0f,
-            "+30% Fire Rate"
+            "+10% Fire Rate"
         });
         
         def.level_effects.push_back({
             0.0f,
-            1.6f,
+            1.2f,
             0.0f,
-            "+60% Fire Rate"
+            "+20% Fire Rate"
         });
         
         def.level_effects.push_back({
             0.0f,
-            2.0f,
+            1.35f,
             0.0f,
-            "+100% Fire Rate (Double Speed!)"
+            "+35% Fire Rate"
         });
         
         register_powerup(def);

@@ -83,7 +83,7 @@ struct weapon {
     int damage;
     WeaponUpgradeType upgrade_type;
 
-    constexpr weapon(float rate = 5.0f, float proj_speed = 500.0f, int dmg = 10, 
+    constexpr weapon(float rate = 0.5f, float proj_speed = 500.0f, int dmg = 10, 
                      WeaponUpgradeType upgrade = WeaponUpgradeType::None) noexcept
         : fire_rate(rate), time_since_shot(0.0f), projectile_speed(proj_speed), 
           damage(dmg), upgrade_type(upgrade) {}
@@ -101,7 +101,7 @@ struct weapon {
         if (new_upgrade == WeaponUpgradeType::PowerShot) {
             damage = 25;
         } else if (new_upgrade == WeaponUpgradeType::TripleShot) {
-            fire_rate = 4.0f;
+            fire_rate = 0.6f;
         }
     }
 };

@@ -81,6 +81,8 @@ private:
     float boss_roar_timer_ = 0.0f;
     float boss_roar_delay_ = 2.5f;
     std::unordered_map<uint32_t, float> prev_boss_damage_timer_;
+    
+    int boss_explosion_count_ = 0;
 
     std::optional<level::CustomLevelConfig> custom_level_config_;
     std::string current_custom_level_id_;

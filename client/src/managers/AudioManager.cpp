@@ -11,9 +11,6 @@ AudioManager& AudioManager::instance() {
 }
 
 #if RTYPE_NO_AUDIO
-// ============================================================================
-// STUB IMPLEMENTATION (Windows - no audio due to GCC 15 incompatibility)
-// ============================================================================
 
 bool AudioManager::load_sounds() {
     std::cout << "[AudioManager] Audio disabled (no-audio build)" << std::endl;
@@ -21,12 +18,10 @@ bool AudioManager::load_sounds() {
 }
 
 void AudioManager::play_sound([[maybe_unused]] SoundType type) {
-    // No-op: audio disabled
 }
 
 void AudioManager::play_music([[maybe_unused]] const std::string& music_path,
                               [[maybe_unused]] bool loop) {
-    // No-op: audio disabled
 }
 
 void AudioManager::stop_music() {
@@ -34,11 +29,9 @@ void AudioManager::stop_music() {
 }
 
 void AudioManager::pause_music() {
-    // No-op: audio disabled
 }
 
 void AudioManager::resume_music() {
-    // No-op: audio disabled
 }
 
 bool AudioManager::is_music_playing() const {
@@ -94,9 +87,6 @@ float AudioManager::get_effective_volume(float base_volume) const {
 }
 
 #else
-// ============================================================================
-// FULL SFML AUDIO IMPLEMENTATION (Linux/macOS)
-// ============================================================================
 
 AudioManager::AudioManager() {
     sound_pool_.resize(SOUND_POOL_SIZE);
@@ -113,7 +103,8 @@ bool AudioManager::load_sounds() {
         {SoundType::LevelUp, "assets/sounds/level-up.mp3"},
         {SoundType::Plop, "assets/sounds/plop.wav"},
         {SoundType::Coin, "assets/sounds/coin.wav"},
-        {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"}};
+        {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"},
+        {SoundType::BossExplosion, "assets/sounds/multiexplosion.mp3"}};
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {
@@ -280,6 +271,6 @@ float AudioManager::get_effective_volume(float base_volume) const {
     return (base_volume * master_volume_) / 100.0f;
 }
 
-#endif  // RTYPE_NO_AUDIO
+#endif
 
 }  // namespace managers
