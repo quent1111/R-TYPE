@@ -3,7 +3,9 @@
 
 [build]
   # Command to build the documentation
-  command = "pip install -r requirements.txt && mkdocs build"
+  # PYTHONDONTWRITEBYTECODE=1 prevents .pyc files which can cause issues
+  # Setting workers to 1 avoids multiprocessing semaphore issues on Netlify
+  command = "PYTHONDONTWRITEBYTECODE=1 pip install -r requirements.txt && PYTHONDONTWRITEBYTECODE=1 mkdocs build"
   # Directory containing the built site
   publish = "site"
 
