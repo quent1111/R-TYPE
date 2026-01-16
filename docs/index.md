@@ -12,7 +12,7 @@ R-TYPE is a modern reimplementation of the classic side-scrolling shooter game, 
 - **Client-Server Multiplayer** - UDP-based networking with server authority
 - **Refactored Architecture** - Clean separation of concerns (50-57% code reduction)
 - **Modular Design** - State machines, managers, handlers, broadcasters
-- **Cross-platform** - Runs on Windows, Linux, and macOS  
+- **Cross-platform** - Runs on Windows, Linux, and macOS
 - **Modern C++20** - Using concepts, ranges, and best practices
 - **Production-Ready** - Comprehensive testing, CI/CD, documentation
 
@@ -23,16 +23,18 @@ R-TYPE is a modern reimplementation of the classic side-scrolling shooter game, 
 git clone https://github.com/quent1111/R-TYPE.git
 cd R-TYPE
 
-# Build and run the client (auto-installs dependencies)
+# Build and run the server
+./r-type.sh server
+
+# Build and run the client
 ./r-type.sh client
 
-# Or manually build
-./r-type.sh build
-cd build/build/Release/bin
-./r-type_client
+# Or launch the admin panel
+./r-type.sh admin
+# Default admin password: admin123
 ```
 
-**Controls:** WASD to move, Space to shoot, ESC to exit
+**Controls:** Arrow keys to move, Space to shoot, ESC for menu
 
 For detailed installation instructions, see [Installation Guide](getting-started/installation.md).
 
@@ -42,6 +44,7 @@ For detailed installation instructions, see [Installation Guide](getting-started
 - **[Building](getting-started/building.md)** - Detailed build instructions
 - **[Architecture](architecture/overview.md)** - Learn about the project structure
 - **[ECS System](architecture/ecs.md)** - Entity Component System deep dive
+- **[Admin Panel](../admin-client/README.md)** - Server administration guide
 - **[Developer Guide](developer-guide/contributing.md)** - Contribute to the project
 
 ##  Features
@@ -52,10 +55,17 @@ For detailed installation instructions, see [Installation Guide](getting-started
 - **4-Player Multiplayer** - Cooperative gameplay with server authority
 - **Progressive Levels** - Increasing difficulty with wave-based enemies
 - **Boss Fights** - Multi-phase boss encounters (Level 5+)
-- **Power-up System** - Speed boost, shield, damage multiplier
+- **Power-up System** - Speed boost, shield, damage multiplier, drones (Support & Missile)
 - **Weapon Upgrades** - Enhanced projectiles and special abilities
 - **Score & Combo System** - Competitive scoring with multipliers
 - **Health System** - Visual health bars and damage feedback
+- **Friendly Fire** - Optional friendly fire mode with drone ally exclusion
+
+#### User Experience
+- **Keyboard Navigation** - Full arrow key navigation in menus and settings
+- **Accessibility Features** - GLSL-based colorblind filters (Protanopia, Deuteranopia, Tritanopia, High Contrast)
+- **Admin Panel** - Graphical server management interface with real-time monitoring
+- **Settings Persistence** - Save and load user preferences
 
 #### Architecture
 - **Custom ECS Engine** - High-performance entity-component system
