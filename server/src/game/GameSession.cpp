@@ -653,18 +653,34 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     auto& enemies = _engine.get_registry().get_components<enemy_tag>();
                     auto& enemy_positions = _engine.get_registry().get_components<position>();
                     auto& healths = _engine.get_registry().get_components<health>();
+                    auto& serpent_parts = _engine.get_registry().get_components<serpent_part>();
+                    auto& serpent_controllers = _engine.get_registry().get_components<serpent_boss_controller>();
+
+                    int damage = static_cast<int>(laser.damage_per_second * 0.1f);
+                    bool serpent_damaged = false;
 
                     for (std::size_t j = 0; j < enemies.size(); ++j) {
                         if (enemies[j].has_value() && j < enemy_positions.size() &&
-                            enemy_positions[j].has_value() && j < healths.size() &&
-                            healths[j].has_value()) {
+                            enemy_positions[j].has_value()) {
                             auto& enemy_pos = enemy_positions[j].value();
 
                             if (enemy_pos.x >= player_pos.x &&
                                 enemy_pos.x <= player_pos.x + 2000.0f &&
                                 std::abs(enemy_pos.y - player_pos.y) <= 50.0f) {
-                                int damage = static_cast<int>(laser.damage_per_second * 0.1f);
-                                healths[j]->current -= damage;
+                                
+                                if (j < serpent_parts.size() && serpent_parts[j].has_value()) {
+                                    if (!serpent_damaged) {
+                                        for (std::size_t c = 0; c < serpent_controllers.size(); ++c) {
+                                            if (serpent_controllers[c].has_value()) {
+                                                serpent_controllers[c]->take_global_damage(damage);
+                                                serpent_damaged = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else if (j < healths.size() && healths[j].has_value()) {
+                                    healths[j]->current -= damage;
+                                }
                             }
                         }
                     }
