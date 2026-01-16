@@ -137,7 +137,7 @@ void GameSession::start_game(UDPServer& server) {
     }
 
     auto& reg = _engine.get_registry();
-    
+
     float difficulty_multiplier = 1.0f;
     switch (_difficulty) {
         case 0: difficulty_multiplier = 1.0f; break;
@@ -145,13 +145,15 @@ void GameSession::start_game(UDPServer& server) {
         case 2: difficulty_multiplier = 4.0f; break;
         default: difficulty_multiplier = 1.0f; break;
     }
-    
+
     auto settings_entity = reg.spawn_entity();
     reg.emplace_component<game_settings>(settings_entity, _friendly_fire, difficulty_multiplier);
 
     auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
+            level_managers[i].value().difficulty_multiplier = difficulty_multiplier;
+
             if (_is_custom_level) {
                 level_managers[i].value().current_level = 1;
                 level_managers[i].value().is_custom_level = true;
@@ -159,6 +161,14 @@ void GameSession::start_game(UDPServer& server) {
                 level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
                 level_managers[i].value().is_custom_level = false;
             }
+
+            level_managers[i].value().enemies_needed_for_next_level =
+                static_cast<int>(level_managers[i].value().current_level * difficulty_multiplier);
+
+            std::cout << "[Game] Level manager initialized: Level "
+                      << level_managers[i].value().current_level
+                      << ", Enemies needed: " << level_managers[i].value().enemies_needed_for_next_level
+                      << " (difficulty x" << difficulty_multiplier << ")" << std::endl;
             break;
         }
     }
@@ -183,7 +193,7 @@ void GameSession::start_game(UDPServer& server) {
     if (!_is_custom_level) {
         int boss_type = BossManager::get_boss_type_for_level(_starting_level);
         float cycle_mult = BossManager::get_cycle_multiplier(_starting_level);
-        
+
         if (boss_type > 0) {
             std::string boss_name;
             switch (boss_type) {
@@ -191,14 +201,14 @@ void GameSession::start_game(UDPServer& server) {
                 case 2: boss_name = "SERPENT"; break;
                 case 3: boss_name = "COMPILER"; break;
             }
-            
+
             std::cout << "[SERVER] *** Starting at Level " << _starting_level 
                       << " - Spawning " << boss_name << " BOSS! ***";
             if (cycle_mult > 1.0f) {
                 std::cout << " (Cycle multiplier: " << cycle_mult << "x)";
             }
             std::cout << std::endl;
-            
+
             switch (boss_type) {
                 case 1:
                     _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
@@ -212,7 +222,7 @@ void GameSession::start_game(UDPServer& server) {
                     _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity, cycle_mult);
                     break;
             }
-            
+
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
@@ -252,7 +262,6 @@ void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
 
     _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
 
-    // Send level start with custom level ID if applicable
     uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
     _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id, {client_id});
 

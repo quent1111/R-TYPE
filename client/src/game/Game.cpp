@@ -383,6 +383,24 @@ void Game::update() {
         }
     }
 
+    // Vérifier si le joueur est mort ou vivant
+    if (my_network_id_ != 0) {
+        auto player_it = entities_.find(my_network_id_);
+        if (player_it != entities_.end() && player_it->second.type == 0x01) {
+            // Le joueur existe et c'est bien un joueur
+            if (player_it->second.health <= 0) {
+                // Le joueur est mort - bloquer les inputs
+                input_handler_.set_player_dead(true);
+            } else {
+                // Le joueur est vivant - autoriser les inputs
+                input_handler_.set_player_dead(false);
+            }
+        } else {
+            // Le joueur n'existe pas dans la liste des entités (probablement mort)
+            input_handler_.set_player_dead(true);
+        }
+    }
+
     if (show_game_over_) {
         game_over_timer_ += dt;
         if (game_over_timer_ >= game_over_duration_) {
