@@ -104,7 +104,10 @@ bool AudioManager::load_sounds() {
         {SoundType::Plop, "assets/sounds/plop.wav"},
         {SoundType::Coin, "assets/sounds/coin.wav"},
         {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"},
-        {SoundType::BossExplosion, "assets/sounds/multiexplosion.mp3"}};
+        {SoundType::BossExplosion, "assets/sounds/multiexplosion.mp3"},
+        {SoundType::Spark, "assets/sounds/spark.wav"},
+        {SoundType::RobotRoar, "assets/songs/little-robot.mp3"},
+        {SoundType::SnakeRoar, "assets/sounds/snake-roar.wav"}};
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {
@@ -146,6 +149,15 @@ void AudioManager::play_sound(SoundType type) {
             volume_multiplier = 0.5f;
             break;
         case SoundType::BossRoar:
+            volume_multiplier = 2.0f;
+            break;
+        case SoundType::Spark:
+            volume_multiplier = 0.35f;
+            break;
+        case SoundType::RobotRoar:
+            volume_multiplier = 2.0f;
+            break;
+        case SoundType::SnakeRoar:
             volume_multiplier = 2.0f;
             break;
         default:
