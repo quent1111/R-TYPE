@@ -528,8 +528,44 @@ generate_coverage() {
         exit 1
     fi
     
+    install_dependencies
+    
+    if [ -f "conan/build/Debug/generators/CMakePresets.json" ]; then
+        if ! grep -q "conan/build/Debug/generators/CMakePresets.json" CMakeUserPresets.json 2>/dev/null; then
+            cp CMakeUserPresets.json CMakeUserPresets.json.bak
+            python3 -c "
+import json
+with open('CMakeUserPresets.json', 'r') as f:
+    data = json.load(f)
+if 'conan/build/Debug/generators/CMakePresets.json' not in data.get('include', []):
+    data.setdefault('include', []).append('conan/build/Debug/generators/CMakePresets.json')
+with open('CMakeUserPresets.json', 'w') as f:
+    json.dump(data, f, indent=4)
+"
+        fi
+    fi
+    
     print_step "Configuring build with coverage instrumentation..."
-    local TEST_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    
+    local TEST_DIR=""
+    if [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
+        TEST_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    elif [ -d "$BUILD_DIR/$BUILD_TYPE" ]; then
+        TEST_DIR="$BUILD_DIR/$BUILD_TYPE"
+    elif [ -d "$PROJECT_ROOT/build/build/$BUILD_TYPE" ]; then
+        TEST_DIR="$PROJECT_ROOT/build/build/$BUILD_TYPE"
+    elif [ -d "$PROJECT_ROOT/build/$BUILD_TYPE" ]; then
+        TEST_DIR="$PROJECT_ROOT/build/$BUILD_TYPE"
+    else
+        print_error "Cannot find build directory. Tried:"
+        echo "  - $BUILD_DIR/build/$BUILD_TYPE"
+        echo "  - $BUILD_DIR/$BUILD_TYPE"
+        echo "  - $PROJECT_ROOT/build/build/$BUILD_TYPE"
+        echo "  - $PROJECT_ROOT/build/$BUILD_TYPE"
+        exit 1
+    fi
+    
+    echo "Using build directory: $TEST_DIR"
     
     find "$TEST_DIR" -name "*.gcda" -delete 2>/dev/null || true
     
@@ -584,6 +620,12 @@ generate_coverage() {
         print_warning "genhtml not found. Install lcov for HTML reports."
         print_success "Coverage data available in $TEST_DIR/coverage_filtered.info"
     fi
+    
+    if [ -f "CMakeUserPresets.json.bak" ]; then
+        mv CMakeUserPresets.json.bak CMakeUserPresets.json
+    fi
+    
+    cd "$PROJECT_ROOT"
 }
 
 run_valgrind() {
