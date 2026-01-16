@@ -152,7 +152,8 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_music_volume_text.setCharacterSize(22);
     m_music_volume_text.setFillColor(sf::Color(220, 220, 220));
     m_music_volume_text.setPosition(content_x, content_y);
-    m_music_volume_text.setString("Music: " + std::to_string(Settings::instance().music_volume) + "%");
+    m_music_volume_text.setString("Music: " + std::to_string(Settings::instance().music_volume) +
+                                  "%");
 
     m_music_volume_bar.setSize(sf::Vector2f(300.0f, 32.0f));
     m_music_volume_bar.setFillColor(sf::Color(40, 40, 50));
@@ -164,7 +165,8 @@ SettingsPanel::SettingsPanel(const sf::Vector2u& window_size) : m_window_size(wi
     m_effects_volume_text.setCharacterSize(22);
     m_effects_volume_text.setFillColor(sf::Color(220, 220, 220));
     m_effects_volume_text.setPosition(content_x, content_y);
-    m_effects_volume_text.setString("Effects: " + std::to_string(Settings::instance().effects_volume) + "%");
+    m_effects_volume_text.setString(
+        "Effects: " + std::to_string(Settings::instance().effects_volume) + "%");
 
     m_effects_volume_bar.setSize(sf::Vector2f(300.0f, 32.0f));
     m_effects_volume_bar.setFillColor(sf::Color(40, 40, 50));
@@ -279,7 +281,7 @@ void SettingsPanel::create_buttons() {
         // Music mute toggle
         float music_mute_y = base_y + 130.0f + 40.0f;
         auto music_toggle = std::make_unique<Button>(
-            sf::Vector2f(bx + 320.0f, music_mute_y), sf::Vector2f(140.0f, 45.0f), 
+            sf::Vector2f(bx + 320.0f, music_mute_y), sf::Vector2f(140.0f, 45.0f),
             managers::AudioManager::instance().is_music_muted() ? "Unmute" : "Mute");
         music_toggle->set_callback([this]() {
             auto& audio = managers::AudioManager::instance();
@@ -289,9 +291,11 @@ void SettingsPanel::create_buttons() {
             create_buttons();
         });
         if (managers::AudioManager::instance().is_music_muted()) {
-            music_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255), sf::Color(120, 20, 20, 255));
+            music_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255),
+                                     sf::Color(120, 20, 20, 255));
         } else {
-            music_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+            music_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255),
+                                     sf::Color(20, 120, 60, 255));
         }
         music_toggle->update(0.0f);
         m_buttons.push_back(std::move(music_toggle));
@@ -299,7 +303,7 @@ void SettingsPanel::create_buttons() {
         // Sound effects mute toggle
         float effects_mute_y = music_mute_y + 130.0f;
         auto sound_toggle = std::make_unique<Button>(
-            sf::Vector2f(bx + 320.0f, effects_mute_y), sf::Vector2f(140.0f, 45.0f), 
+            sf::Vector2f(bx + 320.0f, effects_mute_y), sf::Vector2f(140.0f, 45.0f),
             managers::AudioManager::instance().is_sound_muted() ? "Unmute" : "Mute");
         sound_toggle->set_callback([this]() {
             auto& audio = managers::AudioManager::instance();
@@ -309,9 +313,11 @@ void SettingsPanel::create_buttons() {
             create_buttons();
         });
         if (managers::AudioManager::instance().is_sound_muted()) {
-            sound_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255), sf::Color(120, 20, 20, 255));
+            sound_toggle->set_colors(sf::Color(150, 30, 30, 220), sf::Color(200, 50, 50, 255),
+                                     sf::Color(120, 20, 20, 255));
         } else {
-            sound_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255), sf::Color(20, 120, 60, 255));
+            sound_toggle->set_colors(sf::Color(30, 150, 80, 220), sf::Color(50, 200, 120, 255),
+                                     sf::Color(20, 120, 60, 255));
         }
         sound_toggle->update(0.0f);
         m_buttons.push_back(std::move(sound_toggle));
@@ -357,19 +363,25 @@ void SettingsPanel::create_buttons() {
         m_buttons.push_back(std::move(fullscreen_btn));
 
         float cb_y = by + 145.0f;
-        
+
         // Helper pour obtenir le nom du mode
         auto get_mode_name = [](ColorBlindMode mode) -> std::string {
             switch (mode) {
-                case ColorBlindMode::Normal: return "Mode: Normal";
-                case ColorBlindMode::Protanopia: return "Mode: Protanopia";
-                case ColorBlindMode::Deuteranopia: return "Mode: Deuteranopia";
-                case ColorBlindMode::Tritanopia: return "Mode: Tritanopia";
-                case ColorBlindMode::HighContrast: return "Mode: Contraste++";
-                default: return "Mode: Normal";
+                case ColorBlindMode::Normal:
+                    return "Mode: Normal";
+                case ColorBlindMode::Protanopia:
+                    return "Mode: Protanopia";
+                case ColorBlindMode::Deuteranopia:
+                    return "Mode: Deuteranopia";
+                case ColorBlindMode::Tritanopia:
+                    return "Mode: Tritanopia";
+                case ColorBlindMode::HighContrast:
+                    return "Mode: Contraste++";
+                default:
+                    return "Mode: Normal";
             }
         };
-        
+
         auto colorblind_btn = std::make_unique<Button>(
             sf::Vector2f(bx, cb_y), sf::Vector2f(250.0f, 45.0f), get_mode_name(m_temp_colorblind));
         colorblind_btn->set_callback([this]() {
@@ -377,16 +389,17 @@ void SettingsPanel::create_buttons() {
             int current = static_cast<int>(m_temp_colorblind);
             current = (current + 1) % 5;  // 5 modes au total
             m_temp_colorblind = static_cast<ColorBlindMode>(current);
-            
+
             // Appliquer immédiatement pour voir le changement en direct
             Settings::instance().colorblind_mode = m_temp_colorblind;
-            
+
             create_buttons();
         });
-        
+
         // Couleur différente selon le mode actif
         if (m_temp_colorblind != ColorBlindMode::Normal) {
-            colorblind_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+            colorblind_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255),
+                                       sf::Color(160, 90, 20, 255));
         } else {
             colorblind_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
                                        sf::Color(60, 60, 80, 255));
@@ -459,18 +472,20 @@ void SettingsPanel::create_buttons() {
         make_btn_at("Power2", s.key_powerup2, static_cast<int>(ControlAction::Power2), right_x,
                     cy_right);
         cy_right += 60.0f;
-        
+
         // Auto Fire toggle
-        auto autofire_btn = std::make_unique<Button>(
-            sf::Vector2f(right_x, cy_right), sf::Vector2f(220.0f, 45.0f), "Auto Fire");
+        auto autofire_btn = std::make_unique<Button>(sf::Vector2f(right_x, cy_right),
+                                                     sf::Vector2f(220.0f, 45.0f), "Auto Fire");
         autofire_btn->set_callback([this]() {
             m_temp_auto_fire = !m_temp_auto_fire;
             create_buttons();
         });
         if (m_temp_auto_fire) {
-            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255), sf::Color(160, 90, 20, 255));
+            autofire_btn->set_colors(sf::Color(200, 120, 30, 220), sf::Color(230, 160, 50, 255),
+                                     sf::Color(160, 90, 20, 255));
         } else {
-            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255), sf::Color(60, 60, 80, 255));
+            autofire_btn->set_colors(sf::Color(80, 80, 100, 220), sf::Color(120, 120, 150, 255),
+                                     sf::Color(60, 60, 80, 255));
         }
         autofire_btn->update(0.0f);
         m_buttons.push_back(std::move(autofire_btn));
@@ -598,30 +613,33 @@ void SettingsPanel::handle_key_press(sf::Keyboard::Key key) {
 void SettingsPanel::handle_mouse_move(const sf::Vector2f& mouse_pos) {
     // Désactiver la navigation clavier dès que la souris bouge
     m_keyboard_navigation = false;
-    
+
     // Handle volume bar dragging
     if (m_dragging_bar != DraggingBar::None && m_current_tab == Tab::Audio) {
         auto& s = Settings::instance();
         auto& audio = managers::AudioManager::instance();
-        
-        if (m_dragging_bar == DraggingBar::Master && m_volume_bar.getGlobalBounds().contains(mouse_pos)) {
+
+        if (m_dragging_bar == DraggingBar::Master &&
+            m_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             float x_offset = mouse_pos.x - m_volume_bar.getPosition().x;
             float percentage = std::clamp(x_offset / m_volume_bar.getSize().x, 0.0f, 1.0f);
             s.master_volume = static_cast<int>(percentage * 100.0f);
             audio.set_master_volume(static_cast<float>(s.master_volume));
-        } else if (m_dragging_bar == DraggingBar::Music && m_music_volume_bar.getGlobalBounds().contains(mouse_pos)) {
+        } else if (m_dragging_bar == DraggingBar::Music &&
+                   m_music_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             float x_offset = mouse_pos.x - m_music_volume_bar.getPosition().x;
             float percentage = std::clamp(x_offset / m_music_volume_bar.getSize().x, 0.0f, 1.0f);
             s.music_volume = static_cast<int>(percentage * 100.0f);
             audio.set_music_volume(static_cast<float>(s.music_volume));
-        } else if (m_dragging_bar == DraggingBar::Effects && m_effects_volume_bar.getGlobalBounds().contains(mouse_pos)) {
+        } else if (m_dragging_bar == DraggingBar::Effects &&
+                   m_effects_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             float x_offset = mouse_pos.x - m_effects_volume_bar.getPosition().x;
             float percentage = std::clamp(x_offset / m_effects_volume_bar.getSize().x, 0.0f, 1.0f);
             s.effects_volume = static_cast<int>(percentage * 100.0f);
             audio.set_sound_volume(static_cast<float>(s.effects_volume));
         }
     }
-    
+
     for (auto& b : m_tab_buttons)
         b->handle_mouse_move(mouse_pos);
     for (auto& b : m_buttons)
@@ -633,7 +651,7 @@ void SettingsPanel::handle_mouse_click(const sf::Vector2f& mouse_pos) {
     if (m_current_tab == Tab::Audio) {
         auto& s = Settings::instance();
         auto& audio = managers::AudioManager::instance();
-        
+
         // Master volume bar
         if (m_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             m_dragging_bar = DraggingBar::Master;
@@ -643,7 +661,7 @@ void SettingsPanel::handle_mouse_click(const sf::Vector2f& mouse_pos) {
             audio.set_master_volume(static_cast<float>(s.master_volume));
             return;
         }
-        
+
         // Music volume bar
         if (m_music_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             m_dragging_bar = DraggingBar::Music;
@@ -653,7 +671,7 @@ void SettingsPanel::handle_mouse_click(const sf::Vector2f& mouse_pos) {
             audio.set_music_volume(static_cast<float>(s.music_volume));
             return;
         }
-        
+
         // Effects volume bar
         if (m_effects_volume_bar.getGlobalBounds().contains(mouse_pos)) {
             m_dragging_bar = DraggingBar::Effects;
@@ -663,11 +681,11 @@ void SettingsPanel::handle_mouse_click(const sf::Vector2f& mouse_pos) {
             audio.set_sound_volume(static_cast<float>(s.effects_volume));
             return;
         }
-        
+
         // If clicking elsewhere, stop dragging
         m_dragging_bar = DraggingBar::None;
     }
-    
+
     for (auto& b : m_tab_buttons) {
         if (b->handle_mouse_click(mouse_pos))
             return;
@@ -679,14 +697,16 @@ void SettingsPanel::handle_mouse_click(const sf::Vector2f& mouse_pos) {
 }
 
 void SettingsPanel::handle_mouse_release(const sf::Vector2f& mouse_pos) {
-    (void)mouse_pos; // Unused but keep signature consistent
+    (void)mouse_pos;  // Unused but keep signature consistent
     m_dragging_bar = DraggingBar::None;
 }
 
 void SettingsPanel::update(float dt) {
     m_volume_text.setString("Master: " + std::to_string(Settings::instance().master_volume) + "%");
-    m_music_volume_text.setString("Music: " + std::to_string(Settings::instance().music_volume) + "%");
-    m_effects_volume_text.setString("Effects: " + std::to_string(Settings::instance().effects_volume) + "%");
+    m_music_volume_text.setString("Music: " + std::to_string(Settings::instance().music_volume) +
+                                  "%");
+    m_effects_volume_text.setString(
+        "Effects: " + std::to_string(Settings::instance().effects_volume) + "%");
 
     if (m_in_game_mode) {
         m_players_text.setString("Joueurs connectes: " + std::to_string(m_connected_players));
@@ -707,7 +727,7 @@ void SettingsPanel::update(float dt) {
 
     for (auto& b : m_tab_buttons)
         b->update(dt);
-    
+
     // Mettre à jour tous les boutons
     for (size_t i = 0; i < m_buttons.size(); ++i) {
         // Si on est en mode navigation clavier, gérer le highlight manuellement
@@ -745,7 +765,7 @@ void SettingsPanel::render(sf::RenderWindow& window) {
     if (m_current_tab == Tab::Audio) {
         float base_y = m_panel_bg.getPosition().y + 140.0f;
         float bx = m_panel_bg.getPosition().x + 24.0f;
-        
+
         // Master volume
         m_volume_text.setPosition(bx, base_y);
         m_volume_bar.setPosition(bx, base_y + 40.0f);
@@ -765,8 +785,8 @@ void SettingsPanel::render(sf::RenderWindow& window) {
         window.draw(m_music_volume_text);
         window.draw(m_music_volume_bar);
         float music_pct = static_cast<float>(Settings::instance().music_volume) / 100.0f;
-        sf::RectangleShape music_inner(
-            sf::Vector2f(m_music_volume_bar.getSize().x * music_pct, m_music_volume_bar.getSize().y));
+        sf::RectangleShape music_inner(sf::Vector2f(m_music_volume_bar.getSize().x * music_pct,
+                                                    m_music_volume_bar.getSize().y));
         music_inner.setPosition(m_music_volume_bar.getPosition());
         music_inner.setFillColor(sf::Color(180, 100, 220));
         window.draw(music_inner);
@@ -778,8 +798,8 @@ void SettingsPanel::render(sf::RenderWindow& window) {
         window.draw(m_effects_volume_text);
         window.draw(m_effects_volume_bar);
         float effects_pct = static_cast<float>(Settings::instance().effects_volume) / 100.0f;
-        sf::RectangleShape effects_inner(
-            sf::Vector2f(m_effects_volume_bar.getSize().x * effects_pct, m_effects_volume_bar.getSize().y));
+        sf::RectangleShape effects_inner(sf::Vector2f(
+            m_effects_volume_bar.getSize().x * effects_pct, m_effects_volume_bar.getSize().y));
         effects_inner.setPosition(m_effects_volume_bar.getPosition());
         effects_inner.setFillColor(sf::Color(220, 180, 100));
         window.draw(effects_inner);

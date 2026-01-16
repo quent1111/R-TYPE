@@ -197,8 +197,7 @@ struct level_manager {
         enemies_killed_this_level = 0;
         level_completed = false;
         awaiting_upgrade_choice = false;
-        // Appliquer le multiplicateur de difficulté au nombre d'ennemis requis
-        enemies_needed_for_next_level = static_cast<int>(current_level * difficulty_multiplier);
+        enemies_needed_for_next_level = static_cast<int>(static_cast<float>(current_level) * difficulty_multiplier);
         level_start_timer = 0.0f;
     }
     

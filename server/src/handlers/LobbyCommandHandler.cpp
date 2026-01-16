@@ -60,8 +60,8 @@ void LobbyCommandHandler::handle_create_lobby(UDPServer& server, int client_id,
 
     uint8_t max_players = 4;
 
-    std::cout << "[LobbyCommandHandler] Client " << client_id << " creating lobby: " 
-              << lobby_name << " (max " << static_cast<int>(max_players) << " players)"
+    std::cout << "[LobbyCommandHandler] Client " << client_id << " creating lobby: " << lobby_name
+              << " (max " << static_cast<int>(max_players) << " players)"
               << " Friendly Fire: " << (friendly_fire ? "ON" : "OFF")
               << " Difficulty: " << static_cast<int>(difficulty) << std::endl;
 

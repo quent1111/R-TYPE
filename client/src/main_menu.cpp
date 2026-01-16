@@ -2,12 +2,12 @@
 #include "common/SafeQueue.hpp"
 #include "network/Messages.hpp"
 #include "network/NetworkClient.hpp"
+#include "rendering/ColorBlindShader.hpp"
 #include "states/GameState.hpp"
 #include "states/LobbyListState.hpp"
 #include "states/LobbyState.hpp"
 #include "states/MenuState.hpp"
 #include "states/StateManager.hpp"
-#include "rendering/ColorBlindShader.hpp"
 
 #include <SFML/Graphics.hpp>
 
@@ -18,7 +18,7 @@
 int main(int argc, char* argv[]) {
     std::cout << "[Client] Initializing power-up system..." << std::endl;
     powerup::PowerupRegistry::instance().initialize();
-    
+
     std::cout << "[Client] Initializing colorblind shader..." << std::endl;
     rendering::ColorBlindShader::instance().init();
 

@@ -1,9 +1,8 @@
 #include "states/LobbyState.hpp"
 
-#include "common/Settings.hpp"
-#include "managers/AudioManager.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "common/Settings.hpp"
 #include "level/CustomLevelLoader.hpp"
 #include "managers/AudioManager.hpp"
 #include "rendering/ColorBlindShader.hpp"
@@ -328,15 +327,18 @@ void LobbyState::handle_event(const sf::Event& event) {
             m_keyboard_navigation = true;
             if (m_selected_button > 0) {
                 m_selected_button--;
-                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
             }
         } else if (event.key.code == sf::Keyboard::Down) {
             m_keyboard_navigation = true;
             if (m_selected_button + 1 < m_buttons.size()) {
                 m_selected_button++;
-                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
             }
-        } else if (event.key.code == sf::Keyboard::Return || event.key.code == sf::Keyboard::Space) {
+        } else if (event.key.code == sf::Keyboard::Return ||
+                   event.key.code == sf::Keyboard::Space) {
             if (m_selected_button < m_buttons.size()) {
                 m_buttons[m_selected_button]->trigger();
             }
@@ -411,7 +413,7 @@ void LobbyState::render(sf::RenderWindow& window) {
     if (m_footer) {
         m_footer->render(window);
     }
-    
+
     // Appliquer le shader colorblind
     rendering::ColorBlindShader::instance().apply(window);
 

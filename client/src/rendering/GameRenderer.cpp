@@ -1,10 +1,10 @@
 #include "rendering/GameRenderer.hpp"
 
 #include "common/Settings.hpp"
-#include "managers/TextureManager.hpp"
 #include "managers/FontManager.hpp"
-#include <ColorBlindnessMode.hpp>
+#include "managers/TextureManager.hpp"
 
+#include <ColorBlindnessMode.hpp>
 #include <cmath>
 
 #include <chrono>
@@ -17,10 +17,11 @@ GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
     transition_overlay_.setFillColor(sf::Color(0, 0, 0, 0));
     ruins_background_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     ruins_background_.setFillColor(sf::Color(25, 20, 35));
-    
+
     // Charger le shader pour les filtres daltoniens
     if (sf::Shader::isAvailable()) {
-        if (colorblind_shader_.loadFromFile("assets/shaders/colorblind.vert", "assets/shaders/colorblind.frag")) {
+        if (colorblind_shader_.loadFromFile("assets/shaders/colorblind.vert",
+                                            "assets/shaders/colorblind.frag")) {
             shader_loaded_ = true;
             std::cout << "[GameRenderer] Colorblind shader loaded successfully" << std::endl;
         } else {
@@ -31,7 +32,7 @@ GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
         std::cerr << "[GameRenderer] Shaders not available on this system" << std::endl;
         shader_loaded_ = false;
     }
-    
+
     // Créer la texture de rendu
     if (!render_texture_.create(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         std::cerr << "[GameRenderer] Failed to create render texture" << std::endl;
@@ -101,14 +102,12 @@ void GameRenderer::init(sf::RenderWindow& window) {
     compiler_boss_bg_sprite_.setScale(scale_x3, scale_y3);
     compiler_boss_bg_sprite_.setPosition(0, 0);
 
-    std::vector<std::string> top_files = {
-        "assets/ruins-top1.png", "assets/ruins-top2.png", "assets/ruins-top3.png",
-        "assets/ruins-top4.png", "assets/ruins-top5.png"
-    };
-    std::vector<std::string> bottom_files = {
-        "assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
-        "assets/ruins-bottom3.png", "assets/ruins-bottom4.png"
-    };
+    std::vector<std::string> top_files = {"assets/ruins-top1.png", "assets/ruins-top2.png",
+                                          "assets/ruins-top3.png", "assets/ruins-top4.png",
+                                          "assets/ruins-top5.png"};
+    std::vector<std::string> bottom_files = {"assets/ruins-bottom1.png", "assets/ruins-bottom2.png",
+                                             "assets/ruins-bottom3.png",
+                                             "assets/ruins-bottom4.png"};
     const float RUIN_SCALE = 5.0f;
     float x_pos = 0.0f;
     int top_index = 0;
@@ -583,7 +582,8 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
         }
 
         // Flash damage for Boss and CompilerParts (0x1C, 0x1D, 0x1E)
-        if ((e.type == 0x08 || e.type == 0x1C || e.type == 0x1D || e.type == 0x1E) && e.damage_flash_timer > 0.0f) {
+        if ((e.type == 0x08 || e.type == 0x1C || e.type == 0x1D || e.type == 0x1E) &&
+            e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
         } else if (e.grayscale) {
             e.sprite.setColor(sf::Color(128, 128, 128, 255));
@@ -705,7 +705,7 @@ void GameRenderer::render_damage_flash(sf::RenderWindow& window) {
 void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
     // Cette fonction est maintenant juste utilisée pour l'indicateur de mode
     ColorBlindMode mode = Settings::instance().colorblind_mode;
-    
+
     if (mode != ColorBlindMode::Normal) {
         sf::Text mode_indicator;
         auto& font_mgr = managers::FontManager::instance();
@@ -745,8 +745,7 @@ void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
     }
 }
 
-void GameRenderer::begin_colorblind_render(sf::RenderWindow& /*window*/) {
-}
+void GameRenderer::begin_colorblind_render(sf::RenderWindow& /*window*/) {}
 
 void GameRenderer::end_colorblind_render(sf::RenderWindow& window) {
     ColorBlindMode mode = Settings::instance().colorblind_mode;
@@ -765,7 +764,8 @@ void GameRenderer::end_colorblind_render(sf::RenderWindow& window) {
     }
 }
 
-void GameRenderer::apply_colorblind_shader(sf::RenderWindow& window, sf::RenderTexture& /*source*/) {
+void GameRenderer::apply_colorblind_shader(sf::RenderWindow& window,
+                                           sf::RenderTexture& /*source*/) {
     ColorBlindMode mode = Settings::instance().colorblind_mode;
 
     if (!shader_loaded_ || mode == ColorBlindMode::Normal) {

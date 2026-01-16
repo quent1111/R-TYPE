@@ -7,12 +7,11 @@
 #include "rendering/SerpentEffectsSystem.hpp"
 #include "rendering/SerpentLaserSystem.hpp"
 
+#include <AccessibilityManager.hpp>
+#include <ProjectileShapeRenderer.hpp>
 #include <SFML/Graphics.hpp>
 
 #include <map>
-
-#include <AccessibilityManager.hpp>
-#include <ProjectileShapeRenderer.hpp>
 
 namespace rendering {
 
@@ -47,7 +46,7 @@ public:
     void render_damage_flash(sf::RenderWindow& window);
 
     void render_colorblind_overlay(sf::RenderWindow& window);
-    
+
     // Fonctions pour le rendu avec shader daltonien
     void begin_colorblind_render(sf::RenderWindow& window);
     void end_colorblind_render(sf::RenderWindow& window);
@@ -111,7 +110,7 @@ private:
     SerpentEffectsSystem serpent_effects_;
 
     accessibility::ProjectileShapeRenderer projectile_shape_renderer_;
-    
+
     sf::Shader colorblind_shader_;
     sf::RenderTexture render_texture_;
     bool shader_loaded_ = false;

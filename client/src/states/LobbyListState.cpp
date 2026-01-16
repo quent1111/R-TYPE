@@ -1,9 +1,9 @@
 #include "states/LobbyListState.hpp"
 
-#include "common/Settings.hpp"
-#include "managers/AudioManager.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "common/Settings.hpp"
+#include "managers/AudioManager.hpp"
 #include "rendering/ColorBlindShader.hpp"
 
 #include <ctime>
@@ -111,8 +111,8 @@ void LobbyListState::request_lobby_list() {
 }
 
 void LobbyListState::send_create_lobby_request(const std::string& lobby_name) {
-    std::cout << "[LobbyListState] Creating lobby: " << lobby_name 
-              << " (Friendly Fire: " << (m_friendly_fire ? "ON" : "OFF") 
+    std::cout << "[LobbyListState] Creating lobby: " << lobby_name
+              << " (Friendly Fire: " << (m_friendly_fire ? "ON" : "OFF")
               << ", Difficulty: " << static_cast<int>(m_difficulty) << ")" << std::endl;
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
@@ -199,7 +199,8 @@ void LobbyListState::on_create_clicked() {
     m_input_box.setFillColor(sf::Color(20, 20, 30, 240));
     m_input_box.setOutlineColor(sf::Color(100, 180, 220));
     m_input_box.setOutlineThickness(3.0f);
-    m_input_box.setPosition(static_cast<float>(window_size.x) / 2.0f - 300.0f, static_cast<float>(window_size.y) / 2.0f - 100.0f);
+    m_input_box.setPosition(static_cast<float>(window_size.x) / 2.0f - 300.0f,
+                            static_cast<float>(window_size.y) / 2.0f - 100.0f);
 
     m_input_text.setFont(m_font);
     m_input_text.setCharacterSize(22);
@@ -214,29 +215,34 @@ void LobbyListState::on_create_clicked() {
     m_input_label.setString(
         "Nom du lobby (max 12 caracteres, Entree pour valider, Echap pour annuler):");
     auto label_bounds = m_input_label.getLocalBounds();
-    m_input_label.setPosition(static_cast<float>(window_size.x) / 2.0f - label_bounds.width / 2.0f, m_input_box.getPosition().y - 40.0f);
+    m_input_label.setPosition(static_cast<float>(window_size.x) / 2.0f - label_bounds.width / 2.0f,
+                              m_input_box.getPosition().y - 40.0f);
 
     m_checkbox_box.setSize(sf::Vector2f(25.0f, 25.0f));
     m_checkbox_box.setFillColor(sf::Color(20, 20, 30, 240));
     m_checkbox_box.setOutlineColor(sf::Color(100, 180, 220));
     m_checkbox_box.setOutlineThickness(2.0f);
-    m_checkbox_box.setPosition(m_input_box.getPosition().x + 15.0f, m_input_box.getPosition().y + 80.0f);
+    m_checkbox_box.setPosition(m_input_box.getPosition().x + 15.0f,
+                               m_input_box.getPosition().y + 80.0f);
 
     m_checkbox_check.setSize(sf::Vector2f(15.0f, 15.0f));
     m_checkbox_check.setFillColor(sf::Color(100, 220, 100));
-    m_checkbox_check.setPosition(m_checkbox_box.getPosition().x + 5.0f, m_checkbox_box.getPosition().y + 5.0f);
+    m_checkbox_check.setPosition(m_checkbox_box.getPosition().x + 5.0f,
+                                 m_checkbox_box.getPosition().y + 5.0f);
 
     m_checkbox_label.setFont(m_font);
     m_checkbox_label.setCharacterSize(20);
     m_checkbox_label.setFillColor(sf::Color::White);
     m_checkbox_label.setString("Friendly Fire");
-    m_checkbox_label.setPosition(m_checkbox_box.getPosition().x + 35.0f, m_checkbox_box.getPosition().y);
+    m_checkbox_label.setPosition(m_checkbox_box.getPosition().x + 35.0f,
+                                 m_checkbox_box.getPosition().y);
 
     m_difficulty_label.setFont(m_font);
     m_difficulty_label.setCharacterSize(20);
     m_difficulty_label.setFillColor(sf::Color::White);
     m_difficulty_label.setString("Difficulte:");
-    m_difficulty_label.setPosition(m_input_box.getPosition().x + 15.0f, m_input_box.getPosition().y + 130.0f);
+    m_difficulty_label.setPosition(m_input_box.getPosition().x + 15.0f,
+                                   m_input_box.getPosition().y + 130.0f);
 
     m_difficulty_boxes.clear();
     m_difficulty_texts.clear();
@@ -263,10 +269,9 @@ void LobbyListState::on_create_clicked() {
         text.setFillColor(sf::Color::White);
         text.setString(difficulty_names[i]);
         auto text_bounds = text.getLocalBounds();
-        text.setPosition(
-            box.getPosition().x + button_width / 2.0f - text_bounds.width / 2.0f,
-            box.getPosition().y + button_height / 2.0f - text_bounds.height / 2.0f - 5.0f
-        );
+        text.setPosition(box.getPosition().x + button_width / 2.0f - text_bounds.width / 2.0f,
+                         box.getPosition().y + button_height / 2.0f - text_bounds.height / 2.0f -
+                             5.0f);
         m_difficulty_texts.push_back(text);
     }
 }
@@ -400,16 +405,19 @@ void LobbyListState::handle_event(const sf::Event& event) {
             m_keyboard_navigation = true;
             if (m_selected_button > 0) {
                 m_selected_button--;
-                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
             }
         } else if (event.key.code == sf::Keyboard::Down) {
             m_keyboard_navigation = true;
             size_t total_buttons = m_buttons.size() + m_lobby_buttons.size();
             if (m_selected_button + 1 < total_buttons) {
                 m_selected_button++;
-                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
             }
-        } else if (event.key.code == sf::Keyboard::Return || event.key.code == sf::Keyboard::Space) {
+        } else if (event.key.code == sf::Keyboard::Return ||
+                   event.key.code == sf::Keyboard::Space) {
             if (m_selected_button < m_buttons.size()) {
                 m_buttons[m_selected_button]->trigger();
             } else {
@@ -456,9 +464,9 @@ void LobbyListState::handle_event(const sf::Event& event) {
                 }
             }
             bool clicked_on_ui = m_input_box.getGlobalBounds().contains(click_pos) ||
-                                m_checkbox_box.getGlobalBounds().contains(click_pos) ||
-                                m_checkbox_label.getGlobalBounds().contains(click_pos) ||
-                                m_difficulty_label.getGlobalBounds().contains(click_pos);
+                                 m_checkbox_box.getGlobalBounds().contains(click_pos) ||
+                                 m_checkbox_label.getGlobalBounds().contains(click_pos) ||
+                                 m_difficulty_label.getGlobalBounds().contains(click_pos);
 
             for (const auto& box : m_difficulty_boxes) {
                 if (box.getGlobalBounds().contains(click_pos)) {
@@ -508,7 +516,8 @@ void LobbyListState::handle_event(const sf::Event& event) {
                             m_difficulty_boxes[j].setFillColor(sf::Color(20, 20, 30, 240));
                         }
                     }
-                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                    managers::AudioManager::instance().play_sound(
+                        managers::AudioManager::SoundType::Plop);
                 }
                 return;
             } else if (event.key.code == sf::Keyboard::Right) {
@@ -522,12 +531,14 @@ void LobbyListState::handle_event(const sf::Event& event) {
                             m_difficulty_boxes[j].setFillColor(sf::Color(20, 20, 30, 240));
                         }
                     }
-                    managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                    managers::AudioManager::instance().play_sound(
+                        managers::AudioManager::SoundType::Plop);
                 }
                 return;
             } else if (event.key.code == sf::Keyboard::Space) {
                 m_friendly_fire = !m_friendly_fire;
-                managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Plop);
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
                 return;
             }
         }
@@ -628,8 +639,9 @@ void LobbyListState::render(sf::RenderWindow& window) {
         }
     }
 
-    if (m_footer) m_footer->render(window);
-    
+    if (m_footer)
+        m_footer->render(window);
+
     // Appliquer le shader colorblind
     rendering::ColorBlindShader::instance().apply(window);
 

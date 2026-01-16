@@ -1,4 +1,5 @@
 #include "../include/AccessibilityManager.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <vector>
@@ -13,15 +14,14 @@ AccessibilityManager& AccessibilityManager::instance() {
 AccessibilityManager::AccessibilityManager()
     : current_mode_(ColorBlindnessMode::Normal),
       projectile_shapes_enabled_(true),
-      cache_valid_(false) {
-}
+      cache_valid_(false) {}
 
 void AccessibilityManager::setColorBlindMode(ColorBlindnessMode mode) {
     if (current_mode_ != mode) {
         current_mode_ = mode;
         invalidateCache();
-        std::cout << "[Accessibility] Mode changed to: " 
-                  << colorBlindnessModeToString(mode) << std::endl;
+        std::cout << "[Accessibility] Mode changed to: " << colorBlindnessModeToString(mode)
+                  << std::endl;
     }
 }
 
@@ -160,10 +160,10 @@ bool AccessibilityManager::saveSettings(const std::string& filepath) const {
     }
 
     // Mettre à jour ou ajouter les valeurs
-    std::string mode_line = "ColorBlindMode=" + 
-                           std::string(colorBlindnessModeToString(current_mode_));
-    std::string shapes_line = "ProjectileShapes=" + 
-                             std::string(projectile_shapes_enabled_ ? "true" : "false");
+    std::string mode_line =
+        "ColorBlindMode=" + std::string(colorBlindnessModeToString(current_mode_));
+    std::string shapes_line =
+        "ProjectileShapes=" + std::string(projectile_shapes_enabled_ ? "true" : "false");
 
     // Chercher et mettre à jour les lignes existantes
     bool found_mode = false;

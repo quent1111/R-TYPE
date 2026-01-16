@@ -1,5 +1,7 @@
 #include "rendering/ColorBlindShader.hpp"
+
 #include "common/Settings.hpp"
+
 #include <iostream>
 
 namespace rendering {

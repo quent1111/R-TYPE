@@ -81,7 +81,7 @@ void cleanupSystem(registry& reg, float dt) {
                     entities_to_kill.push_back(reg.entity_from_index(i));
                 }
             } else if (is_enemy && !is_boss) {
-                if (pos.x < -200.0f || pos.x > 2200.0f || pos.y < -200.0f || pos.y > 1300.0f) {
+                if (pos.x < 0.0f || pos.x > 2200.0f || pos.y < -200.0f || pos.y > 1300.0f) {
                     entities_to_kill.push_back(reg.entity_from_index(i));
                 }
             }

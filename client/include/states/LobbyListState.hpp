@@ -13,11 +13,7 @@
 
 namespace rtype {
 
-enum class DifficultyLevel {
-    Easy = 0,
-    Normal = 1,
-    Hard = 2
-};
+enum class DifficultyLevel { Easy = 0, Normal = 1, Hard = 2 };
 
 struct LobbyInfo {
     int lobby_id;

@@ -23,6 +23,9 @@ else()
     add_compile_options(
         -pthread
     )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-Wno-stringop-overflow)
+    endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -49,7 +52,6 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     add_compile_definitions(NDEBUG)
 endif()
 
-# Code coverage support for Debug builds
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
 if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
     if(NOT MSVC)

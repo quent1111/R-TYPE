@@ -243,7 +243,8 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vy = vy;
             entity.curr_time = std::chrono::steady_clock::now();
 
-            // Read custom_entity_id string for custom entities (CustomEnemy=0x30, CustomBoss=0x31, CustomProjectile=0x32)
+            // Read custom_entity_id string for custom entities (CustomEnemy=0x30, CustomBoss=0x31,
+            // CustomProjectile=0x32)
             if (type_val == 0x30 || type_val == 0x31 || type_val == 0x32) {
                 uint8_t str_length;
                 deserializer >> str_length;

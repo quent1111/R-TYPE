@@ -45,7 +45,9 @@ void EntityBroadcaster::broadcast_entity_positions(
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
 
-            uint8_t player_idx = player_idx_opt.has_value() ? static_cast<uint8_t>(player_idx_opt->index) : uint8_t{0};
+            uint8_t player_idx = player_idx_opt.has_value()
+                                     ? static_cast<uint8_t>(player_idx_opt->index)
+                                     : uint8_t{0};
             broadcast_serializer_ << player_idx;
 
             broadcast_serializer_.write_position(pos.x, pos.y);
@@ -137,7 +139,8 @@ void EntityBroadcaster::broadcast_entity_positions(
                 bool grayscale = sprite_opt.has_value() ? sprite_opt->grayscale : false;
                 broadcast_serializer_ << static_cast<uint8_t>(grayscale ? 1 : 0);
 
-                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at player)
+                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at
+                // player)
                 if (tags[i]->type == RType::EntityType::SerpentHead ||
                     tags[i]->type == RType::EntityType::SerpentBody ||
                     tags[i]->type == RType::EntityType::SerpentScale ||
@@ -201,7 +204,9 @@ void EntityBroadcaster::send_full_game_state_to_client(
             serializer << static_cast<uint32_t>(other_client_id);
             serializer << static_cast<uint8_t>(RType::EntityType::Player);
 
-            uint8_t player_idx = player_idx_opt.has_value() ? static_cast<uint8_t>(player_idx_opt->index) : uint8_t{0};
+            uint8_t player_idx = player_idx_opt.has_value()
+                                     ? static_cast<uint8_t>(player_idx_opt->index)
+                                     : uint8_t{0};
             serializer << player_idx;
 
             serializer << pos.x;

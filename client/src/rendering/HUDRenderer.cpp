@@ -149,8 +149,7 @@ void HUDRenderer::render_timer(sf::RenderWindow& window) {
 
 void HUDRenderer::render_health_bar(sf::RenderWindow& window,
                                     const std::map<uint32_t, Entity>& entities,
-                                    uint32_t my_network_id,
-                                    bool show_level_intro) {
+                                    uint32_t my_network_id, bool show_level_intro) {
     if (show_level_intro) {
         return;
     }
