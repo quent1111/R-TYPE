@@ -1,21 +1,19 @@
 site_name: R-TYPE Documentation
+site_url: https://r-type-docs.netlify.app/
 site_description: Documentation for the R-TYPE game project - A networked multiplayer game built with C++
 site_author: R-TYPE Team
 repo_url: https://github.com/quent1111/R-TYPE
 repo_name: quent1111/R-TYPE
 
-# Theme configuration
 theme:
   name: material
   palette:
-    # Light mode
     - scheme: default
       primary: indigo
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-    # Dark mode
     - scheme: slate
       primary: indigo
       accent: indigo
@@ -35,7 +33,6 @@ theme:
     repo: fontawesome/brands/github
   language: en
 
-# Extensions
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -55,13 +52,11 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
-# Plugins
 plugins:
   - search
   - git-revision-date-localized:
       enable_creation_date: true
 
-# Navigation structure
 nav:
   - Home: index.md
   - Game Design:
@@ -85,7 +80,6 @@ nav:
       - Technical Choices: developer-guide/technical-choices.md
   - Scripts: scripts/index.md
 
-# Extra configuration
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -93,5 +87,4 @@ extra:
   version:
     provider: mike
 
-# Copyright
 copyright: Copyright &copy; 2025 R-TYPE Team
