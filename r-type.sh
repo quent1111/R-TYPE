@@ -255,22 +255,31 @@ configure_cmake() {
     print_step "Configuring CMake..."
     cd "$PROJECT_ROOT"
     if [ -f "CMakeUserPresets.json" ]; then
+        local LOG_FILE="$BUILD_DIR/cmake-config.log"
+        mkdir -p "$BUILD_DIR"
+        
         if [ "$VERBOSE" = true ]; then
             cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')
             local CMAKE_EXIT=$?
         else
-            cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]') > "$BUILD_DIR/cmake-config.log" 2>&1
+            cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]') > "$LOG_FILE" 2>&1
             local CMAKE_EXIT=$?
         fi
+        
         if [ $CMAKE_EXIT -ne 0 ]; then
-            print_error "CMake configuration failed"
+            print_error "CMake configuration failed (exit code: $CMAKE_EXIT)"
             echo ""
             # Always show error details when configuration fails
-            if [ -f "$BUILD_DIR/cmake-config.log" ]; then
-                echo "Last 50 lines of $BUILD_DIR/cmake-config.log:"
+            if [ -f "$LOG_FILE" ]; then
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                tail -n 50 "$BUILD_DIR/cmake-config.log"
+                echo "CMake configuration log ($LOG_FILE):"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                tail -n 100 "$LOG_FILE"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            else
+                echo "ERROR: Log file not found at: $LOG_FILE"
+                echo "Current directory: $(pwd)"
+                echo "BUILD_DIR: $BUILD_DIR"
             fi
             echo ""
             echo "Tip: Run with --verbose for full output"
@@ -586,16 +595,16 @@ EOF
     cd "$TEST_DIR"
     
     print_step "Capturing baseline coverage (all instrumented files)..."
-    lcov --capture --initial --directory . --output-file coverage_base.info --ignore-errors source 2>/dev/null || true
+    lcov --capture --initial --directory . --output-file coverage_base.info --ignore-errors source,mismatch 2>/dev/null || true
     
     print_step "Running tests to generate coverage data..."
     ctest --output-on-failure -C Debug
     
     print_step "Capturing test coverage data..."
-    lcov --capture --directory . --output-file coverage_test.info --ignore-errors source
+    lcov --capture --directory . --output-file coverage_test.info --ignore-errors source,mismatch
     
     print_step "Combining coverage data..."
-    lcov --add-tracefile coverage_base.info --add-tracefile coverage_test.info --output-file coverage_combined.info --ignore-errors source 2>/dev/null || \
+    lcov --add-tracefile coverage_base.info --add-tracefile coverage_test.info --output-file coverage_combined.info --ignore-errors source,mismatch 2>/dev/null || \
         cp coverage_test.info coverage_combined.info
     
     print_step "Filtering coverage data..."
