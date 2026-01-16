@@ -2,7 +2,6 @@
 
 #include <array>
 
-// Suppress false positive GCC warning about memmove in vector initialization
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
@@ -10,7 +9,6 @@
 
 namespace server {
 
-// Helper function to get difficulty multiplier from game settings
 static float get_difficulty_multiplier(registry& reg) {
     auto& settings = reg.get_components<game_settings>();
     for (const auto& setting : settings) {
@@ -18,13 +16,35 @@ static float get_difficulty_multiplier(registry& reg) {
             return setting->difficulty_multiplier;
         }
     }
-    return 1.0f;  // Default to easy if no settings found
+    return 1.0f;
+}
+
+int BossManager::get_boss_type_for_level(int level) {
+    if (level <= 0) return 0;
+    
+    if (level == 5) return 1;
+    if (level == 10) return 2;
+    if (level == 15) return 3;
+    
+    if (level > 15 && (level % 5) == 0) {
+        int boss_index = ((level - 20) / 5) % 3;
+        return boss_index + 1;
+    }
+    
+    return 0;
+}
+
+float BossManager::get_cycle_multiplier(int level) {
+    if (level <= 15) return 1.0f;
+
+    int cycle = ((level - 1) / 15);
+    return 1.0f + (static_cast<float>(cycle - 1) * 0.5f);
 }
 
 void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_entity,
                                      float& boss_animation_timer, float& boss_shoot_timer,
                                      bool& boss_animation_complete, bool& boss_entrance_complete,
-                                     float& boss_target_x) {
+                                     float& boss_target_x, float cycle_multiplier) {
     float boss_spawn_x = 2400.0f;
     float boss_y = 540.0f;
     boss_target_x = 1500.0f;
@@ -36,12 +56,16 @@ void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_
     reg.add_component(boss, velocity{-150.0f, 0.0f});
 
     float difficulty_mult = get_difficulty_multiplier(reg);
+    float total_mult = difficulty_mult * cycle_multiplier;
     int base_health = 2000;
-    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * total_mult);
+    
+    int base_damage = 50;
+    int scaled_damage = static_cast<int>(static_cast<float>(base_damage) * (1.0f + (cycle_multiplier - 1.0f) * 0.3f));
 
     reg.add_component(boss, health{scaled_health, scaled_health});
 
-    reg.add_component(boss, damage_on_contact{50, false});
+    reg.add_component(boss, damage_on_contact{scaled_damage, false});
 
     std::vector<multi_hitbox::hitbox_part> hitbox_parts;
     hitbox_parts.reserve(3);
@@ -60,6 +84,11 @@ void BossManager::spawn_boss_level_5(registry& reg, std::optional<entity>& boss_
     boss_shoot_timer = 0.0f;
     boss_animation_complete = false;
     boss_entrance_complete = false;
+    
+    if (cycle_multiplier > 1.0f) {
+        std::cout << "[BOSS] Dobkeratops spawned with cycle multiplier " << cycle_multiplier 
+                  << " (HP: " << scaled_health << ", DMG: " << scaled_damage << ")" << std::endl;
+    }
 }
 
 void BossManager::update_boss_behavior(
@@ -71,15 +100,11 @@ void BossManager::update_boss_behavior(
         return;
     }
 
-    // Vérifier si le boss a un death_timer (ajouté quand il meurt)
     auto boss_death_tag = reg.get_component<explosion_tag>(boss_entity.value());
     if (boss_death_tag.has_value()) {
-        // Le boss est en train de mourir avec des explosions
         boss_death_tag->elapsed += dt;
         
-        // Après 1.8s (60 explosions * 0.03s), marquer le niveau comme complété et détruire le boss
         if (boss_death_tag->elapsed >= boss_death_tag->lifetime) {
-            // Marquer le niveau comme complété
             auto& level_managers = reg.get_components<level_manager>();
             for (size_t k = 0; k < level_managers.size(); ++k) {
                 if (level_managers[k].has_value()) {
@@ -104,18 +129,15 @@ void BossManager::update_boss_behavior(
 
     auto boss_health_opt = reg.get_component<health>(boss_entity.value());
     if (!boss_health_opt.has_value() || boss_health_opt->current <= 0) {
-        // Boss vient de mourir - lancer les explosions
         auto boss_pos_opt = reg.get_component<position>(boss_entity.value());
         if (boss_pos_opt.has_value()) {
             spawn_boss_explosions(reg, boss_pos_opt->x, boss_pos_opt->y, 25);
         }
         
-        // Ajouter un explosion_tag au boss pour suivre le temps d'explosion
         explosion_tag death_timer(1.2f);
         death_timer.elapsed = 0.0f;
         reg.add_component(boss_entity.value(), death_timer);
         
-        // Retirer la collision pour que le boss ne soit plus attaquable
         reg.remove_component<collision_box>(boss_entity.value());
         return;
     }
@@ -322,22 +344,32 @@ void BossManager::update_homing_enemies(
 }
 
 void BossManager::spawn_boss_level_10(registry& reg,
-                                      std::optional<entity>& serpent_controller_entity) {
+                                      std::optional<entity>& serpent_controller_entity,
+                                      float cycle_multiplier) {
     entity controller = reg.spawn_entity();
 
-    serpent_boss_controller ctrl(8000, 18, 6);
+    int base_health = 8000;
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * cycle_multiplier);
+    
+    serpent_boss_controller ctrl(scaled_health, 18, 6);
     ctrl.spawn_timer = 0.0f;
     ctrl.spawn_complete = false;
     ctrl.nest_visible = false;
     ctrl.movement_speed = 350.0f;
     ctrl.wave_frequency = 2.5f;
     ctrl.wave_amplitude = 50.0f;
+    ctrl.cycle_multiplier = cycle_multiplier;
 
     reg.add_component(controller, ctrl);
     reg.add_component(controller, position{960.0f, 1200.0f});
     reg.add_component(controller, boss_tag{});
 
     serpent_controller_entity = controller;
+    
+    if (cycle_multiplier > 1.0f) {
+        std::cout << "[BOSS] Serpent spawned with cycle multiplier " << cycle_multiplier 
+                  << " (HP: " << scaled_health << ")" << std::endl;
+    }
 }
 
 void BossManager::spawn_serpent_nest(registry& reg, serpent_boss_controller& controller) {
@@ -358,23 +390,28 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
     entity part = reg.spawn_entity();
     
     int base_health = 100;
+    int base_damage = 15;
     RType::EntityType entity_type = RType::EntityType::SerpentBody;
 
     switch (type) {
         case SerpentPartType::Head:
             base_health = 300;
+            base_damage = 25;
             entity_type = RType::EntityType::SerpentHead;
             break;
         case SerpentPartType::Body:
             base_health = 100;
+            base_damage = 15;
             entity_type = RType::EntityType::SerpentBody;
             break;
         case SerpentPartType::Scale:
             base_health = 150;
+            base_damage = 20;
             entity_type = RType::EntityType::SerpentScale;
             break;
         case SerpentPartType::Tail:
             base_health = 80;
+            base_damage = 10;
             entity_type = RType::EntityType::SerpentTail;
             break;
         default:
@@ -382,13 +419,15 @@ void BossManager::spawn_serpent_part(registry& reg, serpent_boss_controller& con
     }
     
     float difficulty_mult = get_difficulty_multiplier(reg);
-    int scaled_health = static_cast<int>(static_cast<float>(base_health) * difficulty_mult);
+    float total_mult = difficulty_mult * controller.cycle_multiplier;
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * total_mult);
+    int scaled_damage = static_cast<int>(static_cast<float>(base_damage) * (1.0f + (controller.cycle_multiplier - 1.0f) * 0.3f));
     
     reg.add_component(part, position{x, y});
     reg.add_component(part, velocity{0.0f, 0.0f});
     reg.add_component(part, health{scaled_health, scaled_health});
     reg.add_component(part, collision_box{50.0f, 50.0f});
-    reg.add_component(part, damage_on_contact{15, false});
+    reg.add_component(part, damage_on_contact{scaled_damage, false});
     reg.add_component(part, entity_tag{entity_type});
     reg.add_component(part, enemy_tag{});
     reg.add_component(part, damage_flash_component{0.15f});
@@ -903,7 +942,6 @@ void BossManager::update_serpent_boss(registry& reg,
     update_serpent_parts_follow(reg, controller, dt);
     update_serpent_rotations(reg, controller, client_entity_ids);
 
-    // Gérer les explosions des parties du serpent qui meurent
     auto& healths = reg.get_components<health>();
     auto& positions = reg.get_components<position>();
     auto& explosion_tags = reg.get_components<explosion_tag>();
@@ -1283,7 +1321,6 @@ void BossManager::serpent_laser_attack(
             float seg_y = tail_pos->y + sin_angle * dist;
             if (seg_x < -100 || seg_x > 2020 || seg_y < -100 || seg_y > 1200) continue;
             
-            // Create laser segment for collision
             entity laser_seg = reg.spawn_entity();
             reg.add_component(laser_seg, position{seg_x, seg_y});
             reg.add_component(laser_seg, velocity{0.0f, 0.0f});  
@@ -1291,12 +1328,10 @@ void BossManager::serpent_laser_attack(
             reg.add_component(laser_seg, damage_on_contact{10, false});  
             reg.add_component(laser_seg, projectile_tag{});
             reg.add_component(laser_seg, enemy_tag{});
-            // Use same laser type - segments won't render as beam, just for collision
-            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});  // Hidden collision type
-            reg.add_component(laser_seg, explosion_tag{0.05f});  // Auto-destroy after 0.05s
+            reg.add_component(laser_seg, entity_tag{static_cast<RType::EntityType>(0x17)});
+            reg.add_component(laser_seg, explosion_tag{0.05f});
         }
         
-        // End laser after duration
         if (controller.laser_elapsed >= controller.laser_fire_duration) {
             controller.laser_firing = false;
         }
@@ -1304,27 +1339,34 @@ void BossManager::serpent_laser_attack(
 }
 
 
-void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity) {
+void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity,
+                                       float cycle_multiplier) {
 
     entity controller_ent = reg.spawn_entity();
 
     float spawn_x = -500.0f;
     float spawn_y = -500.0f;
 
+    int base_health = 3000;
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * cycle_multiplier);
+    int base_damage = 40;
+    int scaled_damage = static_cast<int>(static_cast<float>(base_damage) * (1.0f + (cycle_multiplier - 1.0f) * 0.3f));
+
     reg.add_component(controller_ent, position{spawn_x, spawn_y});
-    compiler_boss_controller controller(3000);
+    compiler_boss_controller controller(scaled_health);
     controller.entrance_target_x = 1150.0f;
     controller.target_x = 1150.0f;
     controller.target_y = 450.0f;
     controller.entrance_complete = true;
     controller.state = CompilerState::Assembled;
     controller.state_timer = 0.0f;
+    controller.cycle_multiplier = cycle_multiplier;
 
     reg.add_component(controller_ent, controller);
     reg.add_component(controller_ent, entity_tag{RType::EntityType::CompilerBoss});
     reg.add_component(controller_ent, boss_tag{});
-    reg.add_component(controller_ent, health{3000, 3000});
-    reg.add_component(controller_ent, damage_on_contact{40, false});
+    reg.add_component(controller_ent, health{scaled_health, scaled_health});
+    reg.add_component(controller_ent, damage_on_contact{scaled_damage, false});
     reg.add_component(controller_ent, collision_box{180.0f, 150.0f, 0.0f, 0.0f});
 
     compiler_controller_entity = controller_ent;
@@ -1340,6 +1382,11 @@ void BossManager::spawn_boss_level_15(registry& reg, std::optional<entity>& comp
         spawn_compiler_part(reg, ctrl, 1, center_x - 50.0f, center_y - 40.0f);
         spawn_compiler_part(reg, ctrl, 2, center_x, center_y + 60.0f);
         spawn_compiler_part(reg, ctrl, 3, center_x + 90.0f, center_y - 40.0f);
+    }
+    
+    if (cycle_multiplier > 1.0f) {
+        std::cout << "[BOSS] Compiler spawned with cycle multiplier " << cycle_multiplier 
+                  << " (HP: " << scaled_health << ", DMG: " << scaled_damage << ")" << std::endl;
     }
 }
 
@@ -1372,8 +1419,13 @@ void BossManager::spawn_compiler_part(registry& reg, compiler_boss_controller& c
             break;
     }
     
-    reg.add_component(part, damage_on_contact{30, false});
-    reg.add_component(part, health{1000, 1000});
+    int base_part_health = 1000;
+    int base_part_damage = 30;
+    int scaled_part_health = static_cast<int>(static_cast<float>(base_part_health) * controller.cycle_multiplier);
+    int scaled_part_damage = static_cast<int>(static_cast<float>(base_part_damage) * (1.0f + (controller.cycle_multiplier - 1.0f) * 0.3f));
+    
+    reg.add_component(part, damage_on_contact{scaled_part_damage, false});
+    reg.add_component(part, health{scaled_part_health, scaled_part_health});
     reg.add_component(part, enemy_tag{});
     reg.add_component(part, damage_flash_component{0.15f});
 
@@ -1665,7 +1717,7 @@ void BossManager::update_compiler_assembled(registry& reg, compiler_boss_control
 
     auto update_part_position = [&](std::optional<entity>& part_ent, float offset_x, float offset_y, float death_timer) {
         if (!part_ent.has_value()) return;
-        if (death_timer >= 0.0f) return; // Ne pas déplacer si en train de mourir
+        if (death_timer >= 0.0f) return;
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -1843,7 +1895,7 @@ void BossManager::update_compiler_splitting(registry& reg, compiler_boss_control
 
     auto move_part_toward_target = [&](std::optional<entity>& part_ent, float target_x, float target_y, float death_timer) {
         if (!part_ent.has_value()) return;
-        if (death_timer >= 0.0f) return; // Ne pas déplacer si en train de mourir
+        if (death_timer >= 0.0f) return;
         std::size_t idx = static_cast<std::size_t>(part_ent.value());
         if (idx < positions.size() && positions[idx].has_value()) {
             auto& pos = positions[idx].value();
@@ -2072,7 +2124,6 @@ void BossManager::set_compiler_separated_targets(compiler_boss_controller& contr
 
 std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<entity>& boss_entity,
                                                   std::optional<entity>& serpent_controller) {
-    // Check Level 5 boss
     if (boss_entity.has_value()) {
         auto& health_opt = reg.get_component<health>(boss_entity.value());
         if (health_opt.has_value()) {
@@ -2080,7 +2131,6 @@ std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<en
         }
     }
 
-    // Check Level 10 serpent boss
     if (serpent_controller.has_value()) {
         auto& ctrl_opt = reg.get_component<serpent_boss_controller>(serpent_controller.value());
         if (ctrl_opt.has_value()) {
@@ -2088,7 +2138,6 @@ std::pair<int, int> BossManager::get_boss_health(registry& reg, std::optional<en
         }
     }
 
-    // Check Level 15 compiler boss
     auto& compiler_controllers = reg.get_components<compiler_boss_controller>();
     for (std::size_t i = 0; i < compiler_controllers.size(); ++i) {
         if (compiler_controllers[i].has_value()) {

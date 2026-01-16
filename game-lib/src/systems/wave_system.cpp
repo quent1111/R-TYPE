@@ -54,7 +54,8 @@ void waveSystem(registry& reg, float dt) {
                         break;
                     }
 
-                    if (level == 5 || level == 10 || level == 15) {
+                    // Boss levels: 5, 10, 15, and every multiple of 5 after 15 (20, 25, 30, etc.)
+                    if (level == 5 || level == 10 || level == 15 || (level > 15 && level % 5 == 0)) {
                         is_boss_level = true;
                         break;
                     }

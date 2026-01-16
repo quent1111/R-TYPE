@@ -177,7 +177,7 @@ struct level_manager {
     int enemies_needed_for_next_level = 1;
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
-    bool is_custom_level = false;  // Flag to differentiate custom levels from standard game
+    bool is_custom_level = false;
     float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
     
@@ -501,6 +501,7 @@ struct serpent_boss_controller {
     int current_health = 5000;
     int num_body_parts = 12;
     int num_scale_parts = 3;
+    float cycle_multiplier = 1.0f;
 
     bool spawn_complete = false;
     bool nest_visible = false;
@@ -576,6 +577,7 @@ enum class CompilerState : uint8_t {
 struct compiler_boss_controller {
     int total_health = 3000;
     int current_health = 3000;
+    float cycle_multiplier = 1.0f;
 
     CompilerState state = CompilerState::Entering;
     float state_timer = 0.0f;
