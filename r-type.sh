@@ -265,14 +265,15 @@ configure_cmake() {
         if [ $CMAKE_EXIT -ne 0 ]; then
             print_error "CMake configuration failed"
             echo ""
-            if [ "$VERBOSE" = false ]; then
-                echo "Last 30 lines of $BUILD_DIR/cmake-config.log:"
+            # Always show error details when configuration fails
+            if [ -f "$BUILD_DIR/cmake-config.log" ]; then
+                echo "Last 50 lines of $BUILD_DIR/cmake-config.log:"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                tail -n 30 "$BUILD_DIR/cmake-config.log"
+                tail -n 50 "$BUILD_DIR/cmake-config.log"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo ""
-                echo "Tip: Run with --verbose for full output"
             fi
+            echo ""
+            echo "Tip: Run with --verbose for full output"
             exit 1
         fi
     else
@@ -528,25 +529,28 @@ generate_coverage() {
         exit 1
     fi
     
+    # Ensure Debug dependencies are installed
     install_dependencies
     
+    # Create a temporary CMakeUserPresets.json that includes the Debug preset
     if [ -f "conan/build/Debug/generators/CMakePresets.json" ]; then
-        if ! grep -q "conan/build/Debug/generators/CMakePresets.json" CMakeUserPresets.json 2>/dev/null; then
-            cp CMakeUserPresets.json CMakeUserPresets.json.bak
-            python3 -c "
-import json
-with open('CMakeUserPresets.json', 'r') as f:
-    data = json.load(f)
-if 'conan/build/Debug/generators/CMakePresets.json' not in data.get('include', []):
-    data.setdefault('include', []).append('conan/build/Debug/generators/CMakePresets.json')
-with open('CMakeUserPresets.json', 'w') as f:
-    json.dump(data, f, indent=4)
-"
-        fi
+        cp CMakeUserPresets.json CMakeUserPresets.json.bak 2>/dev/null || true
+        cat > CMakeUserPresets.json << 'EOF'
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "conan/build/Debug/generators/CMakePresets.json"
+    ]
+}
+EOF
     fi
     
     print_step "Configuring build with coverage instrumentation..."
     
+    # Try to find the actual build directory (can vary between environments)
     local TEST_DIR=""
     if [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
         TEST_DIR="$BUILD_DIR/build/$BUILD_TYPE"
