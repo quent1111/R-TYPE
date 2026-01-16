@@ -1202,22 +1202,13 @@ void Game::process_network_messages() {
 void Game::render() {
     ColorBlindMode mode = Settings::instance().colorblind_mode;
     use_render_texture_ = (mode != ColorBlindMode::Normal);
-    
+
     if (use_render_texture_) {
-        // Dessiner tout dans la RenderTexture
         render_texture_.clear(sf::Color(0, 0, 0));
-        
-        float dt = 1.0F / 60.0F;
-        
-        // Créer une vue temporaire identique à celle de la fenêtre
         sf::View temp_view = window_.getView();
         render_texture_.setView(temp_view);
-        
-        // Note: Les fonctions de rendu prennent sf::RenderWindow& donc on ne peut pas passer render_texture_ directement
-        // On va devoir copier après le rendu normal
     }
-    
-    // Rendu normal dans la fenêtre
+
     window_.clear(sf::Color(0, 0, 0));
 
     float dt = 1.0F / 60.0F;

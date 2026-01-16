@@ -745,7 +745,7 @@ void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
     }
 }
 
-void GameRenderer::begin_colorblind_render(sf::RenderWindow& window) {
+void GameRenderer::begin_colorblind_render(sf::RenderWindow& /*window*/) {
 }
 
 void GameRenderer::end_colorblind_render(sf::RenderWindow& window) {
@@ -772,7 +772,10 @@ void GameRenderer::apply_colorblind_shader(sf::RenderWindow& window, sf::RenderT
         return;
     }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     sf::Image screen_image = window.capture();
+#pragma GCC diagnostic pop
     sf::Texture screen_texture;
     screen_texture.loadFromImage(screen_image);
 

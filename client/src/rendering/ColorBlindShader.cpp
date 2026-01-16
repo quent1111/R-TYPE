@@ -35,13 +35,16 @@ void ColorBlindShader::apply(sf::RenderWindow& window) {
     if (!shader_loaded_) {
         return;
     }
-    
+
     ColorBlindMode mode = Settings::instance().colorblind_mode;
     if (mode == ColorBlindMode::Normal) {
         return;
     }
-    
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     sf::Image screen_image = window.capture();
+#pragma GCC diagnostic pop
     sf::Texture screen_texture;
     screen_texture.loadFromImage(screen_image);
 
