@@ -67,14 +67,6 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
             } else if (opcode == 0x22) {
                 decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
-                std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
-                         << ", decompressed buffer.size()=" << buffer.size() << std::endl;
-                std::cout << "[NetworkClient] Packet data: ";
-                for (size_t i = 0; i < buffer.size(); ++i) {
-                    std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
-                }
-                std::cout << std::dec << std::endl;
-                // Utiliser buffer.size() car les données ont été décompressées
                 std::vector<uint8_t> data(buffer.begin(), buffer.end());
                 NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
                 msg.raw_lobby_data = data;
@@ -251,7 +243,8 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vy = vy;
             entity.curr_time = std::chrono::steady_clock::now();
 
-            // Read custom_entity_id string for custom entities (CustomEnemy=0x30, CustomBoss=0x31, CustomProjectile=0x32)
+            // Read custom_entity_id string for custom entities (CustomEnemy=0x30, CustomBoss=0x31,
+            // CustomProjectile=0x32)
             if (type_val == 0x30 || type_val == 0x31 || type_val == 0x32) {
                 uint8_t str_length;
                 deserializer >> str_length;

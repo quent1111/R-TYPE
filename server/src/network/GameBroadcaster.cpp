@@ -55,12 +55,12 @@ void GameBroadcaster::broadcast_level_start(UDPServer& server, uint8_t level,
     }
     serializer.compress();
     server.send_to_clients(lobby_client_ids, serializer.data());
-    std::cout << "[Game] Sent Level " << static_cast<int>(level)
-              << " start screen (opcode: 0x30, level: " << static_cast<int>(level);
+
+    std::cout << "[Game] Sent Level " << static_cast<int>(level) << " start";
     if (!custom_level_id.empty()) {
-        std::cout << ", custom: " << custom_level_id;
+        std::cout << " (custom: " << custom_level_id << ")";
     }
-    std::cout << ")" << std::endl;
+    std::cout << std::endl;
 }
 
 void GameBroadcaster::broadcast_boss_spawn(UDPServer& server,

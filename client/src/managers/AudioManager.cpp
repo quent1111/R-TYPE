@@ -17,22 +17,18 @@ bool AudioManager::load_sounds() {
     return true;
 }
 
-void AudioManager::play_sound([[maybe_unused]] SoundType type) {
-}
+void AudioManager::play_sound([[maybe_unused]] SoundType type) {}
 
 void AudioManager::play_music([[maybe_unused]] const std::string& music_path,
-                              [[maybe_unused]] bool loop) {
-}
+                              [[maybe_unused]] bool loop) {}
 
 void AudioManager::stop_music() {
     current_music_path_.clear();
 }
 
-void AudioManager::pause_music() {
-}
+void AudioManager::pause_music() {}
 
-void AudioManager::resume_music() {
-}
+void AudioManager::resume_music() {}
 
 bool AudioManager::is_music_playing() const {
     return false;

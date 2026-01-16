@@ -7,7 +7,7 @@
 
 entity createProjectile(registry& reg, float x, float y, float vx, float vy, int damage,
                         WeaponUpgradeType upgrade_type = WeaponUpgradeType::None,
-                        bool power_cannon_active = false);
+                        bool power_cannon_active = false, bool is_drone_projectile = false);
 
 entity createEnemyProjectile(registry& reg, float x, float y, float vx, float vy, int damage = 15);
 

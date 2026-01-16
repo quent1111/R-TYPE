@@ -84,6 +84,8 @@ private:
     bool m_temp_auto_fire{false};
     bool m_needs_window_recreate{false};
     int m_listening_control{-1};
+    size_t m_selected_button{0};
+    bool m_keyboard_navigation{false};
 
     enum class DraggingBar { None = 0, Master = 1, Music = 2, Effects = 3 };
     DraggingBar m_dragging_bar{DraggingBar::None};

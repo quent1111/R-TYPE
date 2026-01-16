@@ -9,6 +9,11 @@
 #include <iostream>
 #include <thread>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 extern std::atomic<bool> server_running;
 
 namespace server {
@@ -230,3 +235,7 @@ void ServerCore::run_game_loop(UDPServer& server) {
 }
 
 }  // namespace server
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

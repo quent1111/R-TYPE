@@ -82,27 +82,19 @@ jobs:
           -s build_type=${{ env.BUILD_TYPE }} \
           -c tools.system.package_manager:mode=install \
           -c tools.system.package_manager:sudo=True
-    - name: Configure CMake
+    - name: Build and test with r-type.sh
       run: |
-        cmake -B build/build/Release \
-          -S . \
-          -DCMAKE_TOOLCHAIN_FILE=build/build/Release/generators/conan_toolchain.cmake \
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-    - name: Build project
-      run: |
-        cmake --build build/build/Release --config ${{ env.BUILD_TYPE }} -j $(nproc)
-    - name: Run tests
-      run: |
-        cd build/build/Release
-        ctest --output-on-failure -C ${{ env.BUILD_TYPE }}
+        chmod +x r-type.sh
+        ./r-type.sh build
+        ./r-type.sh test
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: r-type-binaries
         path: |
-          build/build/Release/bin/r-type_server
-          build/build/Release/bin/r-type_client
-          build/build/Release/bin/test_*
+          conan/build/Release/bin/r-type_server
+          conan/build/Release/bin/r-type_client
+          conan/build/Release/bin/test_*
         retention-days: 7
 
   build-matrix:

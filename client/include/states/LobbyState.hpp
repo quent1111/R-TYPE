@@ -73,6 +73,8 @@ private:
     static constexpr float KEEPALIVE_INTERVAL = 10.0f;
 
     sf::Vector2f m_mouse_pos;
+    size_t m_selected_button{0};
+    bool m_keyboard_navigation{false};
 };
 
 }  // namespace rtype

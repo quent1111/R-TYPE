@@ -314,7 +314,10 @@ void spawnEnemyWave(registry& reg, int count, int level) {
     std::uniform_real_distribution<float> dis_x(1950.0f, 2050.0f);
     std::uniform_real_distribution<float> dis_type(0.0f, 1.0f);
 
-    for (int i = 0; i < count; ++i) {
+    int actual_count = (level > 10) ? (count / 2) : count;
+    if (actual_count < 1) actual_count = 1;
+
+    for (int i = 0; i < actual_count; ++i) {
         float spawn_x = dis_x(gen);
         float spawn_y = dis_y(gen);
 

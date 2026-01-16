@@ -2,17 +2,19 @@
 
 #include "ColorBlindnessMode.hpp"
 #include "ColorTransform.hpp"
+
 #include <SFML/Graphics/Color.hpp>
+
 #include <string>
 
 namespace accessibility {
 
 /**
  * @brief Gestionnaire principal du système d'accessibilité
- * 
+ *
  * Singleton qui gère les paramètres d'accessibilité globaux et fournit
  * une interface unifiée pour toutes les fonctionnalités d'accessibilité.
- * 
+ *
  * @example
  * ```cpp
  * auto& mgr = AccessibilityManager::instance();
@@ -29,21 +31,21 @@ public:
 
     /**
      * @brief Définit le mode de daltonisme actif
-     * 
+     *
      * @param mode Nouveau mode à activer
      */
     void setColorBlindMode(ColorBlindnessMode mode);
 
     /**
      * @brief Obtient le mode de daltonisme actuel
-     * 
+     *
      * @return Mode actif
      */
     ColorBlindnessMode getColorBlindMode() const { return current_mode_; }
 
     /**
      * @brief Active/désactive l'utilisation de formes distinctes pour les projectiles
-     * 
+     *
      * @param enabled true pour activer, false pour désactiver
      */
     void setProjectileShapesEnabled(bool enabled) { projectile_shapes_enabled_ = enabled; }
@@ -55,7 +57,7 @@ public:
 
     /**
      * @brief Transforme une couleur selon le mode actif
-     * 
+     *
      * @param original Couleur originale
      * @return Couleur transformée
      */
@@ -63,7 +65,7 @@ public:
 
     /**
      * @brief Obtient une couleur optimisée pour les projectiles alliés
-     * 
+     *
      * @param original Couleur de base
      * @return Couleur ajustée pour une meilleure visibilité
      */
@@ -71,7 +73,7 @@ public:
 
     /**
      * @brief Obtient une couleur optimisée pour les projectiles ennemis
-     * 
+     *
      * @param original Couleur de base
      * @return Couleur ajustée pour une meilleure visibilité
      */
@@ -79,7 +81,7 @@ public:
 
     /**
      * @brief Obtient une couleur de bordure contrastée
-     * 
+     *
      * @param fillColor Couleur de remplissage
      * @return Couleur de bordure qui contraste bien
      */
@@ -87,7 +89,7 @@ public:
 
     /**
      * @brief Charge les paramètres d'accessibilité depuis un fichier
-     * 
+     *
      * @param filepath Chemin du fichier de configuration
      * @return true si le chargement a réussi
      */
@@ -95,7 +97,7 @@ public:
 
     /**
      * @brief Sauvegarde les paramètres d'accessibilité
-     * 
+     *
      * @param filepath Chemin du fichier de configuration
      * @return true si la sauvegarde a réussi
      */

@@ -9,13 +9,14 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 DOCS_DIR="$PROJECT_ROOT/docs"
 
-ACTION="serve"
+ACTION="netlify"
 
 show_help() {
     cat << EOF
@@ -24,9 +25,10 @@ Usage: $0 [COMMAND] [OPTIONS]
 Build and serve R-TYPE documentation using MkDocs.
 
 COMMANDS:
-    serve           Start development server (default)
+    netlify         Deploy to Netlify (default)
+    serve           Start development server
     build           Build static site
-    deploy          Deploy to GitHub Pages
+    deploy-gh       Deploy to GitHub Pages
     install         Install MkDocs dependencies
     clean           Remove built documentation
 
@@ -36,11 +38,11 @@ OPTIONS:
     -h, --help          Show this help message
 
 EXAMPLES:
-    $0                  # Start dev server
+    $0                  # Deploy to Netlify
+    $0 serve            # Start dev server
     $0 build            # Build documentation
     $0 serve -p 9000    # Serve on port 9000
     $0 install          # Install dependencies
-    $0 deploy           # Deploy to GitHub Pages
 
 EOF
 }
@@ -137,6 +139,45 @@ deploy_docs() {
     echo -e "${BLUE}Visit: https://quent1111.github.io/R-TYPE/${NC}"
 }
 
+deploy_netlify() {
+    echo -e "${CYAN}╔════════════════════════════════════════╗${NC}"
+    echo -e "${CYAN}║       Deploying to Netlify             ║${NC}"
+    echo -e "${CYAN}╚════════════════════════════════════════╝${NC}\n"
+    
+    if ! command -v netlify &> /dev/null; then
+        echo -e "${YELLOW}Netlify CLI not found. Installing...${NC}"
+        if command -v npm &> /dev/null; then
+            npm install -g netlify-cli
+        else
+            echo -e "${RED}Error: npm not found. Please install Node.js first.${NC}"
+            echo -e "${BLUE}Or install Netlify CLI manually: npm install -g netlify-cli${NC}"
+            exit 1
+        fi
+    fi
+    
+    echo -e "${BLUE}Building documentation...${NC}"
+    check_mkdocs
+    cd "$PROJECT_ROOT"
+    mkdocs build --clean
+    
+    echo -e "\n${GREEN}✓ Documentation built successfully!${NC}\n"
+    
+    if [ -f "$PROJECT_ROOT/.netlify/state.json" ]; then
+        echo -e "${BLUE}Deploying to Netlify...${NC}\n"
+        netlify deploy --prod --dir=site
+    else
+        echo -e "${YELLOW}No Netlify site linked. Starting setup...${NC}\n"
+        echo -e "${BLUE}Options:${NC}"
+        echo -e "  1. Create a new site"
+        echo -e "  2. Link to an existing site\n"
+        netlify init
+        echo -e "\n${BLUE}Now deploying...${NC}\n"
+        netlify deploy --prod --dir=site
+    fi
+    
+    echo -e "\n${GREEN}✓ Documentation deployed to Netlify!${NC}"
+}
+
 clean_docs() {
     echo -e "${BLUE}Cleaning documentation build...${NC}"
     
@@ -159,7 +200,10 @@ if [[ $# -gt 0 ]]; then
         build)
             build_docs
             ;;
-        deploy)
+        netlify)
+            deploy_netlify
+            ;;
+        deploy-gh)
             deploy_docs
             ;;
         install)
@@ -179,5 +223,5 @@ if [[ $# -gt 0 ]]; then
             ;;
     esac
 else
-    serve_docs
+    deploy_netlify
 fi

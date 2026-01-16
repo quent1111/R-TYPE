@@ -20,7 +20,20 @@ namespace managers {
 
 class AudioManager {
 public:
-    enum class SoundType { Laser, Explosion, HitSound, PlayerHit, LevelUp, Plop, Coin, BossRoar, BossExplosion, Spark, RobotRoar, SnakeRoar };
+    enum class SoundType {
+        Laser,
+        Explosion,
+        HitSound,
+        PlayerHit,
+        LevelUp,
+        Plop,
+        Coin,
+        BossRoar,
+        BossExplosion,
+        Spark,
+        RobotRoar,
+        SnakeRoar
+    };
 
     static AudioManager& instance();
 

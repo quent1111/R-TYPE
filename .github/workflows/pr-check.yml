@@ -5,9 +5,6 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  # ============================================================================
-  # PR Code Quality
-  # ============================================================================
   pr-quality:
     name: PR Quality Checks
     runs-on: ubuntu-latest
@@ -28,9 +25,6 @@ jobs:
         echo "Checking code formatting..."
         ./scripts/format.sh || echo "⚠️ Some files need formatting (non-blocking)"
           
-  # ============================================================================
-  # PR Build Test
-  # ============================================================================
   pr-build:
     name: PR Build Test
     runs-on: ubuntu-latest
@@ -80,15 +74,8 @@ jobs:
           -c tools.system.package_manager:mode=install \
           -c tools.system.package_manager:sudo=True
         
-    - name:  Configure
+    - name:  Build and test with r-type.sh
       run: |
-        cmake --preset conan-release
-        
-    - name:  Build
-      run: |
-        cmake --build build/build/Release --config Release -j $(nproc)
-        
-    - name:  Test
-      run: |
-        cd build/build/Release
-        ctest --output-on-failure -C Release
+        chmod +x r-type.sh
+        ./r-type.sh build
+        ./r-type.sh test

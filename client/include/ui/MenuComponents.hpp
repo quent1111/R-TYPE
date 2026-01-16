@@ -20,6 +20,11 @@ public:
     bool contains(const sf::Vector2f& point) const;
     void set_text(const std::string& text);
     void set_colors(const sf::Color& normal, const sf::Color& hover, const sf::Color& pressed);
+    void trigger() {
+        if (m_callback)
+            m_callback();
+    }
+    void set_hovered(bool hovered) { m_is_hovered = hovered; }
 
 private:
     sf::ConvexShape m_shape;

@@ -5,7 +5,8 @@
 
 namespace server {
 
-Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friendly_fire, uint8_t difficulty)
+Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friendly_fire,
+             uint8_t difficulty)
     : _lobby_id(lobby_id),
       _lobby_name(name),
       _game_session(std::make_unique<GameSession>()),
@@ -14,8 +15,8 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friend
       _friendly_fire(friendly_fire),
       _difficulty(difficulty),
       _last_activity(std::chrono::steady_clock::now()) {
-    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name
-              << " (max " << _max_players << " players)"
+    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name << " (max " << _max_players
+              << " players)"
               << " Friendly Fire: " << (_friendly_fire ? "ON" : "OFF")
               << " Difficulty: " << static_cast<int>(_difficulty) << std::endl;
 

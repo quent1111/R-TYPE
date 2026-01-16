@@ -57,3 +57,5 @@ B-CPP-500_rtype.pdf
 copilot-instructions.md
 
 .env
+# Local Netlify folder
+.netlify

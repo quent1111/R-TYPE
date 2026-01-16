@@ -93,7 +93,8 @@ void UDPServer::handle_receive(std::error_code ec, std::size_t bytes_received) {
     if (!ec && bytes_received > 0) {
         if (bytes_received >= 2) {
             std::vector<uint8_t> data(recv_buffer_->begin(),
-                                      recv_buffer_->begin() + static_cast<std::ptrdiff_t>(bytes_received));
+                                      recv_buffer_->begin() +
+                                          static_cast<std::ptrdiff_t>(bytes_received));
 
             if (!data.empty() && (data[0] == 0x00 || data[0] == 0x01)) {
                 try {
@@ -393,8 +394,8 @@ void UDPServer::send_reliable(int client_id, uint8_t opcode, const std::vector<u
     // Stocker pour retry
     state.pending_acks.emplace_back(seq_id, opcode, compressor.data());
 
-    std::cout << "[Reliable] Sent packet seq=" << seq_id << " opcode=0x" << std::hex << static_cast<int>(opcode)
-              << std::dec << " to client " << client_id << std::endl;
+    std::cout << "[Reliable] Sent packet seq=" << seq_id << " opcode=0x" << std::hex
+              << static_cast<int>(opcode) << std::dec << " to client " << client_id << std::endl;
 }
 
 void UDPServer::send_ack(int client_id, uint32_t sequence_id) {

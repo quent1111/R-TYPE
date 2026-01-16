@@ -127,7 +127,7 @@ void GameSession::check_start_game(UDPServer& server) {
 }
 
 void GameSession::start_game(UDPServer& server) {
-    std::cout << "[Game] Starting game at level " << _starting_level 
+    std::cout << "[Game] Starting game at level " << _starting_level
               << " (Friendly Fire: " << (_friendly_fire ? "ON" : "OFF")
               << ", Difficulty: " << static_cast<int>(_difficulty) << ")..." << std::endl;
 
@@ -136,25 +136,32 @@ void GameSession::start_game(UDPServer& server) {
         load_custom_level();
     }
 
-    _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
-    _game_phase = GamePhase::InGame;
-
     auto& reg = _engine.get_registry();
-    
+
     float difficulty_multiplier = 1.0f;
     switch (_difficulty) {
-        case 0: difficulty_multiplier = 1.0f; break;
-        case 1: difficulty_multiplier = 2.0f; break;
-        case 2: difficulty_multiplier = 4.0f; break;
-        default: difficulty_multiplier = 1.0f; break;
+        case 0:
+            difficulty_multiplier = 1.0f;
+            break;
+        case 1:
+            difficulty_multiplier = 2.0f;
+            break;
+        case 2:
+            difficulty_multiplier = 4.0f;
+            break;
+        default:
+            difficulty_multiplier = 1.0f;
+            break;
     }
-    
+
     auto settings_entity = reg.spawn_entity();
     reg.emplace_component<game_settings>(settings_entity, _friendly_fire, difficulty_multiplier);
 
     auto& level_managers = reg.get_components<level_manager>();
     for (size_t i = 0; i < level_managers.size(); ++i) {
         if (level_managers[i].has_value()) {
+            level_managers[i].value().difficulty_multiplier = difficulty_multiplier;
+
             if (_is_custom_level) {
                 level_managers[i].value().current_level = 1;
                 level_managers[i].value().is_custom_level = true;
@@ -162,9 +169,24 @@ void GameSession::start_game(UDPServer& server) {
                 level_managers[i].value().current_level = static_cast<uint8_t>(_starting_level);
                 level_managers[i].value().is_custom_level = false;
             }
+
+            level_managers[i].value().enemies_needed_for_next_level =
+                static_cast<int>(static_cast<float>(level_managers[i].value().current_level) *
+                                 difficulty_multiplier);
+
+            std::cout << "[Game] Level manager initialized: Level "
+                      << level_managers[i].value().current_level << ", Enemies needed: "
+                      << level_managers[i].value().enemies_needed_for_next_level << " (difficulty x"
+                      << difficulty_multiplier << ")" << std::endl;
             break;
         }
     }
+
+    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level),
+                                            _current_custom_level_id, _lobby_client_ids);
+
+    _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
+    _game_phase = GamePhase::InGame;
 
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
@@ -180,42 +202,48 @@ void GameSession::start_game(UDPServer& server) {
     if (!_is_custom_level) {
         int boss_type = BossManager::get_boss_type_for_level(_starting_level);
         float cycle_mult = BossManager::get_cycle_multiplier(_starting_level);
-        
+
         if (boss_type > 0) {
             std::string boss_name;
             switch (boss_type) {
-                case 1: boss_name = "DOBKERATOPS"; break;
-                case 2: boss_name = "SERPENT"; break;
-                case 3: boss_name = "COMPILER"; break;
+                case 1:
+                    boss_name = "DOBKERATOPS";
+                    break;
+                case 2:
+                    boss_name = "SERPENT";
+                    break;
+                case 3:
+                    boss_name = "COMPILER";
+                    break;
             }
-            
-            std::cout << "[SERVER] *** Starting at Level " << _starting_level 
-                      << " - Spawning " << boss_name << " BOSS! ***";
+
+            std::cout << "[SERVER] *** Starting at Level " << _starting_level << " - Spawning "
+                      << boss_name << " BOSS! ***";
             if (cycle_mult > 1.0f) {
                 std::cout << " (Cycle multiplier: " << cycle_mult << "x)";
             }
             std::cout << std::endl;
-            
+
             switch (boss_type) {
                 case 1:
-                    _boss_manager.spawn_boss_level_5(_engine.get_registry(), _boss_entity, _boss_animation_timer,
-                                                     _boss_shoot_timer, _boss_animation_complete,
-                                                     _boss_entrance_complete, _boss_target_x, cycle_mult);
+                    _boss_manager.spawn_boss_level_5(
+                        _engine.get_registry(), _boss_entity, _boss_animation_timer,
+                        _boss_shoot_timer, _boss_animation_complete, _boss_entrance_complete,
+                        _boss_target_x, cycle_mult);
                     break;
                 case 2:
-                    _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity, cycle_mult);
+                    _boss_manager.spawn_boss_level_10(_engine.get_registry(),
+                                                      _serpent_controller_entity, cycle_mult);
                     break;
                 case 3:
-                    _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity, cycle_mult);
+                    _boss_manager.spawn_boss_level_15(_engine.get_registry(),
+                                                      _compiler_controller_entity, cycle_mult);
                     break;
             }
-            
+
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
-
-    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level),
-                                            _current_custom_level_id, _lobby_client_ids);
 }
 
 void GameSession::broadcast_lobby_status(UDPServer& server) {
@@ -251,6 +279,10 @@ void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
                                                        _client_entity_ids, client_id);
 
     _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
+
+    uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
+    _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id,
+                                            {client_id});
 
     _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                   _client_entity_ids, {client_id});
@@ -590,7 +622,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                           _client_entity_ids, dt);
     }
 
-    _boss_manager.update_compiler_boss(_engine.get_registry(), _compiler_controller_entity, _client_entity_ids, dt);
+    _boss_manager.update_compiler_boss(_engine.get_registry(), _compiler_controller_entity,
+                                       _client_entity_ids, dt);
 
     _boss_manager.update_homing_enemies(_engine.get_registry(), _client_entity_ids, dt);
 
@@ -653,18 +686,35 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     auto& enemies = _engine.get_registry().get_components<enemy_tag>();
                     auto& enemy_positions = _engine.get_registry().get_components<position>();
                     auto& healths = _engine.get_registry().get_components<health>();
+                    auto& serpent_parts = _engine.get_registry().get_components<serpent_part>();
+                    auto& serpent_controllers =
+                        _engine.get_registry().get_components<serpent_boss_controller>();
+
+                    int damage = static_cast<int>(laser.damage_per_second * 0.1f);
+                    bool serpent_damaged = false;
 
                     for (std::size_t j = 0; j < enemies.size(); ++j) {
                         if (enemies[j].has_value() && j < enemy_positions.size() &&
-                            enemy_positions[j].has_value() && j < healths.size() &&
-                            healths[j].has_value()) {
+                            enemy_positions[j].has_value()) {
                             auto& enemy_pos = enemy_positions[j].value();
 
                             if (enemy_pos.x >= player_pos.x &&
                                 enemy_pos.x <= player_pos.x + 2000.0f &&
                                 std::abs(enemy_pos.y - player_pos.y) <= 50.0f) {
-                                int damage = static_cast<int>(laser.damage_per_second * 0.1f);
-                                healths[j]->current -= damage;
+                                if (j < serpent_parts.size() && serpent_parts[j].has_value()) {
+                                    if (!serpent_damaged) {
+                                        for (std::size_t c = 0; c < serpent_controllers.size();
+                                             ++c) {
+                                            if (serpent_controllers[c].has_value()) {
+                                                serpent_controllers[c]->take_global_damage(damage);
+                                                serpent_damaged = true;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                } else if (j < healths.size() && healths[j].has_value()) {
+                                    healths[j]->current -= damage;
+                                }
                             }
                         }
                     }
@@ -881,7 +931,7 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                 ::createProjectile(_engine.get_registry(),
                                                    friend_pos_opt->x + 20.0f, friend_pos_opt->y, vx,
                                                    vy, lf.damage, WeaponUpgradeType::AllyMissile,
-                                                   false);
+                                                   false, true);
                             }
                         }
 
@@ -1045,10 +1095,10 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                         float projectile_speed = 600.0f;
                                         float vx = (dx / magnitude) * projectile_speed;
                                         float vy = (dy / magnitude) * projectile_speed;
-                                        ::createProjectile(_engine.get_registry(),
-                                                           drone_pos_opt->x + 20.0f,
-                                                           drone_pos_opt->y, vx, vy, 20,
-                                                           WeaponUpgradeType::AllyMissile, false);
+                                        ::createProjectile(
+                                            _engine.get_registry(), drone_pos_opt->x + 20.0f,
+                                            drone_pos_opt->y, vx, vy, 20,
+                                            WeaponUpgradeType::AllyMissile, false, true);
                                     }
                                 }
                             }
@@ -1205,36 +1255,45 @@ void GameSession::advance_level(UDPServer& server) {
     if (!_is_custom_level) {
         int boss_type = BossManager::get_boss_type_for_level(current_level);
         float cycle_mult = BossManager::get_cycle_multiplier(current_level);
-        
+
         if (boss_type > 0) {
             std::string boss_name;
             switch (boss_type) {
-                case 1: boss_name = "DOBKERATOPS"; break;
-                case 2: boss_name = "SERPENT"; break;
-                case 3: boss_name = "COMPILER"; break;
+                case 1:
+                    boss_name = "DOBKERATOPS";
+                    break;
+                case 2:
+                    boss_name = "SERPENT";
+                    break;
+                case 3:
+                    boss_name = "COMPILER";
+                    break;
             }
-            
-            std::cout << "[SERVER] *** Level " << static_cast<int>(current_level) 
-                      << " - Spawning " << boss_name << " BOSS! ***";
+
+            std::cout << "[SERVER] *** Level " << static_cast<int>(current_level) << " - Spawning "
+                      << boss_name << " BOSS! ***";
             if (cycle_mult > 1.0f) {
                 std::cout << " (Cycle multiplier: " << cycle_mult << "x)";
             }
             std::cout << std::endl;
-            
+
             switch (boss_type) {
                 case 1:
                     _boss_manager.spawn_boss_level_5(
-                        _engine.get_registry(), _boss_entity, _boss_animation_timer, _boss_shoot_timer,
-                        _boss_animation_complete, _boss_entrance_complete, _boss_target_x, cycle_mult);
+                        _engine.get_registry(), _boss_entity, _boss_animation_timer,
+                        _boss_shoot_timer, _boss_animation_complete, _boss_entrance_complete,
+                        _boss_target_x, cycle_mult);
                     break;
                 case 2:
-                    _boss_manager.spawn_boss_level_10(_engine.get_registry(), _serpent_controller_entity, cycle_mult);
+                    _boss_manager.spawn_boss_level_10(_engine.get_registry(),
+                                                      _serpent_controller_entity, cycle_mult);
                     break;
                 case 3:
-                    _boss_manager.spawn_boss_level_15(_engine.get_registry(), _compiler_controller_entity, cycle_mult);
+                    _boss_manager.spawn_boss_level_15(_engine.get_registry(),
+                                                      _compiler_controller_entity, cycle_mult);
                     break;
             }
-            
+
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
