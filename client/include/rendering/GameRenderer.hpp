@@ -47,6 +47,11 @@ public:
     void render_damage_flash(sf::RenderWindow& window);
 
     void render_colorblind_overlay(sf::RenderWindow& window);
+    
+    // Fonctions pour le rendu avec shader daltonien
+    void begin_colorblind_render(sf::RenderWindow& window);
+    void end_colorblind_render(sf::RenderWindow& window);
+    void apply_colorblind_shader(sf::RenderWindow& window, sf::RenderTexture& source);
 
     sf::View& get_game_view() { return game_view_; }
     void apply_screen_shake(sf::RenderWindow& window);
@@ -106,6 +111,10 @@ private:
     SerpentEffectsSystem serpent_effects_;
 
     accessibility::ProjectileShapeRenderer projectile_shape_renderer_;
+    
+    sf::Shader colorblind_shader_;
+    sf::RenderTexture render_texture_;
+    bool shader_loaded_ = false;
 };
 
 }  // namespace rendering

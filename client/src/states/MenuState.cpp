@@ -3,6 +3,7 @@
 #include "common/Settings.hpp"
 #include "managers/AudioManager.hpp"
 #include "ui/SettingsPanel.hpp"
+#include "rendering/ColorBlindShader.hpp"
 
 #include <iostream>
 
@@ -253,8 +254,12 @@ void MenuState::render(sf::RenderWindow& window) {
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window);
     }
+    
+    // Appliquer le shader colorblind
+    rendering::ColorBlindShader::instance().apply(window);
 
-    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    // Ancien système d'overlay désactivé - on utilise maintenant le shader GLSL
+    /*ColorBlindMode mode = Settings::instance().colorblind_mode;
     if (mode != ColorBlindMode::Normal) {
         sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
 
@@ -276,7 +281,7 @@ void MenuState::render(sf::RenderWindow& window) {
         }
 
         window.draw(overlay);
-    }
+    }*/
 }
 
 }  // namespace rtype

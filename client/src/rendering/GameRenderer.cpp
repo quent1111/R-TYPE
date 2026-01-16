@@ -17,6 +17,25 @@ GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
     transition_overlay_.setFillColor(sf::Color(0, 0, 0, 0));
     ruins_background_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     ruins_background_.setFillColor(sf::Color(25, 20, 35));
+    
+    // Charger le shader pour les filtres daltoniens
+    if (sf::Shader::isAvailable()) {
+        if (colorblind_shader_.loadFromFile("assets/shaders/colorblind.vert", "assets/shaders/colorblind.frag")) {
+            shader_loaded_ = true;
+            std::cout << "[GameRenderer] Colorblind shader loaded successfully" << std::endl;
+        } else {
+            std::cerr << "[GameRenderer] Failed to load colorblind shader" << std::endl;
+            shader_loaded_ = false;
+        }
+    } else {
+        std::cerr << "[GameRenderer] Shaders not available on this system" << std::endl;
+        shader_loaded_ = false;
+    }
+    
+    // Créer la texture de rendu
+    if (!render_texture_.create(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+        std::cerr << "[GameRenderer] Failed to create render texture" << std::endl;
+    }
 }
 
 void GameRenderer::init(sf::RenderWindow& window) {
@@ -584,28 +603,8 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
-        // Rendu spécial pour les projectiles (player vs enemy)
-        bool is_projectile = (e.type == 0x03 || e.type == 0x04 || e.type == 0x05 || e.type == 0x06);
-        bool is_player_projectile = (e.type == 0x03 || e.type == 0x04); // Projectiles joueur
-        bool is_enemy_projectile = (e.type == 0x05 || e.type == 0x06);  // Projectiles ennemis
-        
-        if (is_projectile && client_mode != 0) { // Si mode daltonien activé
-            sf::FloatRect bounds = e.sprite.getGlobalBounds();
-            float size = std::max(bounds.width, bounds.height);
-            
-            if (is_player_projectile) {
-                // Cercle pour projectiles joueur (vert)
-                sf::Color player_color = accessibility_mgr.transformColor(sf::Color(0, 255, 0));
-                projectile_shape_renderer_.drawPlayerProjectile(window, draw_x, draw_y, size, player_color);
-            } else if (is_enemy_projectile) {
-                // Diamant pour projectiles ennemis (rouge)
-                sf::Color enemy_color = accessibility_mgr.transformColor(sf::Color(255, 0, 0));
-                projectile_shape_renderer_.drawEnemyProjectile(window, draw_x, draw_y, size, enemy_color);
-            }
-        } else {
-            // Rendu normal du sprite
-            window.draw(e.sprite);
-        }
+        // Toujours utiliser le rendu normal du sprite (système de formes géométriques désactivé)
+        window.draw(e.sprite);
     }
 
     if (serpent_nest != nullptr) {
@@ -704,32 +703,10 @@ void GameRenderer::render_damage_flash(sf::RenderWindow& window) {
 }
 
 void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
+    // Cette fonction est maintenant juste utilisée pour l'indicateur de mode
     ColorBlindMode mode = Settings::instance().colorblind_mode;
-
+    
     if (mode != ColorBlindMode::Normal) {
-        sf::RectangleShape overlay(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
-
-        switch (mode) {
-            case ColorBlindMode::Protanopia:
-                overlay.setFillColor(sf::Color(255, 255, 0, 90));
-                break;
-
-            case ColorBlindMode::Deuteranopia:
-                overlay.setFillColor(sf::Color(255, 100, 255, 90));
-                break;
-
-            case ColorBlindMode::Tritanopia:
-                overlay.setFillColor(sf::Color(255, 100, 50, 90));
-                break;
-
-            case ColorBlindMode::HighContrast:
-                overlay.setFillColor(sf::Color(150, 150, 255, 110));
-                break;
-            default:
-                overlay.setFillColor(sf::Color(255, 200, 100, 80));
-                break;
-        }
-        window.draw(overlay);
         sf::Text mode_indicator;
         auto& font_mgr = managers::FontManager::instance();
         const sf::Font* font = font_mgr.get_default();
@@ -751,7 +728,7 @@ void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
                     mode_text = "Tritanopia";
                     break;
                 case ColorBlindMode::HighContrast:
-                    mode_text = "Contraste++";
+                    mode_text = "High Contrast";
                     break;
                 default:
                     mode_text = "";
@@ -766,6 +743,49 @@ void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
             }
         }
     }
+}
+
+void GameRenderer::begin_colorblind_render(sf::RenderWindow& /*window*/) {
+}
+
+void GameRenderer::end_colorblind_render(sf::RenderWindow& window) {
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+
+    if (shader_loaded_ && mode != ColorBlindMode::Normal) {
+        sf::Texture screen_texture;
+        screen_texture.create(WINDOW_WIDTH, WINDOW_HEIGHT);
+        screen_texture.update(window);
+
+        sf::Sprite screen_sprite(screen_texture);
+        colorblind_shader_.setUniform("texture", sf::Shader::CurrentTexture);
+        colorblind_shader_.setUniform("mode", static_cast<int>(mode));
+
+        window.clear();
+        window.draw(screen_sprite, &colorblind_shader_);
+    }
+}
+
+void GameRenderer::apply_colorblind_shader(sf::RenderWindow& window, sf::RenderTexture& /*source*/) {
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+
+    if (!shader_loaded_ || mode == ColorBlindMode::Normal) {
+        return;
+    }
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    sf::Image screen_image = window.capture();
+#pragma GCC diagnostic pop
+    sf::Texture screen_texture;
+    screen_texture.loadFromImage(screen_image);
+
+    sf::Sprite screen_sprite(screen_texture);
+    colorblind_shader_.setUniform("texture", sf::Shader::CurrentTexture);
+    colorblind_shader_.setUniform("mode", static_cast<int>(mode));
+
+    window.clear();
+    window.setView(window.getDefaultView());
+    window.draw(screen_sprite, &colorblind_shader_);
 }
 
 void GameRenderer::apply_screen_shake(sf::RenderWindow& window) {
