@@ -6,6 +6,7 @@
 #include "../../src/Common/Opcodes.hpp"
 #include "level/CustomLevelLoader.hpp"
 #include "managers/AudioManager.hpp"
+#include "rendering/ColorBlindShader.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -410,8 +411,12 @@ void LobbyState::render(sf::RenderWindow& window) {
     if (m_footer) {
         m_footer->render(window);
     }
+    
+    // Appliquer le shader colorblind
+    rendering::ColorBlindShader::instance().apply(window);
 
-    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    // Ancien système d'overlay désactivé - on utilise maintenant le shader GLSL
+    /*ColorBlindMode mode = Settings::instance().colorblind_mode;
     if (mode != ColorBlindMode::Normal) {
         sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
 
@@ -433,7 +438,7 @@ void LobbyState::render(sf::RenderWindow& window) {
         }
 
         window.draw(overlay);
-    }
+    }*/
 }
 
 }  // namespace rtype
