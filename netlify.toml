@@ -29,10 +29,10 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Preview context (for pull requests)
+# Preview context (for pull requests) - DISABLED
 [context.deploy-preview]
-  command = "pip install -r requirements.txt && mkdocs build"
+  ignore = "exit 1"
 
-# Branch deploy context
+# Branch deploy context - DISABLED  
 [context.branch-deploy]
-  command = "pip install -r requirements.txt && mkdocs build"
+  ignore = "exit 1"
