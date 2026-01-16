@@ -318,12 +318,7 @@ void LobbyListState::update_lobby_list_ui() {
 void LobbyListState::process_network_messages() {
     NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
     while (m_network_to_game_queue->try_pop(msg)) {
-        std::cout << "[LobbyListState] Received message type: " << static_cast<int>(msg.type)
-                  << std::endl;
-
         if (msg.type == NetworkToGame::MessageType::LobbyJoined) {
-            std::cout << "[LobbyListState] LobbyJoined ack (success=" << msg.lobby_join_success
-                      << ", id=" << msg.lobby_joined_id << ")" << std::endl;
             if (msg.lobby_join_success) {
                 m_next_state = "lobby";
             } else {
@@ -334,21 +329,11 @@ void LobbyListState::process_network_messages() {
 
         if (msg.type == NetworkToGame::MessageType::LobbyListUpdate &&
             !msg.raw_lobby_data.empty()) {
-            std::cout << "[LobbyListState] Processing LobbyListUpdate with "
-                      << msg.raw_lobby_data.size() << " bytes" << std::endl;
-
             RType::BinarySerializer deserializer(msg.raw_lobby_data);
 
             uint16_t magic = 0;
             deserializer >> magic;
             if (magic != RType::MagicNumber::VALUE) {
-                std::cerr << "[LobbyListState] Invalid magic number: 0x" << std::hex << magic
-                          << std::dec << std::endl;
-                std::cerr << "[LobbyListState] First 16 bytes: ";
-                for (size_t i = 0; i < std::min(size_t(16), msg.raw_lobby_data.size()); ++i) {
-                    std::cerr << std::hex << static_cast<int>(msg.raw_lobby_data[i]) << " ";
-                }
-                std::cerr << std::dec << std::endl;
                 continue;
             }
 
@@ -360,15 +345,7 @@ void LobbyListState::process_network_messages() {
                 int32_t count = 0;
                 deserializer >> count;
 
-                std::cout << "[LobbyListState] Received " << count << " lobbies" << std::endl;
-
                 if (count < 0 || count > 100) {
-                    std::cerr << "[LobbyListState] Invalid lobby count: " << count << std::endl;
-                    std::cerr << "[LobbyListState] Packet dump: ";
-                    for (size_t i = 0; i < msg.raw_lobby_data.size(); ++i) {
-                        std::cerr << std::hex << static_cast<int>(msg.raw_lobby_data[i]) << " ";
-                    }
-                    std::cerr << std::dec << std::endl;
                     continue;
                 }
 

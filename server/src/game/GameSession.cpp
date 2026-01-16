@@ -136,9 +136,6 @@ void GameSession::start_game(UDPServer& server) {
         load_custom_level();
     }
 
-    _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
-    _game_phase = GamePhase::InGame;
-
     auto& reg = _engine.get_registry();
     
     float difficulty_multiplier = 1.0f;
@@ -165,6 +162,12 @@ void GameSession::start_game(UDPServer& server) {
             break;
         }
     }
+
+    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level),
+                                            _current_custom_level_id, _lobby_client_ids);
+
+    _game_broadcaster.broadcast_start_game(server, _lobby_client_ids);
+    _game_phase = GamePhase::InGame;
 
     float start_x = 100.0f;
     for (const auto& [client_id, ready] : _client_ready_status) {
@@ -213,9 +216,6 @@ void GameSession::start_game(UDPServer& server) {
             _game_broadcaster.broadcast_boss_spawn(server, _lobby_client_ids);
         }
     }
-
-    _game_broadcaster.broadcast_level_start(server, static_cast<uint8_t>(_starting_level),
-                                            _current_custom_level_id, _lobby_client_ids);
 }
 
 void GameSession::broadcast_lobby_status(UDPServer& server) {
@@ -251,6 +251,10 @@ void GameSession::send_game_state_to_client(UDPServer& server, int client_id) {
                                                        _client_entity_ids, client_id);
 
     _game_broadcaster.broadcast_level_info(server, _engine.get_registry(), {client_id});
+
+    // Send level start with custom level ID if applicable
+    uint8_t current_level = _level_manager.get_current_level(_engine.get_registry());
+    _game_broadcaster.broadcast_level_start(server, current_level, _current_custom_level_id, {client_id});
 
     _powerup_broadcaster.broadcast_powerup_status(server, _engine.get_registry(),
                                                   _client_entity_ids, {client_id});

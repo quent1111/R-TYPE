@@ -76,8 +76,12 @@ void cleanupSystem(registry& reg, float dt) {
                 is_boss = (entity_type == RType::EntityType::Boss);
             }
 
-            if ((is_projectile || is_enemy) && !is_boss) {
-                if (pos.x < -200.0f || pos.x > 2000.0f || pos.y < -200.0f || pos.y > 1300.0f) {
+            if (is_projectile && !is_boss) {
+                if (pos.x < 0.0f || pos.x > 1920.0f || pos.y < 0.0f || pos.y > 1080.0f) {
+                    entities_to_kill.push_back(reg.entity_from_index(i));
+                }
+            } else if (is_enemy && !is_boss) {
+                if (pos.x < -200.0f || pos.x > 2200.0f || pos.y < -200.0f || pos.y > 1300.0f) {
                     entities_to_kill.push_back(reg.entity_from_index(i));
                 }
             }

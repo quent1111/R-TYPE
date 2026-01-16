@@ -253,6 +253,7 @@ void LobbyState::request_lobby_status() {
 
 void LobbyState::process_network_messages() {
     NetworkToGame::Message msg(NetworkToGame::MessageType::EntityUpdate);
+    std::vector<NetworkToGame::Message> postponed_messages;
 
     while (m_network_to_game_queue->try_pop(msg)) {
         switch (msg.type) {
@@ -280,9 +281,22 @@ void LobbyState::process_network_messages() {
                 }
                 break;
 
+            case NetworkToGame::MessageType::LevelStart:
+            case NetworkToGame::MessageType::LevelProgress:
+            case NetworkToGame::MessageType::LevelComplete:
+            case NetworkToGame::MessageType::PowerUpSelection:
+            case NetworkToGame::MessageType::PowerUpCards:
+            case NetworkToGame::MessageType::BossSpawn:
+                postponed_messages.push_back(msg);
+                break;
+
             default:
                 break;
         }
+    }
+
+    for (const auto& postponed_msg : postponed_messages) {
+        m_network_to_game_queue->push(postponed_msg);
     }
 }
 
