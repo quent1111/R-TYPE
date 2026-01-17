@@ -73,13 +73,11 @@ enum class EntityType : uint8_t {
     SerpentScream = 0x18,
     SerpentLaserCharge = 0x19,
     FlyingEnemy = 0x1A,
-    // New bosses and parts (level 15+)
     CompilerBoss = 0x1B,
     CompilerPart1 = 0x1C,
     CompilerPart2 = 0x1D,
     CompilerPart3 = 0x1E,
     CompilerExplosion = 0x1F,
-    // Custom level entities (separate from standard game)
     CustomEnemy = 0x30,
     CustomBoss = 0x31,
     CustomProjectile = 0x32

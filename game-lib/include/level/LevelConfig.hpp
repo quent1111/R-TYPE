@@ -15,10 +15,9 @@ struct SpriteConfig {
     float frame_duration = 0.1f;
     float scale_x = 1.0f;
     float scale_y = 1.0f;
-    // New: Mirror and rotation support
-    bool mirror_x = false;      // Flip horizontally
-    bool mirror_y = false;      // Flip vertically
-    float rotation = 0.0f;      // Rotation in degrees
+    bool mirror_x = false;
+    bool mirror_y = false;
+    float rotation = 0.0f;
 };
 
 struct ProjectileConfig {
@@ -48,13 +47,13 @@ struct BehaviorConfig {
 };
 
 struct AttackPatternConfig {
-    std::string type = "none";      // "none", "front", "targeted", "spread", "burst", "spiral"
+    std::string type = "none";
     float cooldown = 2.0f;
     int burst_count = 1;
     float burst_delay = 0.1f;
-    float spread_angle = 30.0f;     // Angle for spread pattern
-    int projectile_count = 1;       // Number of projectiles (for spread)
-    bool aim_at_player = false;     // For targeted pattern
+    float spread_angle = 30.0f;
+    int projectile_count = 1;
+    bool aim_at_player = false;
     ProjectileConfig projectile;
 };
 
@@ -110,8 +109,8 @@ struct EnvironmentConfig {
     std::optional<std::string> parallax_layer_1;
     std::optional<std::string> parallax_layer_2;
     float scroll_speed = 50.0f;
-    bool scroll_infinite = true;    // New: Enable infinite scrolling background
-    bool background_static = false; // New: If true, background doesn't scroll
+    bool scroll_infinite = true;
+    bool background_static = false;
     std::optional<std::string> music;
     std::optional<std::string> ambient_sound;
 };

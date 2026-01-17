@@ -719,7 +719,6 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
             }
 
             if (!found_projectile) {
-                // Fallback pour Enemy4 projectile
                 if (entity.custom_entity_id == "assets/r-typesheet9-22.gif") {
                     entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-22.gif"));
                     entity.frames = {{0, 0, 65, 18}, {65, 0, 65, 18}};
@@ -1126,7 +1125,6 @@ void Game::process_network_messages() {
                     }
                     if ((entity.type == 0x11 || entity.type == 0x12 || entity.type == 0x13 || entity.type == 0x14) &&
                         next.find(id) == next.end()) {
-                        // Serpent part removed (boss death) — no periodic roar to stop anymore.
                     }
                 }
 
@@ -1287,12 +1285,10 @@ void Game::render() {
         m_settings_panel->render(window_);
     }
 
-    // Appliquer le shader daltonien si nécessaire
     if (use_render_texture_) {
         game_renderer_.apply_colorblind_shader(window_, render_texture_);
     }
 
-    // Afficher l'indicateur de mode daltonien
     game_renderer_.render_colorblind_overlay(window_);
 }
 

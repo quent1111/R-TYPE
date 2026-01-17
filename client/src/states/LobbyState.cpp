@@ -363,7 +363,6 @@ void LobbyState::update(float dt) {
     }
     for (size_t i = 0; i < m_buttons.size(); ++i) {
         if (m_keyboard_navigation) {
-            // En mode clavier, reset tous puis highlight uniquement le sélectionné
             m_buttons[i]->set_hovered(i == m_selected_button);
         }
         m_buttons[i]->update(dt);
@@ -414,33 +413,7 @@ void LobbyState::render(sf::RenderWindow& window) {
         m_footer->render(window);
     }
 
-    // Appliquer le shader colorblind
     rendering::ColorBlindShader::instance().apply(window);
-
-    // Ancien système d'overlay désactivé - on utilise maintenant le shader GLSL
-    /*ColorBlindMode mode = Settings::instance().colorblind_mode;
-    if (mode != ColorBlindMode::Normal) {
-        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
-
-        switch (mode) {
-            case ColorBlindMode::Protanopia:
-                overlay.setFillColor(sf::Color(255, 255, 0, 90));
-                break;
-            case ColorBlindMode::Deuteranopia:
-                overlay.setFillColor(sf::Color(255, 100, 255, 90));
-                break;
-            case ColorBlindMode::Tritanopia:
-                overlay.setFillColor(sf::Color(255, 100, 50, 90));
-                break;
-            case ColorBlindMode::HighContrast:
-                overlay.setFillColor(sf::Color(150, 150, 255, 110));
-                break;
-            default:
-                break;
-        }
-
-        window.draw(overlay);
-    }*/
 }
 
 }  // namespace rtype

@@ -20,7 +20,6 @@ public:
 
     void broadcast_powerup_selection(UDPServer& server, const std::vector<int>& lobby_client_ids);
 
-    // New: broadcast the 3 power-up cards to a specific client
     void broadcast_powerup_cards(UDPServer& server, int client_id,
                                  const std::vector<powerup::PowerupCard>& cards);
 

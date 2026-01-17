@@ -83,7 +83,6 @@ bool CustomLevelManager::loadLevel(const std::filesystem::path& path, bool is_bu
     }
     
     auto& parse_result = LevelConfigParser::getResult(result);
-    // Copy the level_id BEFORE moving the config!
     const std::string level_id = parse_result.config.metadata.id;
     std::cout << "[CustomLevelManager] Parsed level ID: '" << level_id << "'" << std::endl;
     

@@ -211,7 +211,6 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                     createFlyingEnemyProjectile(reg, pos.x - 20.0f, pos.y + offset_y, -wpn.projectile_speed, 0.0f, wpn.damage);
                 }
             } else if (entity_tag.type == RType::EntityType::Enemy4) {
-                // Enemy4: Tire 2 projectiles en diagonal avec r-typesheet9-22.gif
                 float angle_up = 3.14159f - 0.5f;
                 float angle_down = 3.14159f + 0.5f;
                 float vx_up = std::cos(angle_up) * wpn.projectile_speed;

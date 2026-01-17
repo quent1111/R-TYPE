@@ -128,7 +128,6 @@ bool AccessibilityManager::loadSettings(const std::string& filepath) {
 }
 
 bool AccessibilityManager::saveSettings(const std::string& filepath) const {
-    // Lire le fichier existant
     std::ifstream in_file(filepath);
     std::vector<std::string> lines;
     std::string line;
@@ -140,7 +139,6 @@ bool AccessibilityManager::saveSettings(const std::string& filepath) const {
         in_file.close();
     }
 
-    // Chercher ou créer la section [Accessibility]
     bool found_section = false;
     size_t section_start = 0;
 
@@ -152,20 +150,17 @@ bool AccessibilityManager::saveSettings(const std::string& filepath) const {
         }
     }
 
-    // Si la section n'existe pas, l'ajouter
     if (!found_section) {
         lines.push_back("");
         lines.push_back("[Accessibility]");
         section_start = lines.size() - 1;
     }
 
-    // Mettre à jour ou ajouter les valeurs
     std::string mode_line =
         "ColorBlindMode=" + std::string(colorBlindnessModeToString(current_mode_));
     std::string shapes_line =
         "ProjectileShapes=" + std::string(projectile_shapes_enabled_ ? "true" : "false");
 
-    // Chercher et mettre à jour les lignes existantes
     bool found_mode = false;
     bool found_shapes = false;
 

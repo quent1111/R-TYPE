@@ -200,7 +200,7 @@ void ServerCore::periodic_cleanup(UDPServer& server, float dt) {
             std::cout << "[ServerCore] Removing inactive client " << client_id << std::endl;
             _lobby_manager.handle_client_disconnect(client_id, server);
         }
-        _lobby_manager.cleanup_inactive_lobbies(std::chrono::seconds(300));  // 5 minutes
+        _lobby_manager.cleanup_inactive_lobbies(std::chrono::seconds(300));
     }
     if (_broadcast_accumulator >= 2.0f) {
         _broadcast_accumulator = 0.0f;
@@ -212,7 +212,7 @@ void ServerCore::run_game_loop(UDPServer& server) {
     std::cout << "[ServerCore] Game loop started" << std::endl;
 
     auto last_time = std::chrono::steady_clock::now();
-    const float target_dt = 1.0f / 60.0f;  // 60 FPS
+    const float target_dt = 1.0f / 60.0f;
 
     while (server_running) {
         auto current_time = std::chrono::steady_clock::now();

@@ -48,13 +48,11 @@ void waveSystem(registry& reg, float dt) {
                     int level = lvl_mgr.current_level;
                     current_level = level;
 
-                    // Check if this is a custom level (flag-based, not level number)
                     if (lvl_mgr.is_custom_level) {
                         is_custom_level = true;
                         break;
                     }
 
-                    // Boss levels: 5, 10, 15, and every multiple of 5 after 15 (20, 25, 30, etc.)
                     if (level == 5 || level == 10 || level == 15 || (level > 15 && level % 5 == 0)) {
                         is_boss_level = true;
                         break;

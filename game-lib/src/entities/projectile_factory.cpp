@@ -181,7 +181,6 @@ entity createCustomProjectile(registry& reg, float x, float y, float vx, float v
     reg.register_component<entity_tag>();
     reg.register_component<enemy_tag>();
 
-    // Build animation frames
     std::vector<sf::IntRect> custom_projectile_frames;
     for (int i = 0; i < config.projectile_frame_count; ++i) {
         custom_projectile_frames.push_back({
@@ -216,7 +215,6 @@ entity createCustomProjectile(registry& reg, float x, float y, float vx, float v
     reg.add_component(projectile, entity_tag{RType::EntityType::CustomProjectile});
     reg.add_component(projectile, enemy_tag{});
     
-    // Store the texture path as entity ID for identification
     reg.add_component(projectile, custom_entity_id{config.projectile_texture});
 
     return projectile;
@@ -326,7 +324,7 @@ entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float v
     int texture_y = 0;
     int texture_w = 65;
     int texture_h = 18;
-    float scale = -3.5f;  // Augmenté pour meilleure visibilité en diagonal
+    float scale = -3.5f;
     float collision_w = 50.0f;
     float collision_h = 40.0f;
 

@@ -18,7 +18,6 @@ GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
     ruins_background_.setSize(sf::Vector2f(WINDOW_WIDTH, WINDOW_HEIGHT));
     ruins_background_.setFillColor(sf::Color(25, 20, 35));
 
-    // Charger le shader pour les filtres daltoniens
     if (sf::Shader::isAvailable()) {
         if (colorblind_shader_.loadFromFile("assets/shaders/colorblind.vert",
                                             "assets/shaders/colorblind.frag")) {
@@ -33,7 +32,6 @@ GameRenderer::GameRenderer() : bg_scroll_offset_(0.0f) {
         shader_loaded_ = false;
     }
 
-    // Créer la texture de rendu
     if (!render_texture_.create(WINDOW_WIDTH, WINDOW_HEIGHT)) {
         std::cerr << "[GameRenderer] Failed to create render texture" << std::endl;
     }
@@ -581,7 +579,6 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             e.sprite.setRotation(e.rotation);
         }
 
-        // Flash damage for Boss and CompilerParts (0x1C, 0x1D, 0x1E)
         if ((e.type == 0x08 || e.type == 0x1C || e.type == 0x1D || e.type == 0x1E) &&
             e.damage_flash_timer > 0.0f) {
             e.sprite.setColor(sf::Color(255, 100, 100, 255));
@@ -603,7 +600,6 @@ void GameRenderer::render_entities(sf::RenderWindow& window, std::map<uint32_t, 
             continue;
         }
 
-        // Toujours utiliser le rendu normal du sprite (système de formes géométriques désactivé)
         window.draw(e.sprite);
     }
 
@@ -703,7 +699,6 @@ void GameRenderer::render_damage_flash(sf::RenderWindow& window) {
 }
 
 void GameRenderer::render_colorblind_overlay(sf::RenderWindow& window) {
-    // Cette fonction est maintenant juste utilisée pour l'indicateur de mode
     ColorBlindMode mode = Settings::instance().colorblind_mode;
 
     if (mode != ColorBlindMode::Normal) {

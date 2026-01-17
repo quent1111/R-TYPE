@@ -322,10 +322,9 @@ void MenuTitle::set_text(const std::string& text) {
 }
 
 MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(window_size) {
-    // Set background rectangle to cover entire window (fallback if texture doesn't load)
     m_background.setSize(
         sf::Vector2f(static_cast<float>(window_size.x), static_cast<float>(window_size.y)));
-    m_background.setPosition(0.0f, 0.0f);  // Ensure it starts at 0,0
+    m_background.setPosition(0.0f, 0.0f);
     m_background.setFillColor(sf::Color(5, 5, 15));
 
     if (m_background_texture.loadFromFile("assets/galaxie.jpg")) {
@@ -333,10 +332,8 @@ MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(
         sf::Vector2u tex_size = m_background_texture.getSize();
         float scale_x = static_cast<float>(window_size.x) / static_cast<float>(tex_size.x);
         float scale_y = static_cast<float>(window_size.y) / static_cast<float>(tex_size.y);
-        // Use max to ensure the background covers the entire window (no black bars)
         float scale = std::max(scale_x, scale_y);
         m_background_sprite.setScale(scale, scale);
-        // Center the sprite
         float offset_x =
             (static_cast<float>(window_size.x) - static_cast<float>(tex_size.x) * scale) / 2.0f;
         float offset_y =

@@ -258,33 +258,8 @@ void MenuState::render(sf::RenderWindow& window) {
         m_settings_panel->render(window);
     }
 
-    // Appliquer le shader colorblind
     rendering::ColorBlindShader::instance().apply(window);
 
-    // Ancien système d'overlay désactivé - on utilise maintenant le shader GLSL
-    /*ColorBlindMode mode = Settings::instance().colorblind_mode;
-    if (mode != ColorBlindMode::Normal) {
-        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
-
-        switch (mode) {
-            case ColorBlindMode::Protanopia:
-                overlay.setFillColor(sf::Color(255, 255, 0, 90));
-                break;
-            case ColorBlindMode::Deuteranopia:
-                overlay.setFillColor(sf::Color(255, 100, 255, 90));
-                break;
-            case ColorBlindMode::Tritanopia:
-                overlay.setFillColor(sf::Color(255, 100, 50, 90));
-                break;
-            case ColorBlindMode::HighContrast:
-                overlay.setFillColor(sf::Color(150, 150, 255, 110));
-                break;
-            default:
-                break;
-        }
-
-        window.draw(overlay);
-    }*/
 }
 
 }  // namespace rtype

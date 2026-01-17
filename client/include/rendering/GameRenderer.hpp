@@ -47,7 +47,6 @@ public:
 
     void render_colorblind_overlay(sf::RenderWindow& window);
 
-    // Fonctions pour le rendu avec shader daltonien
     void begin_colorblind_render(sf::RenderWindow& window);
     void end_colorblind_render(sf::RenderWindow& window);
     void apply_colorblind_shader(sf::RenderWindow& window, sf::RenderTexture& source);
