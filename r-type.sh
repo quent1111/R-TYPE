@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="$PROJECT_ROOT/conan"
+BUILD_DIR="$PROJECT_ROOT/build"
 
 get_bin_dir() {
     if [ -d "$BUILD_DIR/$BUILD_TYPE/bin" ]; then

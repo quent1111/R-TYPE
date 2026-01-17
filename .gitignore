@@ -1,5 +1,6 @@
 # Build directories
 build/
+conan/
 cmake-build-*/
 out/
 bin/
@@ -21,7 +22,6 @@ CMakeFiles/
 cmake_install.cmake
 install_manifest.txt
 CTestTestfile.cmake
-CMakeUserPresets.json
 
 # Conan
 conan_toolchain.cmake
