@@ -264,7 +264,8 @@ entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float v
     return projectile;
 }
 
-entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float vy, int damage) {
+
+entity createFlyingEnemyProjectile(registry& reg, float x, float y, float vx, float vy, int damage) {
     entity projectile = reg.spawn_entity();
 
     reg.register_component<position>();
@@ -278,6 +279,46 @@ entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float v
     reg.register_component<enemy_tag>();
 
     std::vector<sf::IntRect> projectile_frames = {
+        {0, 0, 32, 32},
+        {32, 0, 32, 32}
+    };
+    int texture_x = 0;
+    int texture_y = 0;
+    int texture_w = 32;
+    int texture_h = 32;
+    float scale = -2.5f;
+    float collision_w = 50.0f;
+    float collision_h = 50.0f;
+
+    reg.add_component(projectile, position{x, y});
+    reg.add_component(projectile, velocity{vx, vy});
+    reg.add_component(projectile,
+                      sprite_component{"assets/r-typesheet9-33.gif", texture_x, texture_y, texture_w, texture_h, scale});
+    reg.add_component(projectile,
+                      animation_component{projectile_frames, 0.15f, true});
+    reg.add_component(projectile, collision_box{collision_w, collision_h});
+    reg.add_component(projectile, damage_on_contact{damage, true});
+    reg.add_component(projectile, projectile_tag{});
+    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
+    reg.add_component(projectile, enemy_tag{});
+
+    return projectile;
+}
+entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float vy, int damage) {
+    entity projectile = reg.spawn_entity();
+
+    reg.register_component<position>();
+    reg.register_component<velocity>();
+    reg.register_component<sprite_component>();
+    reg.register_component<animation_component>();
+    reg.register_component<collision_box>();
+    reg.register_component<damage_on_contact>();
+    reg.register_component<projectile_tag>();
+    reg.register_component<entity_tag>();
+    reg.register_component<enemy_tag>();
+    reg.register_component<custom_entity_id>();
+
+    std::vector<sf::IntRect> projectile_frames = {
         {0, 0, 65, 18},
         {65, 0, 65, 18}
     };
@@ -285,9 +326,9 @@ entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float v
     int texture_y = 0;
     int texture_w = 65;
     int texture_h = 18;
-    float scale = -2.0f;
-    float collision_w = 40.0f;
-    float collision_h = 30.0f;
+    float scale = -3.5f;  // Augmenté pour meilleure visibilité en diagonal
+    float collision_w = 50.0f;
+    float collision_h = 40.0f;
 
     reg.add_component(projectile, position{x, y});
     reg.add_component(projectile, velocity{vx, vy});
@@ -298,8 +339,9 @@ entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float v
     reg.add_component(projectile, collision_box{collision_w, collision_h});
     reg.add_component(projectile, damage_on_contact{damage, true});
     reg.add_component(projectile, projectile_tag{});
-    reg.add_component(projectile, entity_tag{RType::EntityType::Projectile});
+    reg.add_component(projectile, entity_tag{RType::EntityType::CustomProjectile});
     reg.add_component(projectile, enemy_tag{});
+    reg.add_component(projectile, custom_entity_id{"assets/r-typesheet9-22.gif"});
 
     return projectile;
 }

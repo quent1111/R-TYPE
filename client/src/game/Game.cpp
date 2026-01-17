@@ -576,6 +576,7 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
         bool is_enemy3_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) &&
                                      std::abs(projectile_speed - 400.0f) < 20.0f);
         bool is_enemy4_projectile =
+            (!entity.custom_entity_id.empty() && entity.custom_entity_id == "assets/r-typesheet9-22.gif") ||
             ((entity.vx < 0 || is_compiler_boss_projectile) &&
              std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
         bool is_enemy5_projectile =
@@ -718,8 +719,19 @@ void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_i
             }
 
             if (!found_projectile) {
-                std::cerr << "[Game] Warning: Custom projectile definition not found for texture: "
-                          << entity.custom_entity_id << std::endl;
+                // Fallback pour Enemy4 projectile
+                if (entity.custom_entity_id == "assets/r-typesheet9-22.gif") {
+                    entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-22.gif"));
+                    entity.frames = {{0, 0, 65, 18}, {65, 0, 65, 18}};
+                    entity.frame_duration = 0.2F;
+                    entity.loop = true;
+                    entity.sprite.setTextureRect(entity.frames[0]);
+                    entity.sprite.setScale(1.7F, 1.7F);
+                    found_projectile = true;
+                } else {
+                    std::cerr << "[Game] Warning: Custom projectile definition not found for texture: "
+                              << entity.custom_entity_id << std::endl;
+                }
             }
         }
     } else if (entity.type == 0x05) {

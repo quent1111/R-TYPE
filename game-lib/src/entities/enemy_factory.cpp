@@ -153,9 +153,8 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(40.0f * combined_mult);
-    int scaled_damage = static_cast<int>(15.0f * combined_mult); // Reduced from 50 to 15
-    int scaled_weapon_damage = static_cast<int>(12.0f * combined_mult); // Reduced from 35 to 12
-
+    int scaled_damage = static_cast<int>(15.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(12.0f * combined_mult);
     reg.register_component<position>();
     reg.register_component<velocity>();
     reg.register_component<health>();
@@ -171,7 +170,8 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, velocity{-250.0f, 0.0f});
     reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{0.6f, 400.0f, scaled_weapon_damage});
+    float fire_rate_flying = (difficulty_mult < 0.8f) ? 0.3f : 0.6f;
+    reg.add_component(enemy, weapon{fire_rate_flying, 400.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet14-1.gif";
@@ -208,8 +208,8 @@ entity createWaveEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(30.0f * combined_mult);
-    int scaled_damage = static_cast<int>(12.0f * combined_mult); // Reduced from 35 to 12
-    int scaled_weapon_damage = static_cast<int>(10.0f * combined_mult); // Reduced from 25 to 10
+    int scaled_damage = static_cast<int>(12.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(10.0f * combined_mult);
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -226,7 +226,8 @@ entity createWaveEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, velocity{-200.0f, 0.0f});
     reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{1.0f, 500.0f, scaled_weapon_damage});
+    float fire_rate_wave = (difficulty_mult < 0.8f) ? 0.5f : 1.0f;
+    reg.add_component(enemy, weapon{fire_rate_wave, 500.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet9-1.gif";
@@ -261,8 +262,8 @@ entity createTankEnemy(registry& reg, float x, float y) {
     float level_mult = get_level_scaling_multiplier(reg);
     float combined_mult = difficulty_mult * level_mult;
     int scaled_health = static_cast<int>(50.0f * combined_mult);
-    int scaled_damage = static_cast<int>(18.0f * combined_mult); // Reduced from 40 to 18
-    int scaled_weapon_damage = static_cast<int>(15.0f * combined_mult); // Reduced from 30 to 15
+    int scaled_damage = static_cast<int>(18.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(15.0f * combined_mult);
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -279,7 +280,8 @@ entity createTankEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
     reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{0.8f, 450.0f, scaled_weapon_damage});
+    float fire_rate_tank = (difficulty_mult < 0.8f) ? 0.4f : 0.8f;
+    reg.add_component(enemy, weapon{fire_rate_tank, 450.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet7.gif";

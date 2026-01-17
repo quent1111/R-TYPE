@@ -17,6 +17,8 @@ entity createCustomProjectile(registry& reg, float x, float y, float vx, float v
                                const custom_attack_config& config);
 
 entity createEnemy3Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 25, int projectile_type = 0);
+entity createFlyingEnemyProjectile(registry& reg, float x, float y, float vx, float vy, int damage = 20);
+
 
 entity createEnemy4Projectile(registry& reg, float x, float y, float vx, float vy, int damage = 20);
 

@@ -205,8 +205,21 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                     }
                     shot_counter++;
                 }
+            } else if (entity_tag.type == RType::EntityType::FlyingEnemy) {
+                for (int burst = 0; burst < 3; burst++) {
+                    float offset_y = static_cast<float>(burst - 1) * 20.0f;
+                    createFlyingEnemyProjectile(reg, pos.x - 20.0f, pos.y + offset_y, -wpn.projectile_speed, 0.0f, wpn.damage);
+                }
             } else if (entity_tag.type == RType::EntityType::Enemy4) {
-                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y + 50.0f, -wpn.projectile_speed, 0.0f, wpn.damage);
+                // Enemy4: Tire 2 projectiles en diagonal avec r-typesheet9-22.gif
+                float angle_up = 3.14159f - 0.5f;
+                float angle_down = 3.14159f + 0.5f;
+                float vx_up = std::cos(angle_up) * wpn.projectile_speed;
+                float vy_up = std::sin(angle_up) * wpn.projectile_speed;
+                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y - 10.0f, vx_up, vy_up, wpn.damage);
+                float vx_down = std::cos(angle_down) * wpn.projectile_speed;
+                float vy_down = std::sin(angle_down) * wpn.projectile_speed;
+                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y + 30.0f, vx_down, vy_down, wpn.damage);
             } else if (entity_tag.type == RType::EntityType::Enemy5) {
                 createEnemy5Projectile(reg, pos.x - 20.0f, pos.y + 30.0f, -wpn.projectile_speed, 0.0f, wpn.damage);
             } else {

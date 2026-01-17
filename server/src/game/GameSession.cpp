@@ -141,7 +141,7 @@ void GameSession::start_game(UDPServer& server) {
     float difficulty_multiplier = 1.0f;
     switch (_difficulty) {
         case 0:
-            difficulty_multiplier = 1.0f;
+            difficulty_multiplier = 0.4f;
             break;
         case 1:
             difficulty_multiplier = 2.0f;
