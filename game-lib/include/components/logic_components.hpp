@@ -198,6 +198,9 @@ struct level_manager {
         level_completed = false;
         awaiting_upgrade_choice = false;
         enemies_needed_for_next_level = static_cast<int>(static_cast<float>(current_level) * difficulty_multiplier);
+        if (enemies_needed_for_next_level < 1) {
+            enemies_needed_for_next_level = 1;
+        }
         level_start_timer = 0.0f;
     }
     

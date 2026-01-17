@@ -1098,30 +1098,28 @@ void Game::process_network_messages() {
                     if (is_enemy && next.find(id) == next.end()) {
                         sf::Vector2f enemy_pos(entity.x, entity.y);
 
-                        if (entity.health <= 0) {
-                            managers::AudioManager::instance().play_sound(
-                                managers::AudioManager::SoundType::HitSound);
+                        managers::AudioManager::instance().play_sound(
+                            managers::AudioManager::SoundType::HitSound);
 
-                            managers::EffectsManager::instance().add_combo_kill();
-                            int combo_mult =
-                                managers::EffectsManager::instance().get_combo_multiplier();
+                        managers::EffectsManager::instance().add_combo_kill();
+                        int combo_mult =
+                            managers::EffectsManager::instance().get_combo_multiplier();
 
-                            managers::EffectsManager::instance().spawn_explosion(enemy_pos, 25);
+                        managers::EffectsManager::instance().spawn_explosion(enemy_pos, 25);
 
-                            float shake_intensity =
-                                16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
-                            managers::EffectsManager::instance().trigger_screen_shake(
-                                shake_intensity, 0.25f);
+                        float shake_intensity =
+                            16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
+                        managers::EffectsManager::instance().trigger_screen_shake(
+                            shake_intensity, 0.25f);
 
-                            sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
-                            managers::EffectsManager::instance().spawn_score_particles(
-                                enemy_pos, score_pos, 12);
+                        sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
+                        managers::EffectsManager::instance().spawn_score_particles(
+                            enemy_pos, score_pos, 12);
 
-                            current_score_ += static_cast<uint32_t>(100 * combo_mult);
-                            managers::EffectsManager::instance().trigger_score_bounce();
-                            managers::AudioManager::instance().play_sound(
-                                managers::AudioManager::SoundType::Coin);
-                        }
+                        current_score_ += static_cast<uint32_t>(100 * combo_mult);
+                        managers::EffectsManager::instance().trigger_score_bounce();
+                        managers::AudioManager::instance().play_sound(
+                            managers::AudioManager::SoundType::Coin);
                     }
                     if ((entity.type == 0x11 || entity.type == 0x12 || entity.type == 0x13 || entity.type == 0x14) &&
                         next.find(id) == next.end()) {

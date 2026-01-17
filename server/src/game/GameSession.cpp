@@ -173,6 +173,11 @@ void GameSession::start_game(UDPServer& server) {
             level_managers[i].value().enemies_needed_for_next_level =
                 static_cast<int>(static_cast<float>(level_managers[i].value().current_level) *
                                  difficulty_multiplier);
+            
+            // Ensure at least 1 enemy is required (for easy difficulty)
+            if (level_managers[i].value().enemies_needed_for_next_level < 1) {
+                level_managers[i].value().enemies_needed_for_next_level = 1;
+            }
 
             std::cout << "[Game] Level manager initialized: Level "
                       << level_managers[i].value().current_level << ", Enemies needed: "
@@ -689,6 +694,8 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                     auto& serpent_parts = _engine.get_registry().get_components<serpent_part>();
                     auto& serpent_controllers =
                         _engine.get_registry().get_components<serpent_boss_controller>();
+                    auto& entity_tags = _engine.get_registry().get_components<entity_tag>();
+                    auto& level_managers = _engine.get_registry().get_components<level_manager>();
 
                     int damage = static_cast<int>(laser.damage_per_second * 0.1f);
                     bool serpent_damaged = false;
@@ -713,7 +720,24 @@ void GameSession::update_game_state(UDPServer& server, float dt) {
                                         }
                                     }
                                 } else if (j < healths.size() && healths[j].has_value()) {
-                                    healths[j]->current -= damage;
+                                    auto& enemy_hp = healths[j].value();
+                                    enemy_hp.current -= damage;
+                                    
+                                    if (enemy_hp.is_dead()) {
+                                        bool is_boss_part = (j < entity_tags.size() && entity_tags[j].has_value() &&
+                                                            (entity_tags[j]->type == RType::EntityType::SerpentHoming ||
+                                                             entity_tags[j]->type == RType::EntityType::CompilerPart1 ||
+                                                             entity_tags[j]->type == RType::EntityType::CompilerPart2 ||
+                                                             entity_tags[j]->type == RType::EntityType::CompilerPart3));
+                                        if (!is_boss_part) {
+                                            for (size_t k = 0; k < level_managers.size(); ++k) {
+                                                if (level_managers[k].has_value()) {
+                                                    level_managers[k]->on_enemy_killed();
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
