@@ -149,8 +149,7 @@ void HUDRenderer::render_timer(sf::RenderWindow& window) {
 
 void HUDRenderer::render_health_bar(sf::RenderWindow& window,
                                     const std::map<uint32_t, Entity>& entities,
-                                    uint32_t my_network_id,
-                                    bool show_level_intro) {
+                                    uint32_t my_network_id, bool show_level_intro) {
     if (show_level_intro) {
         return;
     }
@@ -189,7 +188,6 @@ void HUDRenderer::render_level_hud(sf::RenderWindow& window, bool show_level_int
         return;
     }
 
-    // Only show boss wave styling for standard game, not custom levels
     bool is_boss_wave =
         !is_custom_level && (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
 
@@ -276,7 +274,7 @@ void HUDRenderer::render_combo_bar(sf::RenderWindow& window) {
 
 void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window,
                                          const std::map<uint32_t, Entity>& entities) {
-    bool is_boss_wave = (current_level_ == 5 || current_level_ == 10 || current_level_ == 15);
+    bool is_boss_wave = (current_level_ >= 5 && current_level_ % 5 == 0);
     if (!is_boss_wave) {
         return;
     }
@@ -286,23 +284,24 @@ void HUDRenderer::render_boss_health_bar(sf::RenderWindow& window,
     bool boss_found = false;
     std::string boss_name = "BOSS";
 
+    int boss_type = ((current_level_ / 5 - 1) % 3) + 1;
+
     for (const auto& [id, entity] : entities) {
-        if (entity.type == 0x08 && current_level_ == 5) {
+        if (boss_type == 1 && entity.type == 0x08) {
             boss_current_hp = entity.health;
             boss_max_hp = entity.max_health;
             boss_found = true;
             boss_name = "DESTROYER";
             break;
         }
-        if (current_level_ == 10 && entity.type == 0x11) {
+        if (boss_type == 2 && entity.type == 0x11) {
             boss_current_hp = entity.health;
             boss_max_hp = entity.max_health;
             boss_found = true;
             boss_name = "SERPENT GUARDIAN";
             break;
         }
-        // CompilerParts: 0x1C, 0x1D, 0x1E
-        if (current_level_ == 15 && (entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E)) {
+        if (boss_type == 3 && (entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E)) {
             boss_current_hp += entity.health;
             boss_max_hp += entity.max_health;
             boss_found = true;

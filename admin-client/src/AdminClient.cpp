@@ -129,7 +129,6 @@ void AdminClient::receive_loop() {
                     _response_queue.push(response);
                 }
             } catch (...) {
-                // Ignore invalid packets
             }
         }
         sf::sleep(sf::milliseconds(10));
@@ -264,5 +263,5 @@ void AdminClient::disconnect() {
 }
 
 void AdminClient::parse_response(const std::string& response) {
-    // TODO: Implement response parsing
+    (void)response;
 }

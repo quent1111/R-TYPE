@@ -209,7 +209,6 @@ void OverlayRenderer::render_level_intro(sf::RenderWindow& window, bool show, ui
         return;
     }
 
-    // Only show boss wave banner for standard game, not custom levels
     bool is_boss_wave = !is_custom_level && (level == 5 || level == 10 || level == 15);
 
     if (is_boss_wave) {

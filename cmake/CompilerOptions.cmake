@@ -23,6 +23,9 @@ else()
     add_compile_options(
         -pthread
     )
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(-Wno-stringop-overflow)
+    endif()
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -47,6 +50,17 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         add_compile_options(-O2 -g)
     endif()
     add_compile_definitions(NDEBUG)
+endif()
+
+option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
+if(ENABLE_COVERAGE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if(NOT MSVC)
+        message(STATUS "Code coverage enabled")
+        add_compile_options(--coverage -fprofile-arcs -ftest-coverage)
+        add_link_options(--coverage)
+    else()
+        message(WARNING "Code coverage is not supported on MSVC")
+    endif()
 endif()
 
 message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")

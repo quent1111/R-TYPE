@@ -32,7 +32,6 @@ SpriteConfig parseSpriteConfig(const json& j) {
     config.frame_duration = getOrDefault(j, "frame_duration", 0.1f);
     config.scale_x = getOrDefault(j, "scale_x", 1.0f);
     config.scale_y = getOrDefault(j, "scale_y", 1.0f);
-    // New: Mirror and rotation
     config.mirror_x = getOrDefault(j, "mirror_x", false);
     config.mirror_y = getOrDefault(j, "mirror_y", false);
     config.rotation = getOrDefault(j, "rotation", 0.0f);

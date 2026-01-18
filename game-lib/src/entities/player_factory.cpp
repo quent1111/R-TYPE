@@ -28,7 +28,7 @@ entity createPlayer(registry& reg, float x, float y, int player_index) {
     reg.add_component(player, velocity{0.0f, 0.0f});
     reg.add_component(player, controllable{300.0f});
     reg.add_component(player, health{100});
-    reg.add_component(player, weapon{3.0f, 600.0f, 20});
+    reg.add_component(player, weapon{1.8f, 600.0f, 20});
     reg.add_component(player,
                       sprite_component{"assets/r-typesheet1.png", 99, 0, 33, 17, 2.0f});
     reg.add_component(player, animation_component{player_frames, 0.15f, true});

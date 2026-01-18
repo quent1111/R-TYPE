@@ -146,7 +146,7 @@ TEST_F(PositionHistoryTest, AddSinglePosition) {
 
 TEST_F(PositionHistoryTest, AddMultiplePositions) {
     for (int i = 0; i < 10; ++i) {
-        history_.add_position(i * 10.0f, i * 20.0f);
+        history_.add_position(static_cast<float>(i) * 10.0f, static_cast<float>(i) * 20.0f);
     }
     
     EXPECT_EQ(history_.get_history_size(), 10);
@@ -155,7 +155,7 @@ TEST_F(PositionHistoryTest, AddMultiplePositions) {
 
 TEST_F(PositionHistoryTest, BufferFillToCapacity) {
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     EXPECT_EQ(history_.get_history_size(), 60);
@@ -165,7 +165,7 @@ TEST_F(PositionHistoryTest, BufferFillToCapacity) {
 TEST_F(PositionHistoryTest, BufferWraparound) {
     // Ajouter plus que la capacité
     for (int i = 0; i < 100; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     // Taille devrait rester à 60 (capacité max)
@@ -228,7 +228,7 @@ TEST_F(PositionHistoryTest, GetPositionOneFrameDelay) {
 
 TEST_F(PositionHistoryTest, GetPositionMultipleFramesDelay) {
     for (int i = 0; i < 10; ++i) {
-        history_.add_position(i * 10.0f, i * 10.0f);
+        history_.add_position(static_cast<float>(i) * 10.0f, static_cast<float>(i) * 10.0f);
     }
     
     float x, y;
@@ -241,7 +241,7 @@ TEST_F(PositionHistoryTest, GetPositionMultipleFramesDelay) {
 
 TEST_F(PositionHistoryTest, DelayExceedsHistorySize) {
     for (int i = 0; i < 5; ++i) {
-        history_.add_position(i * 10.0f, i * 10.0f);
+        history_.add_position(static_cast<float>(i) * 10.0f, static_cast<float>(i) * 10.0f);
     }
     
     float x, y;
@@ -254,7 +254,7 @@ TEST_F(PositionHistoryTest, DelayExceedsHistorySize) {
 
 TEST_F(PositionHistoryTest, DelayExactlyHistorySize) {
     for (int i = 0; i < 10; ++i) {
-        history_.add_position(i * 10.0f, i * 10.0f);
+        history_.add_position(static_cast<float>(i) * 10.0f, static_cast<float>(i) * 10.0f);
     }
     
     float x, y;
@@ -272,7 +272,7 @@ TEST_F(PositionHistoryTest, DelayExactlyHistorySize) {
 TEST_F(PositionHistoryTest, WraparoundPreservesRecent) {
     // Remplir au-delà de la capacité
     for (int i = 0; i < 100; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     float x, y;
@@ -286,7 +286,7 @@ TEST_F(PositionHistoryTest, WraparoundPreservesRecent) {
 TEST_F(PositionHistoryTest, WraparoundOldestPosition) {
     // Remplir au-delà de la capacité
     for (int i = 0; i < 100; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     float x, y;
@@ -299,7 +299,7 @@ TEST_F(PositionHistoryTest, WraparoundOldestPosition) {
 
 TEST_F(PositionHistoryTest, WraparoundMiddlePosition) {
     for (int i = 0; i < 80; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     float x, y;
@@ -317,8 +317,8 @@ TEST_F(PositionHistoryTest, WraparoundMiddlePosition) {
 TEST_F(PositionHistoryTest, SerpentBossTypicalDelay) {
     // Simuler mouvement du serpent pendant 2 secondes à 60 FPS
     for (int i = 0; i < 120; ++i) {
-        float x = 100.0f + std::sin(i * 0.1f) * 50.0f;
-        float y = 200.0f + std::cos(i * 0.1f) * 30.0f;
+        float x = 100.0f + std::sin(static_cast<float>(i) * 0.1f) * 50.0f;
+        float y = 200.0f + std::cos(static_cast<float>(i) * 0.1f) * 30.0f;
         history_.add_position(x, y);
     }
     
@@ -331,8 +331,8 @@ TEST_F(PositionHistoryTest, SerpentBossTypicalDelay) {
     
     // Positions devraient être différentes
     float distance = std::sqrt(
-        std::pow(current_x - delayed_x, 2) +
-        std::pow(current_y - delayed_y, 2)
+        std::pow(current_x - delayed_x, 2.0f) +
+        std::pow(current_y - delayed_y, 2.0f)
     );
     
     EXPECT_GT(distance, 1.0f);  // Mouvement significatif
@@ -341,7 +341,7 @@ TEST_F(PositionHistoryTest, SerpentBossTypicalDelay) {
 TEST_F(PositionHistoryTest, SerpentSegmentChain) {
     // Simuler plusieurs segments suivant la tête avec différents délais
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 5.0f, 100.0f);  // Mouvement linéaire
+        history_.add_position(static_cast<float>(i) * 5.0f, 100.0f);  // Mouvement linéaire
     }
     
     float head_x, head_y;
@@ -389,7 +389,7 @@ TEST_F(PositionHistoryTest, CircularMotion) {
     float center_y = 150.0f;
     
     for (int i = 0; i < 60; ++i) {
-        float angle = i * M_PI / 30.0f;  // Cercle complet en 60 frames
+        float angle = static_cast<float>(i) * static_cast<float>(M_PI) / 30.0f;  // Cercle complet en 60 frames
         float x = center_x + radius * std::cos(angle);
         float y = center_y + radius * std::sin(angle);
         history_.add_position(x, y);
@@ -400,8 +400,8 @@ TEST_F(PositionHistoryTest, CircularMotion) {
     history_.get_delayed_position(15, delayed_x, delayed_y);
     
     float distance_from_center = std::sqrt(
-        std::pow(delayed_x - center_x, 2) +
-        std::pow(delayed_y - center_y, 2)
+        std::pow(delayed_x - center_x, 2.0f) +
+        std::pow(delayed_y - center_y, 2.0f)
     );
     
     EXPECT_NEAR(distance_from_center, radius, 1.0f);
@@ -409,7 +409,7 @@ TEST_F(PositionHistoryTest, CircularMotion) {
 
 TEST_F(PositionHistoryTest, ZigzagPattern) {
     for (int i = 0; i < 60; ++i) {
-        float x = i * 2.0f;
+        float x = static_cast<float>(i) * 2.0f;
         float y = (i % 10 < 5) ? 100.0f : 150.0f;  // Zigzag
         history_.add_position(x, y);
     }
@@ -425,10 +425,10 @@ TEST_F(PositionHistoryTest, ZigzagPattern) {
 TEST_F(PositionHistoryTest, SuddenDirectionChange) {
     // Mouvement droit puis changement brusque
     for (int i = 0; i < 30; ++i) {
-        history_.add_position(i * 10.0f, 100.0f);  // Droite
+        history_.add_position(static_cast<float>(i) * 10.0f, 100.0f);  // Droite
     }
     for (int i = 0; i < 30; ++i) {
-        history_.add_position(300.0f, 100.0f + i * 10.0f);  // Haut
+        history_.add_position(300.0f, 100.0f  + static_cast<float>(i) * 10.0f);  // Haut
     }
     
     float x1, y1, x2, y2;
@@ -446,7 +446,7 @@ TEST_F(PositionHistoryTest, SuddenDirectionChange) {
 
 TEST_F(PositionHistoryTest, ClearResetsState) {
     for (int i = 0; i < 30; ++i) {
-        history_.add_position(i * 10.0f, i * 10.0f);
+        history_.add_position(static_cast<float>(i) * 10.0f, static_cast<float>(i) * 10.0f);
     }
     
     EXPECT_EQ(history_.get_history_size(), 30);
@@ -478,7 +478,7 @@ TEST_F(PositionHistoryTest, DISABLED_AddPositionPerformance) {
     auto start = std::chrono::high_resolution_clock::now();
     
     for (int i = 0; i < 10000; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     auto end = std::chrono::high_resolution_clock::now();
@@ -494,7 +494,7 @@ TEST_F(PositionHistoryTest, DISABLED_AddPositionPerformance) {
 TEST_F(PositionHistoryTest, DISABLED_GetDelayedPositionPerformance) {
     // Remplir le buffer
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     auto start = std::chrono::high_resolution_clock::now();
@@ -563,7 +563,7 @@ TEST_F(PositionHistoryTest, SingleFrameHistory) {
 
 TEST_F(PositionHistoryTest, MaxDelayValue) {
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 1.0f, i * 1.0f);
+        history_.add_position(static_cast<float>(i) * 1.0f, static_cast<float>(i) * 1.0f);
     }
     
     float x, y;
@@ -619,27 +619,27 @@ TEST_F(PositionHistoryTest, MultipleSegmentsTracking) {
     
     // Ajouter 60 frames de mouvement
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 3.0f, 100.0f);
+        history_.add_position(static_cast<float>(i) * 3.0f, 100.0f);
     }
     
     // Récupérer positions de tous les segments
     std::vector<std::pair<float, float>> segment_positions;
     for (int seg = 0; seg < NUM_SEGMENTS; ++seg) {
         float x, y;
-        history_.get_delayed_position(seg * SEGMENT_DELAY, x, y);
+        history_.get_delayed_position(static_cast<unsigned int>(seg) * SEGMENT_DELAY, x, y);
         segment_positions.push_back({x, y});
     }
     
     // Vérifier que chaque segment est derrière le précédent
     for (int i = 1; i < NUM_SEGMENTS; ++i) {
-        EXPECT_LT(segment_positions[i].first, segment_positions[i-1].first);
+        EXPECT_LT(segment_positions[static_cast<std::size_t>(i)].first, segment_positions[static_cast<std::size_t>(i-1)].first);
     }
 }
 
 TEST_F(PositionHistoryTest, GameplayAt30FPS) {
     // Simuler jeu à 30 FPS (historique garde 2 secondes)
     for (int i = 0; i < 60; ++i) {
-        history_.add_position(i * 5.0f, 200.0f);
+        history_.add_position(static_cast<float>(i) * 5.0f, 200.0f);
     }
     
     // À 30 FPS, 15 frames = 500ms de délai

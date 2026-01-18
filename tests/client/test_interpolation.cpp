@@ -395,7 +395,7 @@ TEST(Interpolation, MultipleEntitiesPerformance) {
     auto now = std::chrono::steady_clock::now();
     
     // Setup entities
-    for (int i = 0; i < NUM_ENTITIES; ++i) {
+    for (std::size_t i = 0; i < NUM_ENTITIES; ++i) {
         entities[i].prev_x = static_cast<float>(i);
         entities[i].x = static_cast<float>(i + 100);
         entities[i].prev_time = now;

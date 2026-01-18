@@ -134,6 +134,13 @@ r-type.bat server         # Windows
 r-type.bat client         # Windows
 ```
 
+**Start the admin panel:**
+```bash
+./r-type.sh admin         # Linux/macOS
+r-type.bat admin          # Windows
+```
+Default admin password: `admin123`
+
 The build script automatically:
 - Installs Conan package manager if needed
 - Downloads and builds dependencies (SFML, Asio, GTest)
@@ -148,6 +155,7 @@ The build script automatically:
 | `./r-type.sh build` | Build the entire project |
 | `./r-type.sh client` | Build and run the client |
 | `./r-type.sh server` | Build and run the server |
+| `./r-type.sh admin` | Build and run the admin panel |
 | `./r-type.sh test` | Run all tests via CTest |
 | `./r-type.sh tests` | Run game unit tests directly |
 | `./r-type.sh coverage` | Generate code coverage report |

@@ -13,11 +13,7 @@
 
 namespace rtype {
 
-enum class DifficultyLevel {
-    Easy = 0,
-    Normal = 1,
-    Hard = 2
-};
+enum class DifficultyLevel { Easy = 0, Normal = 1, Hard = 2 };
 
 struct LobbyInfo {
     int lobby_id;
@@ -79,6 +75,8 @@ private:
     int m_selected_lobby_id = -1;
 
     sf::Vector2f m_mouse_pos;
+    size_t m_selected_button{0};
+    bool m_keyboard_navigation{false};
 
     bool m_creating_lobby{false};
     bool m_matchmaking{false};

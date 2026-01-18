@@ -217,17 +217,12 @@ exit /b 1
 :install_deps
 cd /d "%PROJECT_ROOT%"
 
-if exist "%BUILD_DIR%\conan_toolchain.cmake" (
-    echo [OK] Dependencies already installed (skipping)
-    exit /b 0
-)
+REM Check if Conan dependencies exist - verify the actual generator files
 if exist "%BUILD_DIR%\build\%BUILD_TYPE%\generators\conan_toolchain.cmake" (
-    echo [OK] Dependencies already installed (skipping)
-    exit /b 0
-)
-if exist "%BUILD_DIR%\generators\conan_toolchain.cmake" (
-    echo [OK] Dependencies already installed (skipping)
-    exit /b 0
+    if exist "%PROJECT_ROOT%\CMakeUserPresets.json" (
+        echo [OK] Dependencies already installed (skipping)
+        exit /b 0
+    )
 )
 
 echo.
@@ -255,41 +250,30 @@ echo.
 echo [STEP] Configuring CMake...
 cd /d "%PROJECT_ROOT%"
 
-if exist "CMakeUserPresets.json" (
-    if "%BUILD_TYPE%"=="Release" set "PRESET=conan-release"
-    if "%BUILD_TYPE%"=="Debug" set "PRESET=conan-debug"
-    
-    if "%VERBOSE%"=="1" (
-        cmake --preset !PRESET!
-    ) else (
-        cmake --preset !PRESET! > "%BUILD_DIR%\cmake-config.log" 2>&1
-    )
-    
-    if errorlevel 1 (
-        echo [ERROR] CMake configuration failed
-        if exist "%BUILD_DIR%\cmake-config.log" type "%BUILD_DIR%\cmake-config.log"
-        exit /b 1
-    )
+REM Verify that Conan generated files exist before trying to configure
+if not exist "%BUILD_DIR%\build\%BUILD_TYPE%\generators\conan_toolchain.cmake" (
+    echo [ERROR] Conan dependencies not installed. Run install_deps first.
+    exit /b 1
+)
+
+if not exist "CMakeUserPresets.json" (
+    echo [ERROR] CMakeUserPresets.json not found. Conan installation may have failed.
+    exit /b 1
+)
+
+if "%BUILD_TYPE%"=="Release" set "PRESET=conan-release"
+if "%BUILD_TYPE%"=="Debug" set "PRESET=conan-debug"
+
+if "%VERBOSE%"=="1" (
+    cmake --preset !PRESET!
 ) else (
-    if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
-    cd /d "%BUILD_DIR%"
-    
-    if exist "conan_toolchain.cmake" (
-        set "TOOLCHAIN=conan_toolchain.cmake"
-    ) else if exist "build\%BUILD_TYPE%\generators\conan_toolchain.cmake" (
-        set "TOOLCHAIN=build\%BUILD_TYPE%\generators\conan_toolchain.cmake"
-    ) else if exist "generators\conan_toolchain.cmake" (
-        set "TOOLCHAIN=generators\conan_toolchain.cmake"
-    ) else (
-        echo [ERROR] Could not find conan_toolchain.cmake
-        exit /b 1
-    )
-    
-    cmake -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_TOOLCHAIN_FILE=!TOOLCHAIN! ..
-    if errorlevel 1 (
-        echo [ERROR] CMake configuration failed
-        exit /b 1
-    )
+    cmake --preset !PRESET! > "%BUILD_DIR%\cmake-config.log" 2>&1
+)
+
+if errorlevel 1 (
+    echo [ERROR] CMake configuration failed
+    if exist "%BUILD_DIR%\cmake-config.log" type "%BUILD_DIR%\cmake-config.log"
+    exit /b 1
 )
 
 echo [OK] CMake configured

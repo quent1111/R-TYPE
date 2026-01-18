@@ -11,35 +11,24 @@ AudioManager& AudioManager::instance() {
 }
 
 #if RTYPE_NO_AUDIO
-// ============================================================================
-// STUB IMPLEMENTATION (Windows - no audio due to GCC 15 incompatibility)
-// ============================================================================
 
 bool AudioManager::load_sounds() {
     std::cout << "[AudioManager] Audio disabled (no-audio build)" << std::endl;
     return true;
 }
 
-void AudioManager::play_sound([[maybe_unused]] SoundType type) {
-    // No-op: audio disabled
-}
+void AudioManager::play_sound([[maybe_unused]] SoundType type) {}
 
 void AudioManager::play_music([[maybe_unused]] const std::string& music_path,
-                              [[maybe_unused]] bool loop) {
-    // No-op: audio disabled
-}
+                              [[maybe_unused]] bool loop) {}
 
 void AudioManager::stop_music() {
     current_music_path_.clear();
 }
 
-void AudioManager::pause_music() {
-    // No-op: audio disabled
-}
+void AudioManager::pause_music() {}
 
-void AudioManager::resume_music() {
-    // No-op: audio disabled
-}
+void AudioManager::resume_music() {}
 
 bool AudioManager::is_music_playing() const {
     return false;
@@ -94,9 +83,6 @@ float AudioManager::get_effective_volume(float base_volume) const {
 }
 
 #else
-// ============================================================================
-// FULL SFML AUDIO IMPLEMENTATION (Linux/macOS)
-// ============================================================================
 
 AudioManager::AudioManager() {
     sound_pool_.resize(SOUND_POOL_SIZE);
@@ -113,7 +99,11 @@ bool AudioManager::load_sounds() {
         {SoundType::LevelUp, "assets/sounds/level-up.mp3"},
         {SoundType::Plop, "assets/sounds/plop.wav"},
         {SoundType::Coin, "assets/sounds/coin.wav"},
-        {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"}};
+        {SoundType::BossRoar, "assets/sounds/monster-roar.mp3"},
+        {SoundType::BossExplosion, "assets/sounds/multiexplosion.mp3"},
+        {SoundType::Spark, "assets/sounds/spark.wav"},
+        {SoundType::RobotRoar, "assets/songs/little-robot.mp3"},
+        {SoundType::SnakeRoar, "assets/sounds/snake-roar.wav"}};
 
     for (const auto& [type, path] : sound_paths) {
         if (!sound_buffers_[type].loadFromFile(path)) {
@@ -155,6 +145,15 @@ void AudioManager::play_sound(SoundType type) {
             volume_multiplier = 0.5f;
             break;
         case SoundType::BossRoar:
+            volume_multiplier = 2.0f;
+            break;
+        case SoundType::Spark:
+            volume_multiplier = 0.35f;
+            break;
+        case SoundType::RobotRoar:
+            volume_multiplier = 2.0f;
+            break;
+        case SoundType::SnakeRoar:
             volume_multiplier = 2.0f;
             break;
         default:
@@ -280,6 +279,6 @@ float AudioManager::get_effective_volume(float base_volume) const {
     return (base_volume * master_volume_) / 100.0f;
 }
 
-#endif  // RTYPE_NO_AUDIO
+#endif
 
 }  // namespace managers

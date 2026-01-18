@@ -61,7 +61,7 @@ void LoginScreen::handle_event(const sf::Event& event) {
     }
 
     if (event.type == sf::Event::MouseButtonPressed) {
-        sf::Vector2f mouse_pos(event.mouseButton.x, event.mouseButton.y);
+        sf::Vector2f mouse_pos(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y));
         if (_login_button.getGlobalBounds().contains(mouse_pos)) {
             _login_requested = true;
         }

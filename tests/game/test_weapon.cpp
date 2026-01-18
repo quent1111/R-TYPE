@@ -9,7 +9,7 @@ TEST(WeaponComponent, FireTimerAndUpgrade) {
     w.update(0.1f);
     EXPECT_FALSE(w.can_shoot());
 
-    w.update(0.2f);
+    w.update(1.9f);
     EXPECT_TRUE(w.can_shoot());
 
     w.reset_shot_timer();
@@ -20,5 +20,5 @@ TEST(WeaponComponent, FireTimerAndUpgrade) {
 
     w.apply_upgrade(WeaponUpgradeType::TripleShot);
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::TripleShot);
-    EXPECT_FLOAT_EQ(w.fire_rate, 4.0f);
+    EXPECT_FLOAT_EQ(w.fire_rate, 0.6f);
 }

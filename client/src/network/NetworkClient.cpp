@@ -67,14 +67,6 @@ void NetworkClient::handle_receive(std::error_code ec, std::size_t bytes_receive
             } else if (opcode == 0x22) {
                 decode_start_game(buffer, buffer.size());
             } else if (opcode == 0x23) {
-                std::cout << "[NetworkClient] ListLobbies packet: bytes_received=" << bytes_received
-                         << ", decompressed buffer.size()=" << buffer.size() << std::endl;
-                std::cout << "[NetworkClient] Packet data: ";
-                for (size_t i = 0; i < buffer.size(); ++i) {
-                    std::cout << std::hex << static_cast<int>(buffer[i]) << " ";
-                }
-                std::cout << std::dec << std::endl;
-                // Utiliser buffer.size() car les données ont été décompressées
                 std::vector<uint8_t> data(buffer.begin(), buffer.end());
                 NetworkToGame::Message msg(NetworkToGame::MessageType::LobbyListUpdate);
                 msg.raw_lobby_data = data;
@@ -251,7 +243,6 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
             entity.vy = vy;
             entity.curr_time = std::chrono::steady_clock::now();
 
-            // Read custom_entity_id string for custom entities (CustomEnemy=0x30, CustomBoss=0x31, CustomProjectile=0x32)
             if (type_val == 0x30 || type_val == 0x31 || type_val == 0x32) {
                 uint8_t str_length;
                 deserializer >> str_length;
@@ -259,7 +250,7 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 for (int j = 0; j < str_length; ++j) {
                     uint8_t ch;
                     deserializer >> ch;
-                    entity.custom_entity_id[j] = static_cast<char>(ch);
+                    entity.custom_entity_id[static_cast<std::size_t>(j)] = static_cast<char>(ch);
                 }
             }
 
@@ -268,15 +259,15 @@ void NetworkClient::decode_entities(const std::vector<uint8_t>& buffer, std::siz
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;
                 entity.max_health = max_health;
-            } else if (type_val == 0x08 ||  // Boss
-                       type_val == 0x11 ||  // SerpentHead
-                       type_val == 0x12 ||  // SerpentBody
-                       type_val == 0x13 ||  // SerpentScale
-                       type_val == 0x14 ||  // SerpentTail
-                       type_val == 0x1C ||  // CompilerPart1
-                       type_val == 0x1D ||  // CompilerPart2
-                       type_val == 0x1E ||  // CompilerPart3
-                       type_val == 0x31) {  // CustomBoss
+            } else if (type_val == 0x08 ||
+                       type_val == 0x11 ||
+                       type_val == 0x12 ||
+                       type_val == 0x13 ||
+                       type_val == 0x14 ||
+                       type_val == 0x1C ||
+                       type_val == 0x1D ||
+                       type_val == 0x1E ||
+                       type_val == 0x31) {
                 int current_health, max_health;
                 deserializer.read_quantized_health(current_health, max_health);
                 entity.health = current_health;

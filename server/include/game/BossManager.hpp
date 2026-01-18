@@ -21,10 +21,14 @@ public:
     BossManager() = default;
     ~BossManager() = default;
 
+    static int get_boss_type_for_level(int level);
+
+    static float get_cycle_multiplier(int level);
+
     void spawn_boss_level_5(registry& reg, std::optional<entity>& boss_entity,
                             float& boss_animation_timer, float& boss_shoot_timer,
                             bool& boss_animation_complete, bool& boss_entrance_complete,
-                            float& boss_target_x);
+                            float& boss_target_x, float cycle_multiplier = 1.0f);
 
     void update_boss_behavior(registry& reg, std::optional<entity>& boss_entity,
                               const std::unordered_map<int, std::size_t>& client_entity_ids,
@@ -37,20 +41,21 @@ public:
                                const std::unordered_map<int, std::size_t>& client_entity_ids,
                                float dt);
 
-    void spawn_boss_level_10(registry& reg, std::optional<entity>& serpent_controller_entity);
+    void spawn_boss_level_10(registry& reg, std::optional<entity>& serpent_controller_entity,
+                             float cycle_multiplier = 1.0f);
 
     void update_serpent_boss(registry& reg, std::optional<entity>& serpent_controller_entity,
                              const std::unordered_map<int, std::size_t>& client_entity_ids,
                              float dt);
 
-    void spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity);
+    void spawn_boss_level_15(registry& reg, std::optional<entity>& compiler_controller_entity,
+                             float cycle_multiplier = 1.0f);
 
-    void update_compiler_boss(registry& reg,
-                              std::optional<entity>& compiler_controller_entity,
+    void update_compiler_boss(registry& reg, std::optional<entity>& compiler_controller_entity,
                               const std::unordered_map<int, std::size_t>& client_entity_ids,
                               float dt);
 
-    std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity, 
+    std::pair<int, int> get_boss_health(registry& reg, std::optional<entity>& boss_entity,
                                         std::optional<entity>& serpent_controller);
 
 private:
@@ -85,8 +90,8 @@ private:
                               const std::unordered_map<int, std::size_t>& client_entity_ids,
                               float dt);
 
-    void spawn_compiler_part(registry& reg, compiler_boss_controller& controller,
-                             int part_index, float x, float y);
+    void spawn_compiler_part(registry& reg, compiler_boss_controller& controller, int part_index,
+                             float x, float y);
     void update_compiler_entering(registry& reg, compiler_boss_controller& controller, float dt);
     void update_compiler_assembled(registry& reg, compiler_boss_controller& controller,
                                    const std::unordered_map<int, std::size_t>& client_entity_ids,

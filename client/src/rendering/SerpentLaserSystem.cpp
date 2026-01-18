@@ -1,4 +1,5 @@
 #include "rendering/SerpentLaserSystem.hpp"
+#include "managers/AudioManager.hpp"
 
 #include <cmath>
 
@@ -155,6 +156,7 @@ void SerpentLaserSystem::spawn_spark_particles(float start_x, float start_y, flo
         particle.alpha = 255.0f;
 
         particles_.push_back(particle);
+        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Spark);
     }
 
     for (int i = 0; i < 1; ++i) {
@@ -174,6 +176,7 @@ void SerpentLaserSystem::spawn_spark_particles(float start_x, float start_y, flo
         particle.alpha = 255.0f;
 
         particles_.push_back(particle);
+        managers::AudioManager::instance().play_sound(managers::AudioManager::SoundType::Spark);
     }
 }
 

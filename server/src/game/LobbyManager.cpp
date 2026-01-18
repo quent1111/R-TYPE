@@ -6,6 +6,11 @@
 #include <algorithm>
 #include <iostream>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 namespace server {
 
 LobbyManager::LobbyManager(int default_max_players)
@@ -14,7 +19,8 @@ LobbyManager::LobbyManager(int default_max_players)
               << std::endl;
 }
 
-int LobbyManager::create_lobby(const std::string& name, int max_players, bool friendly_fire, uint8_t difficulty) {
+int LobbyManager::create_lobby(const std::string& name, int max_players, bool friendly_fire,
+                               uint8_t difficulty) {
     std::lock_guard<std::mutex> lock(_lobbies_mutex);
 
     int lobby_id = _next_lobby_id++;
@@ -23,7 +29,7 @@ int LobbyManager::create_lobby(const std::string& name, int max_players, bool fr
     auto lobby = std::make_unique<Lobby>(lobby_id, name, actual_max, friendly_fire, difficulty);
     _lobbies[lobby_id] = std::move(lobby);
 
-    std::cout << "[LobbyManager] Created lobby " << lobby_id << ": " << name 
+    std::cout << "[LobbyManager] Created lobby " << lobby_id << ": " << name
               << " (Friendly Fire: " << (friendly_fire ? "ON" : "OFF")
               << ", Difficulty: " << static_cast<int>(difficulty) << ")" << std::endl;
 
@@ -215,5 +221,9 @@ void LobbyManager::broadcast_lobby_list(UDPServer& server) {
     serializer.compress();
     server.send_to_all(serializer.data());
 }
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 }  // namespace server

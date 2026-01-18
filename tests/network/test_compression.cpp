@@ -10,7 +10,7 @@ TEST(CompressionSerializer, BasicCompression) {
     // Create a packet with repetitive data (compresses well)
     for (int i = 0; i < 50; ++i) {
         serializer << static_cast<uint32_t>(12345);
-        serializer << static_cast<float>(100.0f);
+        serializer << 100.0f;
     }
     
     size_t original_size = serializer.data().size();
@@ -43,7 +43,7 @@ TEST(CompressionSerializer, CompressionDecompression) {
     for (int i = 0; i < 10; ++i) {
         encoder << static_cast<uint32_t>(i);           // ID
         encoder << static_cast<uint8_t>(1);            // Type
-        encoder.write_position(100.5f + i, 200.3f + i); // Position
+        encoder.write_position(100.5f + static_cast<float>(i), 200.3f + static_cast<float>(i)); // Position
         encoder.write_velocity(50.0f, -30.0f);         // Velocity
         encoder.write_quantized_health(95, 100);       // Health
     }
@@ -59,7 +59,7 @@ TEST(CompressionSerializer, CompressionDecompression) {
     
     std::cout << "[TEST] Compressed packet size: " << compressed_size << " bytes" << std::endl;
     std::cout << "[TEST] Compression savings: " << (original_size - compressed_size) << " bytes ("
-              << (100.0f * (1.0f - static_cast<float>(compressed_size) / original_size)) << "%)" << std::endl;
+              << (100.0f * (1.0f - static_cast<float>(compressed_size) / static_cast<float>(original_size))) << "%)" << std::endl;
     
     // Decompress
     CompressionSerializer decoder(encoder.data());
@@ -124,7 +124,7 @@ TEST(CompressionSerializer, HighCompressionMode) {
     
     // Create data
     for (int i = 0; i < 100; ++i) {
-        serializer << static_cast<uint32_t>(0xAAAAAAAA);
+        serializer << (0xAAAAAAAA);
     }
     
     size_t original_size = serializer.data().size();
@@ -210,12 +210,12 @@ TEST(CompressionSerializer, LargePacket) {
     size_t compressed_size = serializer.data().size();
     std::cout << "[TEST] Large packet compressed size: " << compressed_size << " bytes" << std::endl;
     std::cout << "[TEST] Compression ratio: " 
-              << (100.0f * compressed_size / original_size) << "%" << std::endl;
+              << (100.0f * static_cast<float>(compressed_size) / static_cast<float>(original_size)) << "%" << std::endl;
     
     if (compressed) {
         std::cout << "[TEST] ✅ Large repetitive packet compressed successfully" << std::endl;
         // Repetitive data should compress to around 30-40%
-        EXPECT_LT(compressed_size, original_size * 0.5f);  // At least 50% compression
+        EXPECT_LT(compressed_size, static_cast<float>(original_size) * 0.5f);  // At least 50% compression
     } else {
         std::cout << "[TEST] ⚠️ Packet not compressed (LZ4 decided overhead not worth it)" << std::endl;
     }

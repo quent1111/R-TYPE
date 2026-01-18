@@ -92,14 +92,15 @@ class entity {
     friend class registry;
     
 private:
-    size_t _index;
-    explicit entity(size_t index) noexcept : _index(index) {}
+    size_t _id;
+    explicit entity(size_t id) noexcept : _id(id) {}
     
 public:
-    operator size_t() const noexcept { return _index; }
+    operator size_t() const noexcept { return _id; }
     bool operator==(const entity& other) const noexcept { 
-        return _index == other._index; 
+        return _id == other._id; 
     }
+    size_t id() const noexcept { return _id; }
 };
 
 // Usage
@@ -219,34 +220,28 @@ reg.kill_entity(enemy);
 
 ##  Zipper Pattern
 
-The **zipper** enables efficient multi-component iteration with automatic filtering:
+The **zipper** enables efficient multi-component iteration with automatic filtering.
 
-```cpp
-// engine/ecs/zipper.hpp
-template <class... Containers>
-class zipper {
-public:
-    using iterator = zipper_iterator<Containers...>;
-    
-    iterator begin() { return iterator(_seqs..., 0); }
-    iterator end() { return iterator(_seqs..., _size); }
-    
-private:
-    std::tuple<Containers...> _seqs;
-    size_t _size;
-};
-```
+Note: The current implementation primarily uses manual iteration over component arrays with optional checks rather than a view-based API.
 
-**Usage:**
+**Manual Iteration Pattern:**
 
 ```cpp
 // Iterate over entities with position AND velocity
-for (auto [entity, pos, vel] : reg.view<position, velocity>()) {
-    pos.x += vel.vx * dt;
-    pos.y += vel.vy * dt;
+auto& positions = reg.get_components<position>();
+auto& velocities = reg.get_components<velocity>();
+
+for (size_t i = 0; i < positions.size() && i < velocities.size(); ++i) {
+    if (positions[i] && velocities[i]) {
+        auto& pos = positions[i].value();
+        auto& vel = velocities[i].value();
+        
+        pos.x += vel.vx * dt;
+        pos.y += vel.vy * dt;
+    }
 }
 
-// The zipper automatically skips entities missing any component
+// The optional checks automatically skip entities missing any component
 ```
 
 **How it Works:**
@@ -254,10 +249,10 @@ for (auto [entity, pos, vel] : reg.view<position, velocity>()) {
 ```
 Entity | position | velocity | health
 -------|----------|----------|--------
-   0   |         |         |        <- Included
-   1   |         |         |        <- Skipped (no velocity)
-   2   |         |         |        <- Included
-   3   |         |         |        <- Skipped (no position)
+   0   |    ✓     |    ✓     |   ✓    <- Included (both present)
+   1   |    ✓     |          |   ✓    <- Skipped (no velocity)
+   2   |    ✓     |    ✓     |        <- Included (both present)
+   3   |          |    ✓     |   ✓    <- Skipped (no position)
 ```
 
 ##  Component Types
@@ -284,14 +279,37 @@ struct velocity {
 struct collider {
     float width;
     float height;
-    constexpr collider(float w = 0.0f, float h = 0.0f) noexcept 
+    constexpr collider(float w = 32.0f, float h = 32.0f) noexcept 
         : width(w), height(h) {}
 };
 ```
 
 ### Game-Specific Components
 
-Located in `game-lib/include/components/`:
+Located in `game-lib/include/components/game_components.hpp`:
+
+### Entity Types
+
+The `entity_tag` component identifies entity types using the `RType::EntityType` enum:
+
+```cpp
+struct entity_tag {
+    RType::EntityType type;
+};
+
+// Common entity types:
+// 0x01: Player
+// 0x02: Enemy (basic)
+// 0x06: Enemy2
+// 0x08: Boss (Dobkeratops)
+// 0x0E: WaveEnemy
+// 0x0F: TankEnemy
+// 0x11: SerpentHead
+// 0x12: SerpentBody
+// 0x13: SerpentTail
+// 0x1A: FlyingEnemy
+// 0x1C-0x1E: Compiler boss parts
+```
 
 ```cpp
 // Visual representation
@@ -300,6 +318,12 @@ struct sprite_component {
     int texture_rect_x, texture_rect_y;
     int texture_rect_w, texture_rect_h;
     float scale = 1.0f;
+    bool flip_horizontal = false;
+    bool visible = true;
+    bool grayscale = false;
+    bool mirror_x = false;
+    bool mirror_y = false;
+    float rotation = 0.0f;
 };
 
 // Animation state
@@ -312,6 +336,17 @@ struct animation_component {
     
     void update(float dt);
     sf::IntRect get_current_frame() const;
+};
+
+// Visual effects
+struct damage_flash_component {
+    float timer = 0.0f;
+    float duration;
+    bool active = false;
+    
+    void trigger();
+    void update(float dt);
+    float get_alpha() const;
 };
 
 // Entity health
@@ -333,6 +368,11 @@ struct explosion_tag {
     bool should_destroy() const { return elapsed >= lifetime; }
 };
 
+// Entity type identification
+struct entity_tag {
+    RType::EntityType type;
+};
+
 // Entity type tags (zero-size markers)
 struct player_tag {};
 struct enemy_tag {};
@@ -342,6 +382,27 @@ struct boss_tag {};
 // Network synchronization
 struct network_id {
     uint32_t id;
+};
+
+// Player identification in multiplayer
+struct player_index_component {
+    int index;
+};
+
+// Homing projectiles
+struct homing_component {
+    float speed;
+    float turn_rate;
+};
+
+// Laser power-up immunity
+struct laser_damage_immunity {
+    float immunity_timer = 0.0f;
+    float immunity_duration;
+    
+    bool is_immune() const;
+    void trigger();
+    void update(float dt);
 };
 
 // Powerups
@@ -361,16 +422,37 @@ Systems are functions that operate on components via the registry:
 
 ```cpp
 // game-lib/src/systems/movement_system.cpp
-void movement_system(registry& reg, float dt) {
+void movementSystem(registry& reg, float dt) {
     // Get component arrays
     auto& positions = reg.get_components<position>();
     auto& velocities = reg.get_components<velocity>();
+    auto& entity_tags = reg.get_components<entity_tag>();
     
-    // Iterate with zipper (automatic filtering)
+    // Iterate with manual filtering
     for (size_t i = 0; i < positions.size() && i < velocities.size(); ++i) {
         if (positions[i] && velocities[i]) {
-            positions[i]->x += velocities[i]->vx * dt;
-            positions[i]->y += velocities[i]->vy * dt;
+            auto& pos = positions[i].value();
+            auto& vel = velocities[i].value();
+            
+            // Special movement patterns for specific enemy types
+            if (i < entity_tags.size() && entity_tags[i].has_value()) {
+                if (entity_tags[i]->type == RType::EntityType::Enemy4) {
+                    // Wave pattern
+                    pos.x += vel.vx * dt;
+                    pos.y += std::sin(time * 3.0f + pos.x * 0.01f) * 100.0f * dt;
+                } else if (entity_tags[i]->type == RType::EntityType::FlyingEnemy) {
+                    // Oscillating pattern
+                    pos.x += vel.vx * dt;
+                    pos.y += std::sin(time * 4.0f) * 80.0f * dt;
+                } else {
+                    // Standard linear movement
+                    pos.x += vel.vx * dt;
+                    pos.y += vel.vy * dt;
+                }
+            } else {
+                pos.x += vel.vx * dt;
+                pos.y += vel.vy * dt;
+            }
         }
     }
 }
@@ -447,34 +529,57 @@ void animation_system(registry& reg, float dt) {
 
 ```cpp
 // game-lib/src/systems/cleanup_system.cpp
-void cleanup_system(registry& reg) {
+void cleanupSystem(registry& reg, float dt) {
     auto& healths = reg.get_components<health>();
     auto& explosions = reg.get_components<explosion_tag>();
     auto& positions = reg.get_components<position>();
+    auto& enemy_tags = reg.get_components<enemy_tag>();
+    auto& player_tags = reg.get_components<player_tag>();
+    auto& serpent_parts = reg.get_components<serpent_part>();
     
-    // Remove dead entities
+    std::vector<entity> entities_to_kill;
+    
+    // Remove dead entities (except players and special entities)
     for (size_t i = 0; i < healths.size(); ++i) {
         if (healths[i] && healths[i]->is_dead()) {
-            reg.kill_entity(entity(i));
+            bool is_player = (i < player_tags.size() && player_tags[i]);
+            bool is_serpent = (i < serpent_parts.size() && serpent_parts[i].has_value());
+            
+            if (!is_player && !is_serpent) {
+                bool is_enemy = (i < enemy_tags.size() && enemy_tags[i]);
+                if (is_enemy && i < positions.size() && positions[i]) {
+                    createExplosion(reg, positions[i]->x, positions[i]->y);
+                }
+                entities_to_kill.push_back(reg.entity_from_index(i));
+            }
         }
     }
     
     // Remove expired explosions
     for (size_t i = 0; i < explosions.size(); ++i) {
-        if (explosions[i] && explosions[i]->should_destroy()) {
-            reg.kill_entity(entity(i));
+        if (explosions[i]) {
+            explosions[i]->elapsed += dt;
+            if (explosions[i]->should_destroy()) {
+                entities_to_kill.push_back(reg.entity_from_index(i));
+            }
         }
     }
     
     // Remove off-screen entities
     for (size_t i = 0; i < positions.size(); ++i) {
         if (positions[i]) {
-            auto& pos = *positions[i];
-            if (pos.x < -100 || pos.x > 1920 + 100 ||
-                pos.y < -100 || pos.y > 1080 + 100) {
-                reg.kill_entity(entity(i));
+            auto& pos = positions[i].value();
+            bool is_enemy = (i < enemy_tags.size() && enemy_tags[i]);
+            
+            if (is_enemy && (pos.x < 0.0f || pos.x > 2200.0f)) {
+                entities_to_kill.push_back(reg.entity_from_index(i));
             }
         }
+    }
+    
+    // Kill all marked entities
+    for (auto& e : entities_to_kill) {
+        reg.kill_entity(e);
     }
 }
 ```

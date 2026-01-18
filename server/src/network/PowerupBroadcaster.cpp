@@ -72,8 +72,6 @@ void PowerupBroadcaster::broadcast_powerup_status(
             server.send_to_clients(lobby_client_ids, serializer.data());
         }
 
-        // Little Friend is now a permanent passive power-up, no need to broadcast status
-        // (it's always active once acquired, no timer needed)
     }
 }
 

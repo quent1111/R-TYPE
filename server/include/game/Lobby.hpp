@@ -25,7 +25,8 @@ private:
     std::chrono::steady_clock::time_point _last_activity;
 
 public:
-    Lobby(int lobby_id, const std::string& name, int max_players = 4, bool friendly_fire = false, uint8_t difficulty = 0);
+    Lobby(int lobby_id, const std::string& name, int max_players = 4, bool friendly_fire = false,
+          uint8_t difficulty = 0);
     ~Lobby() = default;
 
     int get_id() const { return _lobby_id; }

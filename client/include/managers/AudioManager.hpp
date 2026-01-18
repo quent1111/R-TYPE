@@ -2,7 +2,6 @@
 
 #include <string>
 
-// Audio disabled on Windows due to openal-soft incompatibility with GCC 15
 #ifdef _WIN32
 #define RTYPE_NO_AUDIO 1
 #else
@@ -20,7 +19,20 @@ namespace managers {
 
 class AudioManager {
 public:
-    enum class SoundType { Laser, Explosion, HitSound, PlayerHit, LevelUp, Plop, Coin, BossRoar };
+    enum class SoundType {
+        Laser,
+        Explosion,
+        HitSound,
+        PlayerHit,
+        LevelUp,
+        Plop,
+        Coin,
+        BossRoar,
+        BossExplosion,
+        Spark,
+        RobotRoar,
+        SnakeRoar
+    };
 
     static AudioManager& instance();
 
@@ -53,7 +65,6 @@ public:
 
 private:
 #if RTYPE_NO_AUDIO
-    // Stub implementation (no audio)
     AudioManager() = default;
     ~AudioManager() = default;
     std::string current_music_path_;
@@ -64,7 +75,6 @@ private:
     bool sound_muted_ = false;
     float get_effective_volume(float base_volume) const;
 #else
-    // Full SFML Audio implementation
     AudioManager();
     ~AudioManager() = default;
     static constexpr size_t SOUND_POOL_SIZE = 16;

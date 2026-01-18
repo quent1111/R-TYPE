@@ -8,6 +8,11 @@
 #include <random>
 #include <sstream>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 namespace server {
 
 AdminManager::AdminManager(const std::string& password_hash)
@@ -253,7 +258,7 @@ std::string AdminManager::execute_server_status(UDPServer& server, LobbyManager&
 
 std::string AdminManager::execute_announce(const std::vector<std::string>& args,
                                            UDPServer& server) {
-    (void)server;  // Unused parameter
+    (void)server;
     if (args.empty()) {
         return "ERROR: Usage: announce <message>";
     }
@@ -285,3 +290,7 @@ std::string AdminManager::execute_help() {
 }
 
 }  // namespace server
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

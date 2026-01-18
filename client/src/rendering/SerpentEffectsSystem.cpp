@@ -42,7 +42,8 @@ void SerpentEffectsSystem::spawn_scream_wave(float x, float y) {
     float base_speed = 400.0f + dist_(rng_) * 100.0f;
 
     for (int i = 0; i < ring_particles; ++i) {
-        float angle = (static_cast<float>(i) / ring_particles) * 2.0f * 3.14159f;
+        float angle =
+            (static_cast<float>(i) / static_cast<float>(ring_particles)) * 2.0f * 3.14159f;
         angle += dist_(rng_) * 0.1f;
 
         SerpentEffectParticle p;
@@ -208,7 +209,8 @@ void SerpentEffectsSystem::spawn_charge_ring(float x, float y, float progress) {
     float ring_radius = 30.0f + (1.0f - progress) * 40.0f;
 
     for (int i = 0; i < ring_particles; ++i) {
-        float angle = (static_cast<float>(i) / ring_particles) * 2.0f * 3.14159f;
+        float angle =
+            (static_cast<float>(i) / static_cast<float>(ring_particles)) * 2.0f * 3.14159f;
 
         SerpentEffectParticle p;
         p.position.x = x + std::cos(angle) * ring_radius;

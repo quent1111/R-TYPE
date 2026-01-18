@@ -2,6 +2,7 @@
 
 #include "common/Settings.hpp"
 #include "managers/AudioManager.hpp"
+#include "rendering/ColorBlindShader.hpp"
 #include "ui/SettingsPanel.hpp"
 
 #include <iostream>
@@ -109,6 +110,7 @@ void MenuState::on_quit_clicked() {
 
 void MenuState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
+        m_keyboard_navigation = false;
         sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
         m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         if (m_settings_panel && m_settings_panel->is_open()) {
@@ -134,6 +136,16 @@ void MenuState::handle_event(const sf::Event& event) {
         }
     }
 
+    if (event.type == sf::Event::MouseButtonReleased) {
+        if (event.mouseButton.button == sf::Mouse::Left) {
+            sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+            sf::Vector2f release_pos = m_window.mapPixelToCoords(pixel_pos);
+            if (m_settings_panel && m_settings_panel->is_open()) {
+                m_settings_panel->handle_mouse_release(release_pos);
+            }
+        }
+    }
+
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             if (m_settings_panel && m_settings_panel->is_open()) {
@@ -144,6 +156,27 @@ void MenuState::handle_event(const sf::Event& event) {
         }
         if (m_settings_panel && m_settings_panel->is_open()) {
             m_settings_panel->handle_key_press(event.key.code);
+        } else {
+            if (event.key.code == sf::Keyboard::Up) {
+                m_keyboard_navigation = true;
+                if (m_selected_button > 0) {
+                    m_selected_button--;
+                    managers::AudioManager::instance().play_sound(
+                        managers::AudioManager::SoundType::Plop);
+                }
+            } else if (event.key.code == sf::Keyboard::Down) {
+                m_keyboard_navigation = true;
+                if (m_selected_button + 1 < m_buttons.size()) {
+                    m_selected_button++;
+                    managers::AudioManager::instance().play_sound(
+                        managers::AudioManager::SoundType::Plop);
+                }
+            } else if (event.key.code == sf::Keyboard::Return ||
+                       event.key.code == sf::Keyboard::Space) {
+                if (m_selected_button < m_buttons.size()) {
+                    m_buttons[m_selected_button]->trigger();
+                }
+            }
         }
     }
 }
@@ -155,8 +188,11 @@ void MenuState::update(float dt) {
     if (m_title) {
         m_title->update(dt);
     }
-    for (auto& button : m_buttons) {
-        button->update(dt);
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        if (m_keyboard_navigation) {
+            m_buttons[i]->set_hovered(i == m_selected_button);
+        }
+        m_buttons[i]->update(dt);
     }
     for (auto& corner : m_corners) {
         corner->update(dt);
@@ -187,7 +223,8 @@ void MenuState::update(float dt) {
             m_background.reset();
             m_title.reset();
             m_footer.reset();
-            m_settings_panel.reset();
+            m_settings_panel = std::make_unique<ui::SettingsPanel>(m_window.getSize());
+            m_settings_panel->open();
             setup_ui();
         }
     }
@@ -221,29 +258,8 @@ void MenuState::render(sf::RenderWindow& window) {
         m_settings_panel->render(window);
     }
 
-    ColorBlindMode mode = Settings::instance().colorblind_mode;
-    if (mode != ColorBlindMode::Normal) {
-        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
+    rendering::ColorBlindShader::instance().apply(window);
 
-        switch (mode) {
-            case ColorBlindMode::Protanopia:
-                overlay.setFillColor(sf::Color(255, 255, 0, 90));
-                break;
-            case ColorBlindMode::Deuteranopia:
-                overlay.setFillColor(sf::Color(255, 100, 255, 90));
-                break;
-            case ColorBlindMode::Tritanopia:
-                overlay.setFillColor(sf::Color(255, 100, 50, 90));
-                break;
-            case ColorBlindMode::HighContrast:
-                overlay.setFillColor(sf::Color(150, 150, 255, 110));
-                break;
-            default:
-                break;
-        }
-
-        window.draw(overlay);
-    }
 }
 
 }  // namespace rtype

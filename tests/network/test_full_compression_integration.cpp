@@ -114,7 +114,7 @@ TEST_F(FullCompressionIntegrationTest, ClientJoinLobbyPacket) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::JoinLobby;
-    serializer << static_cast<int32_t>(42); // Lobby ID
+    serializer << 42; // Lobby ID
     
     verify_packet_round_trip(serializer);
 }
@@ -160,7 +160,7 @@ TEST_F(FullCompressionIntegrationTest, ServerEntityPositionsPacket) {
     for (int i = 0; i < 3; ++i) {
         serializer << static_cast<uint32_t>(100 + i);     // Entity ID
         serializer << static_cast<uint8_t>(1);            // Entity Type
-        serializer.write_position(100.5f + i, 200.3f + i); // Position quantifiée
+        serializer.write_position(100.5f + static_cast<float>(i), 200.3f + static_cast<float>(i)); // Position quantifiée
         serializer.write_velocity(50.0f, -30.0f);          // Velocity quantifiée
         serializer.write_quantized_health(80, 100);        // Health quantifiée (current, max)
     }
@@ -182,20 +182,20 @@ TEST_F(FullCompressionIntegrationTest, ServerListLobbiesPacket) {
     RType::CompressionSerializer serializer;
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::ListLobbies;
-    serializer << static_cast<int32_t>(2); // Nombre de lobbies
+    serializer << 2; // Nombre de lobbies
     
     // Lobby 1
-    serializer << static_cast<int32_t>(1);      // Lobby ID
+    serializer << 1;      // Lobby ID
     serializer << std::string("Lobby One");     // Name
-    serializer << static_cast<int32_t>(2);      // Current players
-    serializer << static_cast<int32_t>(4);      // Max players
+    serializer << 2;      // Current players
+    serializer << 4;      // Max players
     serializer << static_cast<uint8_t>(0);      // State
     
     // Lobby 2
-    serializer << static_cast<int32_t>(2);
+    serializer << 2;
     serializer << std::string("Lobby Two");
-    serializer << static_cast<int32_t>(1);
-    serializer << static_cast<int32_t>(4);
+    serializer << 1;
+    serializer << 4;
     serializer << static_cast<uint8_t>(1);
     
     verify_packet_round_trip(serializer);
@@ -206,7 +206,7 @@ TEST_F(FullCompressionIntegrationTest, ServerLobbyJoinedPacket) {
     serializer << RType::MagicNumber::VALUE;
     serializer << RType::OpCode::LobbyJoined;
     serializer << static_cast<uint8_t>(1);      // Success
-    serializer << static_cast<int32_t>(42);     // Lobby ID
+    serializer << 42;     // Lobby ID
     
     verify_packet_round_trip(serializer);
 }
@@ -352,7 +352,7 @@ TEST_F(FullCompressionIntegrationTest, StressTestLargeEntityUpdate) {
     // Note: Avec des données aléatoires/variées, LZ4 peut légèrement augmenter
     // la taille à cause de l'overhead. On vérifie juste que c'est raisonnable.
     if (original_size >= 128) { // Si au-dessus du seuil
-        float ratio = static_cast<float>(compressed_size) / original_size;
+        float ratio = static_cast<float>(compressed_size)  / static_cast<float>(original_size);
         
         // Accepter une légère augmentation (jusqu'à 5%) due à l'overhead LZ4
         EXPECT_LT(ratio, 1.05f) 
@@ -376,9 +376,9 @@ TEST_F(FullCompressionIntegrationTest, StressTestManyLobbies) {
     
     for (int32_t i = 0; i < lobby_count; ++i) {
         serializer << i;
-        serializer << std::string("Lobby_" + std::to_string(i));
-        serializer << static_cast<int32_t>(i % 4);      // Current players
-        serializer << static_cast<int32_t>(4);          // Max players
+        serializer << ("Lobby_" + std::to_string(i));
+        serializer << i % 4;      // Current players
+        serializer << 4;          // Max players
         serializer << static_cast<uint8_t>(i % 3);      // State
     }
     
@@ -389,7 +389,7 @@ TEST_F(FullCompressionIntegrationTest, StressTestManyLobbies) {
     size_t compressed_size = serializer.size();
     
     if (original_size >= 128) {
-        float ratio = static_cast<float>(compressed_size) / original_size * 100.0f;
+        float ratio = static_cast<float>(compressed_size)  / static_cast<float>(original_size) * 100.0f;
         std::cout << "[COMPRESSION] Many lobbies: " << original_size 
                   << " -> " << compressed_size << " bytes (" 
                   << (100.0f - ratio) << "% reduction)\n";
@@ -457,7 +457,7 @@ TEST_F(FullCompressionIntegrationTest, PerformanceBenchmark) {
     for (int i = 0; i < 10; ++i) {
         template_serializer << static_cast<uint32_t>(i);
         template_serializer << static_cast<uint8_t>(1);
-        template_serializer.write_position(100.0f + i, 200.0f + i);
+        template_serializer.write_position(100.0f + static_cast<float>(i), 200.0f + static_cast<float>(i));
         template_serializer.write_velocity(50.0f, -30.0f);
         template_serializer.write_quantized_health(100, 100);  // (current, max)
     }
@@ -477,7 +477,7 @@ TEST_F(FullCompressionIntegrationTest, PerformanceBenchmark) {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
     
-    double avg_time = duration.count() / static_cast<double>(iterations);
+    double avg_time = static_cast<double>(duration.count()) / static_cast<double>(iterations);
     
     std::cout << "[PERFORMANCE] " << iterations << " compression/decompression cycles: "
               << duration.count() << " µs total, "

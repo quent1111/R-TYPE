@@ -13,7 +13,6 @@ struct Entity {
     uint8_t ally_subtype{0};
     uint8_t player_index{0};
 
-    // Custom level entity identifier (e.g., "fairy1", "fairy2", "unicorn_boss")
     std::string custom_entity_id;
 
     float x{0.f}, y{0.f};
@@ -28,10 +27,8 @@ struct Entity {
 
     bool grayscale{false};
 
-    // Rotation angle in degrees (for serpent parts)
     float rotation{0.f};
 
-    // For serpent scales: entity ID they're attached to
     uint32_t attached_to{0};
 
     float prev_x{0.f}, prev_y{0.f};

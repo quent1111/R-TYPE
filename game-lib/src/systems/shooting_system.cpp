@@ -67,13 +67,23 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                     if (found_valid_target) {
                         float dx = target_x - pos.x;
                         float dy = target_y - pos.y;
-                        float magnitude = std::sqrt(dx * dx + dy * dy);
-
-                        if (magnitude > 0.0f) {
-                            float vx = (dx / magnitude) * wpn.projectile_speed;
-                            float vy = (dy / magnitude) * wpn.projectile_speed;
-                            createCustomProjectile(reg, pos.x - 20.0f, pos.y, vx, vy, wpn.damage, attack);
+                        
+                        float angle = std::atan2(dy, dx);
+                        
+                        if (angle < 0.0f) {
+                            angle += 6.28318f;
                         }
+                        
+                        const float min_angle = 2.356f;
+                        const float max_angle = 3.927f;
+                        
+                        if (angle < min_angle || angle > max_angle) {
+                            angle = 3.14159f;
+                        }
+                        
+                        float vx = std::cos(angle) * wpn.projectile_speed;
+                        float vy = std::sin(angle) * wpn.projectile_speed;
+                        createCustomProjectile(reg, pos.x - 20.0f, pos.y, vx, vy, wpn.damage, attack);
                     }
                 } else if (attack.pattern_type == "spread") {
                     float base_angle = -180.0f;
@@ -83,7 +93,7 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                     for (int p = 0; p < count; ++p) {
                         float angle_offset = 0.0f;
                         if (count > 1) {
-                            angle_offset = (static_cast<float>(p) / (count - 1) - 0.5f) * spread;
+                            angle_offset = (static_cast<float>(p) / static_cast<float>(count - 1) - 0.5f) * spread;
                         }
                         float angle_rad = (base_angle + angle_offset) * 3.14159f / 180.0f;
                         float vx = std::cos(angle_rad) * wpn.projectile_speed;
@@ -121,13 +131,23 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                 if (found_valid_target) {
                     float dx = target_x - pos.x;
                     float dy = target_y - pos.y;
-                    float magnitude = std::sqrt(dx * dx + dy * dy);
-
-                    if (magnitude > 0.0f) {
-                        float vx = (dx / magnitude) * wpn.projectile_speed * 1.5f;
-                        float vy = (dy / magnitude) * wpn.projectile_speed * 1.5f;
-                        createEnemy2Projectile(reg, pos.x - 20.0f, pos.y, vx, vy, wpn.damage);
+                    
+                    float angle = std::atan2(dy, dx);
+                    
+                    if (angle < 0.0f) {
+                        angle += 6.28318f;
                     }
+                    
+                    const float min_angle = 2.356f;
+                    const float max_angle = 3.927f;
+
+                    if (angle < min_angle || angle > max_angle) {
+                        angle = 3.14159f;
+                    }
+                    
+                    float vx = std::cos(angle) * wpn.projectile_speed * 1.5f;
+                    float vy = std::sin(angle) * wpn.projectile_speed * 1.5f;
+                    createEnemy2Projectile(reg, pos.x - 20.0f, pos.y, vx, vy, wpn.damage);
                 }
             } else if (entity_tag.type == RType::EntityType::Enemy3) {
                 float nearest_dist = -1.0f;
@@ -157,26 +177,48 @@ void enemyShootingSystem(registry& reg, float /*dt*/) {
                 if (found_valid_target) {
                     float dx = target_x - pos.x;
                     float dy = target_y - pos.y;
-                    float magnitude = std::sqrt(dx * dx + dy * dy);
-
-                    if (magnitude > 0.0f) {
-                        float base_vx = (dx / magnitude) * 400.0f;
-                        float base_vy = (dy / magnitude) * 400.0f;
-
-                        static int shot_counter = 0;
-                        for (int burst = 0; burst < 3; burst++) {
-                            int projectile_type = (shot_counter + burst) % 3;
-                            float offset_x = (burst - 1) * 50.0f;
-                            float angle_offset = (burst - 1) * 0.087f;
-                            float vx = base_vx * std::cos(angle_offset) - base_vy * std::sin(angle_offset);
-                            float vy = base_vx * std::sin(angle_offset) + base_vy * std::cos(angle_offset);
-                            createEnemy3Projectile(reg, pos.x - 20.0f + offset_x, pos.y - 15.0f, vx, vy, wpn.damage, projectile_type);
-                        }
-                        shot_counter++;
+                    
+                    float base_angle = std::atan2(dy, dx);
+                    
+                    if (base_angle < 0.0f) {
+                        base_angle += 6.28318f;
                     }
+
+                    const float min_angle = 2.356f;
+                    const float max_angle = 3.927f;
+
+                    if (base_angle < min_angle || base_angle > max_angle) {
+                        base_angle = 3.14159f;
+                    }
+                    
+                    float base_vx = std::cos(base_angle) * 400.0f;
+                    float base_vy = std::sin(base_angle) * 400.0f;
+
+                    static int shot_counter = 0;
+                    for (int burst = 0; burst < 3; burst++) {
+                        int projectile_type = (shot_counter + burst) % 3;
+                        float offset_x = static_cast<float>(burst - 1) * 50.0f;
+                        float angle_offset = static_cast<float>(burst - 1) * 0.087f;
+                        float vx = base_vx * std::cos(angle_offset) - base_vy * std::sin(angle_offset);
+                        float vy = base_vx * std::sin(angle_offset) + base_vy * std::cos(angle_offset);
+                        createEnemy3Projectile(reg, pos.x - 20.0f + offset_x, pos.y - 15.0f, vx, vy, wpn.damage, projectile_type);
+                    }
+                    shot_counter++;
+                }
+            } else if (entity_tag.type == RType::EntityType::FlyingEnemy) {
+                for (int burst = 0; burst < 3; burst++) {
+                    float offset_y = static_cast<float>(burst - 1) * 20.0f;
+                    createFlyingEnemyProjectile(reg, pos.x - 20.0f, pos.y + offset_y, -wpn.projectile_speed, 0.0f, wpn.damage);
                 }
             } else if (entity_tag.type == RType::EntityType::Enemy4) {
-                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y + 50.0f, -wpn.projectile_speed, 0.0f, wpn.damage);
+                float angle_up = 3.14159f - 0.5f;
+                float angle_down = 3.14159f + 0.5f;
+                float vx_up = std::cos(angle_up) * wpn.projectile_speed;
+                float vy_up = std::sin(angle_up) * wpn.projectile_speed;
+                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y - 10.0f, vx_up, vy_up, wpn.damage);
+                float vx_down = std::cos(angle_down) * wpn.projectile_speed;
+                float vy_down = std::sin(angle_down) * wpn.projectile_speed;
+                createEnemy4Projectile(reg, pos.x - 10.0f, pos.y + 30.0f, vx_down, vy_down, wpn.damage);
             } else if (entity_tag.type == RType::EntityType::Enemy5) {
                 createEnemy5Projectile(reg, pos.x - 20.0f, pos.y + 30.0f, -wpn.projectile_speed, 0.0f, wpn.damage);
             } else {

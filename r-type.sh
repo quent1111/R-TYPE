@@ -15,7 +15,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_DIR="$PROJECT_ROOT/conan"
+BUILD_DIR="$PROJECT_ROOT/build"
 
 get_bin_dir() {
     if [ -d "$BUILD_DIR/$BUILD_TYPE/bin" ]; then
@@ -57,8 +57,7 @@ ${YELLOW}COMMANDS:${NC}
     ${GREEN}client${NC}              Build and run the client
     ${GREEN}server${NC}              Build and run the server
     ${GREEN}admin${NC}               Build and run the admin panel
-    ${GREEN}test${NC}                Build and run tests
-    ${GREEN}tests${NC}               Build and run game unit tests only
+    ${GREEN}test${NC}                Build and run all tests
     ${GREEN}coverage${NC}            Generate code coverage report
     ${GREEN}valgrind${NC}            Run memory leak analysis
     ${GREEN}clean${NC}               Clean build directory
@@ -86,9 +85,6 @@ ${YELLOW}EXAMPLES:${NC}
 
     ${CYAN}# Run tests${NC}
     ./r-type.sh test
-
-    ${CYAN}# Run game unit tests only${NC}
-    ./r-type.sh tests
 
     ${CYAN}# Run client${NC}
     ./r-type.sh client
@@ -259,24 +255,34 @@ configure_cmake() {
     print_step "Configuring CMake..."
     cd "$PROJECT_ROOT"
     if [ -f "CMakeUserPresets.json" ]; then
+        local LOG_FILE="$BUILD_DIR/cmake-config.log"
+        mkdir -p "$BUILD_DIR"
+        
         if [ "$VERBOSE" = true ]; then
             cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')
             local CMAKE_EXIT=$?
         else
-            cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]') > "$BUILD_DIR/cmake-config.log" 2>&1
+            cmake --preset conan-$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]') > "$LOG_FILE" 2>&1
             local CMAKE_EXIT=$?
         fi
+        
         if [ $CMAKE_EXIT -ne 0 ]; then
-            print_error "CMake configuration failed"
+            print_error "CMake configuration failed (exit code: $CMAKE_EXIT)"
             echo ""
-            if [ "$VERBOSE" = false ]; then
-                echo "Last 30 lines of $BUILD_DIR/cmake-config.log:"
+            # Always show error details when configuration fails
+            if [ -f "$LOG_FILE" ]; then
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                tail -n 30 "$BUILD_DIR/cmake-config.log"
+                echo "CMake configuration log ($LOG_FILE):"
                 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                echo ""
-                echo "Tip: Run with --verbose for full output"
+                tail -n 100 "$LOG_FILE"
+                echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            else
+                echo "ERROR: Log file not found at: $LOG_FILE"
+                echo "Current directory: $(pwd)"
+                echo "BUILD_DIR: $BUILD_DIR"
             fi
+            echo ""
+            echo "Tip: Run with --verbose for full output"
             exit 1
         fi
     else
@@ -417,88 +423,107 @@ run_admin() {
 }
 
 run_tests() {
-    print_step "Running tests..."
-    if [ ! -d "$BUILD_DIR" ]; then
-        print_error "Build directory not found. Building..."
-        do_build
+    print_step "Running test suite..."
+    
+    local BIN_DIR=$(get_bin_dir)
+    
+    # Ensure tests are built
+    if [ ! -d "$BIN_DIR" ] || [ -z "$(ls -A $BIN_DIR/test_* 2>/dev/null)" ]; then
+        print_warning "Tests not found. Building test suite..."
+        do_build "all"
+        BIN_DIR=$(get_bin_dir)
     fi
-    local TEST_DIR="$BUILD_DIR"
-    if [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
-        TEST_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    
+    # Find all test binaries
+    local TEST_BINS=($(find "$BIN_DIR" -name "test_*" -type f -executable 2>/dev/null | sort))
+    
+    if [ ${#TEST_BINS[@]} -eq 0 ]; then
+        print_error "No test binaries found in $BIN_DIR"
+        exit 1
     fi
-    cd "$TEST_DIR"
-    ctest --output-on-failure -C "$BUILD_TYPE"
-    print_success "All tests passed!"
+    
+    local TOTAL_SUITES=${#TEST_BINS[@]}
+    local SUITES_PASSED=0
+    local SUITES_FAILED=0
+    local TOTAL_TESTS=0
+    local TESTS_PASSED=0
+    local TESTS_FAILED=0
+    
+    echo ""
+    echo -e "${CYAN}┌─────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}  Test Suite Execution                                  ${CYAN}│${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "  Found ${YELLOW}${TOTAL_SUITES}${NC} test suite(s)"
+    echo ""
+    
+    cd "$BIN_DIR"
+    
+    local SUITE_NUM=0
+    for TEST_BIN in "${TEST_BINS[@]}"; do
+        SUITE_NUM=$((SUITE_NUM + 1))
+        local TEST_NAME=$(basename "$TEST_BIN")
+        
+        echo -e "${CYAN}  [$SUITE_NUM/$TOTAL_SUITES]${NC} ${TEST_NAME}"
+        
+        local OUTPUT
+        local EXIT_CODE
+        if OUTPUT=$(./"$TEST_NAME" 2>&1); then
+            EXIT_CODE=0
+        else
+            EXIT_CODE=$?
+        fi
+        
+        local SUITE_PASSED=$(echo "$OUTPUT" | grep -oE "\[  PASSED  \] [0-9]+ test" | grep -oE "[0-9]+" | head -1)
+        local SUITE_FAILED=$(echo "$OUTPUT" | grep -oE "\[  FAILED  \] [0-9]+ test" | grep -oE "[0-9]+" | head -1)
+        
+        if [ -z "$SUITE_PASSED" ]; then
+            SUITE_PASSED=$(echo "$OUTPUT" | grep -oE "[0-9]+ tests? passed" | grep -oE "[0-9]+" | head -1)
+        fi
+        if [ -z "$SUITE_FAILED" ]; then
+            SUITE_FAILED=$(echo "$OUTPUT" | grep -oE "[0-9]+ tests? failed" | grep -oE "[0-9]+" | head -1)
+        fi
+        
+        SUITE_PASSED=${SUITE_PASSED:-0}
+        SUITE_FAILED=${SUITE_FAILED:-0}
+        
+        TOTAL_TESTS=$((TOTAL_TESTS + SUITE_PASSED + SUITE_FAILED))
+        TESTS_PASSED=$((TESTS_PASSED + SUITE_PASSED))
+        TESTS_FAILED=$((TESTS_FAILED + SUITE_FAILED))
+        
+        if [ $EXIT_CODE -eq 0 ]; then
+            SUITES_PASSED=$((SUITES_PASSED + 1))
+            echo -e "        ${GREEN}PASS${NC}  ${SUITE_PASSED} test(s)"
+        else
+            SUITES_FAILED=$((SUITES_FAILED + 1))
+            echo -e "        ${RED}FAIL${NC}  ${SUITE_PASSED} passed, ${SUITE_FAILED} failed"
+            echo ""
+            echo "$OUTPUT" | grep -A 2 "\[  FAILED  \]" | sed 's/^/        /'
+        fi
+        echo ""
+    done
+    
+    echo -e "${CYAN}┌─────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${CYAN}│${NC}  Summary                                               ${CYAN}│${NC}"
+    echo -e "${CYAN}└─────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+    echo -e "  Test Suites:  ${GREEN}${SUITES_PASSED} passed${NC}, ${SUITES_FAILED} failed, ${TOTAL_SUITES} total"
+    echo -e "  Tests:        ${GREEN}${TESTS_PASSED} passed${NC}, ${TESTS_FAILED} failed, ${TOTAL_TESTS} total"
+    echo ""
+    
+    if [ $SUITES_FAILED -eq 0 ]; then
+        echo -e "  ${GREEN}Result: All tests passed${NC}"
+        echo ""
+        return 0
+    else
+        echo -e "  ${RED}Result: ${SUITES_FAILED} suite(s) failed${NC}"
+        echo ""
+        return 1
+    fi
 }
 
 run_game_tests() {
-    print_step "Running all unit tests..."
-    local BIN_DIR=$(get_bin_dir)
-    
-    # Liste des tests à exécuter
-    local TEST_BINS=("test_game" "test_network" "test_client_units")
-    local ALL_PASSED=true
-    local TOTAL_TESTS=0
-    local TOTAL_PASSED=0
-    local TOTAL_FAILED=0
-    
-    for TEST_BIN in "${TEST_BINS[@]}"; do
-        if [ ! -f "$BIN_DIR/$TEST_BIN" ]; then
-            print_warning "$TEST_BIN not found, building..."
-            do_build "$TEST_BIN"
-            BIN_DIR=$(get_bin_dir)
-        fi
-        
-        if [ -f "$BIN_DIR/$TEST_BIN" ]; then
-            echo -e "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${YELLOW}Running: $TEST_BIN${NC}"
-            echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            cd "$BIN_DIR"
-            
-            # Capture output to count tests
-            OUTPUT=$(./$TEST_BIN "$@" 2>&1)
-            EXIT_CODE=$?
-            echo "$OUTPUT"
-            
-            # Extract test counts (this is approximate, adjust regex as needed)
-            PASSED=$(echo "$OUTPUT" | grep -oE "[0-9]+ tests? passed" | grep -oE "[0-9]+" | head -1)
-            if [ -z "$PASSED" ]; then
-                PASSED=$(echo "$OUTPUT" | grep -oE "PASSED.*[0-9]+ test" | grep -oE "[0-9]+" | head -1)
-            fi
-            
-            if [ ! -z "$PASSED" ]; then
-                TOTAL_PASSED=$((TOTAL_PASSED + PASSED))
-            fi
-            
-            if [ $EXIT_CODE -ne 0 ]; then
-                ALL_PASSED=false
-            fi
-        fi
-    done
-    
-    # Display grand total
-    echo ""
-    echo -e "${MAGENTA}╔═══════════════════════════════════════════════════════╗${NC}"
-    echo -e "${MAGENTA}║              TOTAL TEST SUITE SUMMARY                 ║${NC}"
-    echo -e "${MAGENTA}╚═══════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    if [ $TOTAL_PASSED -gt 0 ]; then
-        echo -e "${GREEN}   🎯 Total Tests Passed: ${TOTAL_PASSED}${NC}"
-    fi
-    if [ $TOTAL_PASSED -ge 100 ]; then
-        echo -e "${GREEN}   🏆 INCREDIBLE! Over 100 tests passed!${NC}"
-        echo -e "${GREEN}   🌟 Code quality: EXCELLENT${NC}"
-    elif [ $TOTAL_PASSED -ge 50 ]; then
-        echo -e "${GREEN}   ✨ Great coverage with $TOTAL_PASSED tests!${NC}"
-    fi
-    echo ""
-    
-    if [ "$ALL_PASSED" = true ]; then
-        print_success "All test suites passed!"
-    else
-        print_error "Some test suites failed"
-        exit 1
-    fi
+    run_tests "$@"
 }
 
 generate_coverage() {
@@ -512,26 +537,108 @@ generate_coverage() {
         echo "  or: sudo apt install lcov"
         exit 1
     fi
-    do_build
-    local TEST_DIR="$BUILD_DIR"
+    
+    # Ensure Debug dependencies are installed
+    install_dependencies
+    
+    # Create a temporary CMakeUserPresets.json that includes the Debug preset
+    if [ -f "conan/build/Debug/generators/CMakePresets.json" ]; then
+        cp CMakeUserPresets.json CMakeUserPresets.json.bak 2>/dev/null || true
+        cat > CMakeUserPresets.json << 'EOF'
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "conan/build/Debug/generators/CMakePresets.json"
+    ]
+}
+EOF
+    fi
+    
+    print_step "Configuring build with coverage instrumentation..."
+    
+    # Try to find the actual build directory (can vary between environments)
+    local TEST_DIR=""
     if [ -d "$BUILD_DIR/build/$BUILD_TYPE" ]; then
         TEST_DIR="$BUILD_DIR/build/$BUILD_TYPE"
+    elif [ -d "$BUILD_DIR/$BUILD_TYPE" ]; then
+        TEST_DIR="$BUILD_DIR/$BUILD_TYPE"
+    elif [ -d "$PROJECT_ROOT/build/build/$BUILD_TYPE" ]; then
+        TEST_DIR="$PROJECT_ROOT/build/build/$BUILD_TYPE"
+    elif [ -d "$PROJECT_ROOT/build/$BUILD_TYPE" ]; then
+        TEST_DIR="$PROJECT_ROOT/build/$BUILD_TYPE"
+    else
+        print_error "Cannot find build directory. Tried:"
+        echo "  - $BUILD_DIR/build/$BUILD_TYPE"
+        echo "  - $BUILD_DIR/$BUILD_TYPE"
+        echo "  - $PROJECT_ROOT/build/build/$BUILD_TYPE"
+        echo "  - $PROJECT_ROOT/build/$BUILD_TYPE"
+        exit 1
     fi
+    
+    echo "Using build directory: $TEST_DIR"
+    
+    find "$TEST_DIR" -name "*.gcda" -delete 2>/dev/null || true
+    
+    if [ -f "$TEST_DIR/CMakeCache.txt" ]; then
+        rm -f "$TEST_DIR/CMakeCache.txt"
+    fi
+    
+    cd "$PROJECT_ROOT"
+    cmake --preset conan-debug -DENABLE_COVERAGE=ON
+    
+    print_step "Building with coverage instrumentation..."
+    cmake --build "$TEST_DIR" -j$(nproc)
+    
     cd "$TEST_DIR"
+    
+    print_step "Capturing baseline coverage (all instrumented files)..."
+    lcov --capture --initial --directory . --output-file coverage_base.info --ignore-errors source,mismatch 2>/dev/null || true
+    
+    print_step "Running tests to generate coverage data..."
     ctest --output-on-failure -C Debug
-    lcov --capture --directory . --output-file coverage.info
-    lcov --remove coverage.info '/usr/*' '*/tests/*' '*/third_party/*' --output-file coverage.info
-    lcov --list coverage.info
+    
+    print_step "Capturing test coverage data..."
+    lcov --capture --directory . --output-file coverage_test.info --ignore-errors source,mismatch
+    
+    print_step "Combining coverage data..."
+    lcov --add-tracefile coverage_base.info --add-tracefile coverage_test.info --output-file coverage_combined.info --ignore-errors source,mismatch 2>/dev/null || \
+        cp coverage_test.info coverage_combined.info
+    
+    print_step "Filtering coverage data..."
+    lcov --remove coverage_combined.info \
+        '/usr/*' \
+        '*/tests/*' \
+        '*/third_party/*' \
+        '*/conan/*' \
+        '*/build/*' \
+        '*/.conan2/*' \
+        '*/CMakeFiles/*' \
+        --output-file coverage_filtered.info --ignore-errors unused,source
+    
+    echo ""
+    print_step "Coverage Summary:"
+    lcov --list coverage_filtered.info | tail -20
+    
     if command_exists genhtml; then
-        genhtml coverage.info --output-directory coverage_html
+        print_step "Generating HTML report..."
+        genhtml coverage_filtered.info --output-directory coverage_html --ignore-errors source --title "R-TYPE Coverage Report" --legend
         print_success "Coverage report generated in $TEST_DIR/coverage_html/index.html"
         echo ""
         echo "Open the report with:"
         echo "  xdg-open $TEST_DIR/coverage_html/index.html"
     else
         print_warning "genhtml not found. Install lcov for HTML reports."
-        print_success "Coverage data available in $TEST_DIR/coverage.info"
+        print_success "Coverage data available in $TEST_DIR/coverage_filtered.info"
     fi
+    
+    if [ -f "CMakeUserPresets.json.bak" ]; then
+        mv CMakeUserPresets.json.bak CMakeUserPresets.json
+    fi
+    
+    cd "$PROJECT_ROOT"
 }
 
 run_valgrind() {
@@ -657,16 +764,15 @@ main() {
             ;;
         test)
             print_banner
-            do_build
-            run_tests
+            if ! run_tests "$@"; then
+                exit 1
+            fi
             ;;
         tests)
             print_banner
-            # Build tous les tests
-            do_build "test_game"
-            do_build "test_network"
-            do_build "test_client_units"
-            run_game_tests "$@"
+            if ! run_tests "$@"; then
+                exit 1
+            fi
             ;;
         coverage)
             print_banner

@@ -324,6 +324,7 @@ void MenuTitle::set_text(const std::string& text) {
 MenuBackground::MenuBackground(const sf::Vector2u& window_size) : m_window_size(window_size) {
     m_background.setSize(
         sf::Vector2f(static_cast<float>(window_size.x), static_cast<float>(window_size.y)));
+    m_background.setPosition(0.0f, 0.0f);
     m_background.setFillColor(sf::Color(5, 5, 15));
 
     if (m_background_texture.loadFromFile("assets/galaxie.jpg")) {

@@ -59,14 +59,12 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
         texture_mgr.load("assets/r-typesheet5.gif");
         texture_mgr.load("assets/missile.png");
         texture_mgr.load("assets/drone.png");
-        // Serpent boss textures
         texture_mgr.load("assets/serpent_head.png");
         texture_mgr.load("assets/serpent_body.png");
         texture_mgr.load("assets/serpent_scale.png");
         texture_mgr.load("assets/serpent_tail.png");
         texture_mgr.load("assets/serpent_nest.png");
         texture_mgr.load("assets/serpent_homing.png");
-        // Compiler boss textures (Level 15)
         texture_mgr.load("assets/r-typesheet38-22.gif");
         std::cout << "[Game] Boss textures loaded: r-typesheet30.gif and r-typesheet30a.gif"
                   << std::endl;
@@ -76,12 +74,15 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     }
     try {
         texture_mgr.load("assets/laserbeam.png");
-    } catch (...) {
-    }
+    } catch (...) {}
 
     game_renderer_.init(window_);
     hud_renderer_.init(font_);
     overlay_renderer_.init(font_);
+
+    if (!render_texture_.create(WINDOW_WIDTH, WINDOW_HEIGHT)) {
+        std::cerr << "[Game] Failed to create render texture for colorblind shader" << std::endl;
+    }
 
     setup_input_handler();
 
@@ -89,14 +90,13 @@ Game::Game(sf::RenderWindow& window, ThreadSafeQueue<GameToNetwork::Message>& ga
     audio.load_sounds();
     audio.play_music("assets/sounds/game-loop.ogg", true);
 
-    // Nettoyer les anciennes entités en cas de reconnexion
     entities_.clear();
     has_server_position_ = false;
     boss_spawn_triggered_ = false;
+    
     show_game_over_ = false;
     game_over_timer_ = 0.0f;
 
-    // Demander l'état complet du jeu au serveur
     request_game_state();
 }
 
@@ -190,6 +190,14 @@ void Game::handle_event(const sf::Event& event) {
                 sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
                 sf::Vector2f click_pos = window_.mapPixelToCoords(pixel_pos);
                 m_settings_panel->handle_mouse_click(click_pos);
+                return;
+            }
+        }
+        if (event.type == sf::Event::MouseButtonReleased) {
+            if (event.mouseButton.button == sf::Mouse::Left) {
+                sf::Vector2i pixel_pos(event.mouseButton.x, event.mouseButton.y);
+                sf::Vector2f release_pos = window_.mapPixelToCoords(pixel_pos);
+                m_settings_panel->handle_mouse_release(release_pos);
                 return;
             }
         }
@@ -331,23 +339,19 @@ void Game::update() {
             boss_spawn_triggered_ = false;
         }
     }
+    
 
     for (auto& [id, entity] : entities_) {
-        // Gérer le flash de dégâts pour les boss et les parties du Compiler
-        if ((entity.type == 0x08 || entity.type == 0x11 || entity.type == 0x12 || 
-             entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E) && 
+        if ((entity.type == 0x08 || entity.type == 0x11 || entity.type == 0x12 ||
+             entity.type == 0x1C || entity.type == 0x1D || entity.type == 0x1E) &&
             entity.damage_flash_timer > 0.0f) {
-            
-            // Spawn particles when boss just got hit (flash timer started)
             float prev_timer = prev_boss_damage_timer_[id];
             if (prev_timer <= 0.0f && entity.damage_flash_timer > 0.0f) {
                 sf::Vector2f boss_pos(entity.x, entity.y);
                 managers::EffectsManager::instance().spawn_explosion(boss_pos, 8);
                 managers::EffectsManager::instance().trigger_screen_shake(8.0f, 0.15f);
             }
-            
             prev_boss_damage_timer_[id] = entity.damage_flash_timer;
-            
             entity.damage_flash_timer -= dt;
             if (entity.damage_flash_timer < 0.0f) {
                 entity.damage_flash_timer = 0.0f;
@@ -384,6 +388,19 @@ void Game::update() {
         }
     }
 
+    if (my_network_id_ != 0) {
+        auto player_it = entities_.find(my_network_id_);
+        if (player_it != entities_.end() && player_it->second.type == 0x01) {
+            if (player_it->second.health <= 0) {
+                input_handler_.set_player_dead(true);
+            } else {
+                input_handler_.set_player_dead(false);
+            }
+        } else {
+            input_handler_.set_player_dead(true);
+        }
+    }
+
     if (show_game_over_) {
         game_over_timer_ += dt;
         if (game_over_timer_ >= game_over_duration_) {
@@ -403,7 +420,7 @@ void Game::update() {
     }
 }
 
-void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
+void Game::init_entity_sprite(Entity& entity, [[maybe_unused]] uint32_t entity_id) {
     auto& texture_mgr = managers::TextureManager::instance();
 
     if (entity.type == 0x01) {
@@ -445,7 +462,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x02) {
-        // Standard game enemies (only appears in non-custom levels)
         if (texture_mgr.has("assets/r-typesheet26.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet26.png"));
             entity.frames = {{0, 0, 65, 50}, {65, 0, 65, 50}, {130, 0, 65, 50}};
@@ -455,7 +471,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(1.5F, 1.5F);
         }
     } else if (entity.type == 0x30) {
-        // Custom level enemy (CustomEnemy=0x30) - use custom_entity_id for direct lookup
         if (custom_level_config_ && !entity.custom_entity_id.empty()) {
             auto it = custom_level_config_->enemy_definitions.find(entity.custom_entity_id);
             if (it != custom_level_config_->enemy_definitions.end()) {
@@ -466,15 +481,16 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                     int fw = enemy_def.sprite.frame_width;
                     int fh = enemy_def.sprite.frame_height;
 
-                    // Hardcoded special frame handling
                     if (enemy_def.id == "fairy2") {
                         for (int i = 0; i < 5; ++i) {
                             entity.frames.push_back({i * 72, 0, 72, fh});
                         }
                         auto tex_size = texture_mgr.get(enemy_def.sprite.texture_path)->getSize();
                         int last_frame_x = 5 * 72;
-                        int last_frame_w = tex_size.x - last_frame_x;
-                        entity.frames.push_back({last_frame_x, 0, last_frame_w, fh});
+                        unsigned int last_frame_w =
+                            tex_size.x - static_cast<unsigned int>(last_frame_x);
+                        entity.frames.push_back(
+                            {last_frame_x, 0, static_cast<int>(last_frame_w), fh});
                     } else if (enemy_def.id == "fairy3") {
                         entity.frames.push_back({0, 0, 74, fh});
                         entity.frames.push_back({100, 0, 74, fh});
@@ -493,8 +509,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                     float sy = enemy_def.sprite.mirror_y ? -enemy_def.sprite.scale_y
                                                          : enemy_def.sprite.scale_y;
                     entity.sprite.setScale(sx, sy);
-                    entity.sprite.setRotation(
-                        enemy_def.sprite.rotation);  // Apply rotation from config
+                    entity.sprite.setRotation(enemy_def.sprite.rotation);
                 } else {
                     std::cerr << "[Game] Error: Texture not loaded for custom enemy ID: "
                               << entity.custom_entity_id << std::endl;
@@ -523,9 +538,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
     } else if (entity.type == 0x0E) {
         if (texture_mgr.has("assets/r-typesheet14-1.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet14-1.gif"));
-            entity.frames = {{62, 0, 64, 52},
-                             {3, 0, 58, 52},
-                             {62, 0, 64, 52}};
+            entity.frames = {{62, 0, 64, 52}, {3, 0, 58, 52}, {62, 0, 64, 52}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -545,39 +558,37 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             return;
         }
     } else if (entity.type == 0x17) {
-        if (texture_mgr.has("assets/r-typesheet7.gif")) {
-            entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet7.gif"));
-            entity.frames = {{66, 34, 33, 33}};
-            entity.frame_duration = 0.1F;
-            entity.loop = true;
-            entity.sprite.setTextureRect(entity.frames[0]);
-            entity.sprite.setScale(2.5F, 2.5F);
-            return;
-        }
+        entity.frames = {};
+        entity.sprite.setColor(sf::Color::Transparent);
+        return;
     } else if (entity.type == 0x03) {
         float projectile_speed = std::sqrt(entity.vx * entity.vx + entity.vy * entity.vy);
-        bool is_explosive_grenade = (projectile_speed >= 180.0f && projectile_speed <= 320.0f && 
-                                      std::abs(entity.vy) > 50.0f);
-        bool is_compiler_boss_projectile = (current_level_ == 15 && projectile_speed < 450.0f);
+        bool is_explosive_grenade = (projectile_speed >= 180.0f && projectile_speed <= 320.0f &&
+                                     std::abs(entity.vy) > 50.0f);
+        bool is_compiler_boss_level = (current_level_ >= 15 && current_level_ % 15 == 0);
+        bool is_compiler_boss_projectile = (is_compiler_boss_level && projectile_speed < 450.0f);
         bool is_player_projectile = (entity.vx > 0 && !is_compiler_boss_projectile);
-        bool is_enemy2_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(entity.vy) > 10.0f && !is_explosive_grenade);
-        bool is_missile_drone_projectile = (projectile_speed >= 580.0f && projectile_speed <= 620.0f && is_player_projectile);
+        bool is_enemy2_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) &&
+                                     std::abs(entity.vy) > 10.0f && !is_explosive_grenade);
+        bool is_missile_drone_projectile =
+            (projectile_speed >= 580.0f && projectile_speed <= 620.0f && is_player_projectile);
         bool is_fast_projectile = (projectile_speed > 650.0f && is_player_projectile);
-        bool is_enemy3_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 400.0f) < 20.0f);
-        bool is_enemy4_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
-        bool is_enemy5_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) && std::abs(projectile_speed - 450.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
-        bool is_compiler_normal_projectile = (is_compiler_boss_projectile &&
-                                              projectile_speed >= 280.0f && projectile_speed <= 420.0f && 
-                                              !is_explosive_grenade);
+        bool is_enemy3_projectile = ((entity.vx < 0 || is_compiler_boss_projectile) &&
+                                     std::abs(projectile_speed - 400.0f) < 20.0f);
+        bool is_enemy4_projectile =
+            (!entity.custom_entity_id.empty() && entity.custom_entity_id == "assets/r-typesheet9-22.gif") ||
+            ((entity.vx < 0 || is_compiler_boss_projectile) &&
+             std::abs(projectile_speed - 500.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
+        bool is_enemy5_projectile =
+            ((entity.vx < 0 || is_compiler_boss_projectile) &&
+             std::abs(projectile_speed - 450.0f) < 30.0f && std::abs(entity.vy) < 5.0f);
+        bool is_compiler_normal_projectile =
+            (is_compiler_boss_projectile && projectile_speed >= 280.0f &&
+             projectile_speed <= 420.0f && !is_explosive_grenade);
 
         if (is_explosive_grenade && texture_mgr.has("assets/r-typesheet16.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet16.gif"));
-            entity.frames = {
-                {0, 0, 32, 32},
-                {33, 0, 32, 32},
-                {66, 0, 32, 32},
-                {33, 0, 32, 32}
-            };
+            entity.frames = {{0, 0, 32, 32}, {33, 0, 32, 32}, {66, 0, 32, 32}, {33, 0, 32, 32}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.ping_pong = false;
@@ -586,10 +597,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(1.8F, 1.8F);
         } else if (is_enemy5_projectile && texture_mgr.has("assets/r-typesheet9-3.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-3.gif"));
-            entity.frames = {
-                {0, 0, 30, 12},
-                {30, 0, 30, 12}
-            };
+            entity.frames = {{0, 0, 30, 12}, {30, 0, 30, 12}};
             entity.frame_duration = 0.15F;
             entity.loop = true;
             entity.ping_pong = true;
@@ -598,10 +606,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(-3.0F, 3.0F);
         } else if (is_enemy4_projectile && texture_mgr.has("assets/r-typesheet9-22.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-22.gif"));
-            entity.frames = {
-                {0, 0, 65, 18},
-                {65, 0, 65, 18}
-            };
+            entity.frames = {{0, 0, 65, 18}, {65, 0, 65, 18}};
             entity.frame_duration = 0.2F;
             entity.loop = true;
             entity.ping_pong = false;
@@ -610,19 +615,15 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(-2.0F, 2.0F);
         } else if (is_enemy3_projectile && texture_mgr.has("assets/r-typesheet14-22.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet14-22.gif"));
-            entity.frames = {
-                {48, 0, 16, 14},
-                {32, 0, 16, 14},
-                {16, 0, 16, 14},
-                {0, 0, 16, 14}
-            };
+            entity.frames = {{48, 0, 16, 14}, {32, 0, 16, 14}, {16, 0, 16, 14}, {0, 0, 16, 14}};
             entity.frame_duration = 0.15F;
             entity.loop = false;
             entity.ping_pong = true;
             entity.forward = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
-        } else if (is_missile_drone_projectile && !is_fast_projectile && texture_mgr.has("assets/missile.png")) {
+        } else if (is_missile_drone_projectile && !is_fast_projectile &&
+                   texture_mgr.has("assets/missile.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/missile.png"));
             entity.frames = {{0, 0, 18, 17}};
             entity.frame_duration = 0.1F;
@@ -643,7 +644,8 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
-        } else if (is_compiler_normal_projectile && texture_mgr.has("assets/ennemi-projectile.png")) {
+        } else if (is_compiler_normal_projectile &&
+                   texture_mgr.has("assets/ennemi-projectile.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/ennemi-projectile.png"));
             entity.frames = {{0, 0, 18, 19}, {18, 0, 18, 19}};
             entity.frame_duration = 0.1F;
@@ -652,7 +654,8 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(3.0F, 3.0F);
         } else {
             bool is_enemy_proj = (entity.vx < 0 || is_compiler_boss_projectile);
-            std::string sprite_sheet = is_enemy_proj ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
+            std::string sprite_sheet =
+                is_enemy_proj ? "assets/r-typesheet1.3.png" : "assets/r-typesheet1.png";
 
             if (!texture_mgr.has(sprite_sheet)) {
                 sprite_sheet = "assets/r-typesheet1.png";
@@ -668,13 +671,10 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             }
         }
     } else if (entity.type == 0x32) {
-        // Custom level projectile (CustomProjectile=0x32) - custom_entity_id contains texture path
         if (!entity.custom_entity_id.empty() && texture_mgr.has(entity.custom_entity_id)) {
-            // Try to find projectile definition to get proper sprite config
             bool found_projectile = false;
 
             if (custom_level_config_) {
-                // Search in enemy projectiles
                 for (const auto& pair : custom_level_config_->enemy_definitions) {
                     const auto& enemy_def = pair.second;
                     if (enemy_def.projectile &&
@@ -691,14 +691,12 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                         entity.loop = true;
                         entity.sprite.setTextureRect(entity.frames[0]);
                         entity.sprite.setScale(proj.sprite.scale_x, proj.sprite.scale_y);
-                        entity.sprite.setRotation(
-                            proj.sprite.rotation);  // Apply rotation from config
+                        entity.sprite.setRotation(proj.sprite.rotation);
                         found_projectile = true;
                         break;
                     }
                 }
 
-                // Search in boss projectile
                 if (!found_projectile && custom_level_config_->boss_definition &&
                     custom_level_config_->boss_definition->projectile &&
                     custom_level_config_->boss_definition->projectile->sprite.texture_path ==
@@ -715,14 +713,24 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                     entity.loop = true;
                     entity.sprite.setTextureRect(entity.frames[0]);
                     entity.sprite.setScale(proj.sprite.scale_x, proj.sprite.scale_y);
-                    entity.sprite.setRotation(proj.sprite.rotation);  // Apply rotation from config
+                    entity.sprite.setRotation(proj.sprite.rotation);
                     found_projectile = true;
                 }
             }
 
             if (!found_projectile) {
-                std::cerr << "[Game] Warning: Custom projectile definition not found for texture: "
-                          << entity.custom_entity_id << std::endl;
+                if (entity.custom_entity_id == "assets/r-typesheet9-22.gif") {
+                    entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet9-22.gif"));
+                    entity.frames = {{0, 0, 65, 18}, {65, 0, 65, 18}};
+                    entity.frame_duration = 0.2F;
+                    entity.loop = true;
+                    entity.sprite.setTextureRect(entity.frames[0]);
+                    entity.sprite.setScale(1.7F, 1.7F);
+                    found_projectile = true;
+                } else {
+                    std::cerr << "[Game] Warning: Custom projectile definition not found for texture: "
+                              << entity.custom_entity_id << std::endl;
+                }
             }
         }
     } else if (entity.type == 0x05) {
@@ -736,7 +744,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x08) {
-        // Standard game boss
         if (texture_mgr.has("assets/r-typesheet30.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet30.gif"));
             entity.frames = {{0, 0, 185, 204},    {0, 215, 185, 204}, {0, 428, 185, 204},
@@ -752,7 +759,6 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.sprite.setScale(3.5F, 3.5F);
         }
     } else if (entity.type == 0x31) {
-        // Custom level boss (CustomBoss=0x31) - use custom_entity_id for direct lookup
         if (custom_level_config_ && custom_level_config_->boss_definition &&
             !entity.custom_entity_id.empty()) {
             const auto& boss = *custom_level_config_->boss_definition;
@@ -770,7 +776,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
                 float sx = boss.sprite.mirror_x ? -boss.sprite.scale_x : boss.sprite.scale_x;
                 float sy = boss.sprite.mirror_y ? -boss.sprite.scale_y : boss.sprite.scale_y;
                 entity.sprite.setScale(sx, sy);
-                entity.sprite.setRotation(boss.sprite.rotation);  // Apply rotation from config
+                entity.sprite.setRotation(boss.sprite.rotation);
             } else {
                 std::cerr << "[Game] Error: Texture not loaded for custom boss ID: "
                           << entity.custom_entity_id << std::endl;
@@ -836,7 +842,8 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
             entity.grayscale = false;
         }
     } else if (entity.type == 0x0A) {
-        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A" << std::endl;
+        std::cout << "[WARNING] Entity " << entity.id << " uses deprecated Ally type 0x0A"
+                  << std::endl;
     } else if (entity.type == 0x10) {
         if (texture_mgr.has("assets/serpent_nest.png")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/serpent_nest.png"));
@@ -900,7 +907,7 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
     } else if (entity.type == 0x16) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
-    } else if (entity.type == 0x17) {
+    } else if (entity.type == 0x17 && entity.frames.empty()) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
     } else if (entity.type == 0x18) {
@@ -910,43 +917,30 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
     } else if (entity.type == 0x1B) {
-        // CompilerBoss (invisible main entity)
         entity.frames = {};
         entity.sprite.setColor(sf::Color::Transparent);
     } else if (entity.type == 0x1C) {
-        // CompilerPart1
         if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
-            entity.frames = {
-                {2, 31, 113, 69},
-                {2, 130, 114, 67}
-            };
+            entity.frames = {{2, 31, 113, 69}, {2, 130, 114, 67}};
             entity.frame_duration = 0.5F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x1D) {
-        // CompilerPart2
         if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
-            entity.frames = {
-                {115, 0, 99, 100},
-                {115, 100, 99, 100}
-            };
+            entity.frames = {{115, 0, 99, 100}, {115, 100, 99, 100}};
             entity.frame_duration = 0.5F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.0F, 2.0F);
         }
     } else if (entity.type == 0x1E) {
-        // CompilerPart3
         if (texture_mgr.has("assets/r-typesheet38-22.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet38-22.gif"));
-            entity.frames = {
-                {213, 17, 99, 83},
-                {213, 117, 99, 83}
-            };
+            entity.frames = {{213, 17, 99, 83}, {213, 117, 99, 83}};
             entity.frame_duration = 0.5F;
             entity.loop = true;
             entity.sprite.setTextureRect(entity.frames[0]);
@@ -956,26 +950,16 @@ void Game::init_entity_sprite(Entity& entity, uint32_t entity_id) {
         texture_mgr.load("assets/r-typesheet44.gif");
         if (texture_mgr.has("assets/r-typesheet44.gif")) {
             entity.sprite.setTexture(*texture_mgr.get("assets/r-typesheet44.gif"));
-            entity.frames = {
-                {-1, 98, 67, 65},
-                {1, 98, 65, 63},
-                {66, 98, 65, 63},
-                {131, 98, 65, 63},
-                {196, 98, 65, 63},
-                {261, 98, 65, 63}
-            };
+            entity.frames = {{-1, 98, 67, 65},  {1, 98, 65, 63},   {66, 98, 65, 63},
+                             {131, 98, 65, 63}, {196, 98, 65, 63}, {261, 98, 65, 63}};
             entity.frame_duration = 0.04F;
             entity.loop = false;
             entity.sprite.setTextureRect(entity.frames[0]);
             entity.sprite.setScale(2.5F, 2.5F);
-            std::cout << "[CLIENT] CompilerExplosion sprite loaded! 6 frames, Scale: 2.5" << std::endl;
+            std::cout << "[CLIENT] CompilerExplosion sprite loaded! 6 frames, Scale: 2.5"
+                      << std::endl;
         }
-    } else if (entity.type == 0x30) {
-        // CustomEnemy - handled via custom_entity_id
-    } else if (entity.type == 0x31) {
-        // CustomBoss - handled via custom_entity_id
-    } else if (entity.type == 0x32) {
-        // CustomProjectile - handled via custom_entity_id
+    } else if (entity.type == 0x30 || entity.type == 0x31 || entity.type == 0x32) {
     }
 
     sf::FloatRect bounds = entity.sprite.getLocalBounds();
@@ -1007,8 +991,9 @@ void Game::process_network_messages() {
                             prev_player_health_ = incoming.health;
                         }
 
-                        if ((incoming.type == 0x08 || incoming.type == 0x11 || incoming.type == 0x12 ||
-                             incoming.type == 0x1C || incoming.type == 0x1D || incoming.type == 0x1E) &&
+                        if ((incoming.type == 0x08 || incoming.type == 0x11 ||
+                             incoming.type == 0x12 || incoming.type == 0x1C ||
+                             incoming.type == 0x1D || incoming.type == 0x1E) &&
                             (it->second.type == incoming.type)) {
                             if (incoming.health < it->second.health) {
                                 incoming.damage_flash_timer = incoming.damage_flash_duration;
@@ -1069,6 +1054,33 @@ void Game::process_network_messages() {
                             boss_spawn_triggered_ = true;
                             boss_roar_timer_ = 0.0f;
                         }
+                        if (incoming.type == 0x11) {
+                            std::cout << "[Game] SERPENT HEAD SPAWNED! Playing roar sound..." << std::endl;
+                            managers::AudioManager::instance().play_sound(
+                                managers::AudioManager::SoundType::SnakeRoar);
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/bossfight.mp3", true);
+                        }
+                        if ((incoming.type == 0x1C || incoming.type == 0x1D || incoming.type == 0x1E) && !boss_spawn_triggered_) {
+                            std::cout
+                                << "[Game] COMPILER BOSS DETECTED! Launching Spacecrusher music..."
+                                << std::endl;
+                            managers::AudioManager::instance().play_music(
+                                "assets/sounds/Spacecrusher.ogg", true);
+                            managers::AudioManager::instance().play_sound(
+                                managers::AudioManager::SoundType::RobotRoar);
+                            boss_spawn_triggered_ = true;
+                            boss_roar_timer_ = 0.0f;
+                        }
+                        if (incoming.type == 0x1F) {
+                            boss_explosion_count_++;
+                            if (boss_explosion_count_ % 5 == 1) {
+                                managers::AudioManager::instance().play_sound(
+                                    managers::AudioManager::SoundType::BossExplosion);
+                                std::cout << "[CLIENT] Boss explosion sound #"
+                                          << (boss_explosion_count_ / 5 + 1) << std::endl;
+                            }
+                        }
                         incoming.prev_x = incoming.x;
                         incoming.prev_y = incoming.y;
                         incoming.prev_time = now;
@@ -1079,8 +1091,13 @@ void Game::process_network_messages() {
                 }
 
                 for (const auto& [id, entity] : entities_) {
-                    if ((entity.type == 0x02 || entity.type == 0x06) &&
-                        next.find(id) == next.end()) {
+                    bool is_enemy =
+                        (entity.type == 0x02 || entity.type == 0x06 || entity.type == 0x0E ||
+                         entity.type == 0x0F || entity.type == 0x1A);
+
+                    if (is_enemy && next.find(id) == next.end()) {
+                        sf::Vector2f enemy_pos(entity.x, entity.y);
+
                         managers::AudioManager::instance().play_sound(
                             managers::AudioManager::SoundType::HitSound);
 
@@ -1088,21 +1105,24 @@ void Game::process_network_messages() {
                         int combo_mult =
                             managers::EffectsManager::instance().get_combo_multiplier();
 
-                        sf::Vector2f enemy_pos(entity.x, entity.y);
                         managers::EffectsManager::instance().spawn_explosion(enemy_pos, 25);
 
-                        float shake_intensity = 16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
-                        managers::EffectsManager::instance().trigger_screen_shake(shake_intensity,
-                                                                                  0.25f);
+                        float shake_intensity =
+                            16.0f + static_cast<float>(combo_mult - 1) * 4.0f;
+                        managers::EffectsManager::instance().trigger_screen_shake(
+                            shake_intensity, 0.25f);
 
                         sf::Vector2f score_pos(WINDOW_WIDTH - 200, 40);
-                        managers::EffectsManager::instance().spawn_score_particles(enemy_pos,
-                                                                                   score_pos, 12);
+                        managers::EffectsManager::instance().spawn_score_particles(
+                            enemy_pos, score_pos, 12);
 
                         current_score_ += static_cast<uint32_t>(100 * combo_mult);
                         managers::EffectsManager::instance().trigger_score_bounce();
                         managers::AudioManager::instance().play_sound(
                             managers::AudioManager::SoundType::Coin);
+                    }
+                    if ((entity.type == 0x11 || entity.type == 0x12 || entity.type == 0x13 || entity.type == 0x14) &&
+                        next.find(id) == next.end()) {
                     }
                 }
 
@@ -1133,6 +1153,8 @@ void Game::process_network_messages() {
                 show_level_intro_ = true;
                 level_intro_timer_ = 0.0f;
                 prev_enemies_killed_ = 0;
+                boss_spawn_triggered_ = false;
+                boss_explosion_count_ = 0;
                 if (!msg.custom_level_id.empty()) {
                     load_custom_level(msg.custom_level_id);
                     if (custom_level_config_) {
@@ -1209,6 +1231,15 @@ void Game::process_network_messages() {
 }
 
 void Game::render() {
+    ColorBlindMode mode = Settings::instance().colorblind_mode;
+    use_render_texture_ = (mode != ColorBlindMode::Normal);
+
+    if (use_render_texture_) {
+        render_texture_.clear(sf::Color(0, 0, 0));
+        sf::View temp_view = window_.getView();
+        render_texture_.setView(temp_view);
+    }
+
     window_.clear(sf::Color(0, 0, 0));
 
     float dt = 1.0F / 60.0F;
@@ -1216,8 +1247,8 @@ void Game::render() {
     game_renderer_.apply_screen_shake(window_);
     game_renderer_.render_background(window_);
 
-    game_renderer_.render_entities(window_, entities_, my_network_id_, dt,
-                                    predicted_player_x_, predicted_player_y_);
+    game_renderer_.render_entities(window_, entities_, my_network_id_, dt, predicted_player_x_,
+                                   predicted_player_y_);
 
     game_renderer_.render_laser_particles(window_, entities_, dt);
 
@@ -1250,6 +1281,10 @@ void Game::render() {
 
     if (m_settings_panel && m_settings_panel->is_open()) {
         m_settings_panel->render(window_);
+    }
+
+    if (use_render_texture_) {
+        game_renderer_.apply_colorblind_shader(window_, render_texture_);
     }
 
     game_renderer_.render_colorblind_overlay(window_);

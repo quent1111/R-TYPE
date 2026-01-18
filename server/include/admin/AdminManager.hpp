@@ -6,6 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 namespace server {
 
 class UDPServer;
@@ -74,3 +79,7 @@ private:
 };
 
 }  // namespace server
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

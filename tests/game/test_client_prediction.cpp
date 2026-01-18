@@ -97,8 +97,8 @@ TEST_F(ClientPredictionTest, ContinuousPrediction) {
 TEST_F(ClientPredictionTest, DiagonalMovement) {
     // Mouvement diagonal (Pythagore: vitesse effective ~424 px/s)
     float speed = 300.0f;
-    float dx = speed * std::cos(M_PI / 4);  // 45 degrés
-    float dy = speed * std::sin(M_PI / 4);
+    float dx = speed * std::cos(static_cast<float>(M_PI) / 4);  // 45 degrés
+    float dy = speed * std::sin(static_cast<float>(M_PI) / 4);
     
     for (int i = 0; i < 60; ++i) {
         state_.apply_prediction(dx, dy, dt_);

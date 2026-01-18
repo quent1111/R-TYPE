@@ -1,6 +1,7 @@
 #include "entities/enemy_factory.hpp"
 #include "ecs/components.hpp"
 #include "components/game_components.hpp"
+#include "components/logic_components.hpp"
 #include <random>
 
 static float get_difficulty_multiplier(registry& reg) {
@@ -11,6 +12,23 @@ static float get_difficulty_multiplier(registry& reg) {
         }
     }
     return 1.0f;
+}
+
+static int get_current_level(registry& reg) {
+    auto& level_managers = reg.get_components<level_manager>();
+    for (const auto& lvl_mgr : level_managers) {
+        if (lvl_mgr.has_value()) {
+            return lvl_mgr->current_level;
+        }
+    }
+    return 1;
+}
+
+static float get_level_scaling_multiplier(registry& reg) {
+    int level = get_current_level(reg);
+    if (level <= 1) return 1.0f;
+    
+    return 1.0f + (static_cast<float>(level - 1) * 0.1f);
 }
 
 entity createBasicEnemy(registry& reg, float x, float y) {
@@ -28,8 +46,13 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.register_component<weapon>();
 
     float difficulty_mult = get_difficulty_multiplier(reg);
+    float level_mult = get_level_scaling_multiplier(reg);
+    float total_mult = difficulty_mult * level_mult;
+    
     int base_health = 10;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int base_damage = 25;
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * total_mult);
+    int scaled_damage = static_cast<int>(static_cast<float>(base_damage) * (1.0f + (level_mult - 1.0f) * 0.5f));
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
@@ -57,7 +80,7 @@ entity createBasicEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{60.0f, 45.0f});
-    reg.add_component(enemy, damage_on_contact{25, false});
+    reg.add_component(enemy, damage_on_contact{scaled_damage, false});
     reg.add_component(enemy, enemy_tag{});
     reg.add_component(enemy, entity_tag{RType::EntityType::Enemy});
 
@@ -79,8 +102,13 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     reg.register_component<weapon>();
 
     float difficulty_mult = get_difficulty_multiplier(reg);
+    float level_mult = get_level_scaling_multiplier(reg);
+    float total_mult = difficulty_mult * level_mult;
+    
     int base_health = 15;
-    int scaled_health = static_cast<int>(base_health * difficulty_mult);
+    int base_damage = 30;
+    int scaled_health = static_cast<int>(static_cast<float>(base_health) * total_mult);
+    int scaled_damage = static_cast<int>(static_cast<float>(base_damage) * (1.0f + (level_mult - 1.0f) * 0.5f));
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-120.0f, 0.0f});
@@ -111,7 +139,7 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{60.0f, 60.0f});
-    reg.add_component(enemy, damage_on_contact{30, false});
+    reg.add_component(enemy, damage_on_contact{scaled_damage, false});
     reg.add_component(enemy, enemy_tag{});
     reg.add_component(enemy, entity_tag{RType::EntityType::Enemy2});
 
@@ -121,6 +149,12 @@ entity createSecondaryEnemy(registry& reg, float x, float y) {
 entity createFlyingEnemy(registry& reg, float x, float y) {
     entity enemy = reg.spawn_entity();
 
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    float level_mult = get_level_scaling_multiplier(reg);
+    float combined_mult = difficulty_mult * level_mult;
+    int scaled_health = static_cast<int>(40.0f * combined_mult);
+    int scaled_damage = static_cast<int>(15.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(12.0f * combined_mult);
     reg.register_component<position>();
     reg.register_component<velocity>();
     reg.register_component<health>();
@@ -134,9 +168,10 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-250.0f, 0.0f});
-    reg.add_component(enemy, health{40});
+    reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{0.6f, 400.0f, 35});
+    float fire_rate_flying = (difficulty_mult < 0.8f) ? 0.3f : 0.6f;
+    reg.add_component(enemy, weapon{fire_rate_flying, 400.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet14-1.gif";
@@ -159,7 +194,7 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{70.0f, 80.0f});
-    reg.add_component(enemy, damage_on_contact{50, false});
+    reg.add_component(enemy, damage_on_contact{scaled_damage, false});
     reg.add_component(enemy, enemy_tag{});
     reg.add_component(enemy, entity_tag{RType::EntityType::FlyingEnemy});
 
@@ -168,6 +203,13 @@ entity createFlyingEnemy(registry& reg, float x, float y) {
 
 entity createWaveEnemy(registry& reg, float x, float y) {
     entity enemy = reg.spawn_entity();
+
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    float level_mult = get_level_scaling_multiplier(reg);
+    float combined_mult = difficulty_mult * level_mult;
+    int scaled_health = static_cast<int>(30.0f * combined_mult);
+    int scaled_damage = static_cast<int>(12.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(10.0f * combined_mult);
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -182,9 +224,10 @@ entity createWaveEnemy(registry& reg, float x, float y) {
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-200.0f, 0.0f});
-    reg.add_component(enemy, health{30});
+    reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{1.0f, 500.0f, 25});
+    float fire_rate_wave = (difficulty_mult < 0.8f) ? 0.5f : 1.0f;
+    reg.add_component(enemy, weapon{fire_rate_wave, 500.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet9-1.gif";
@@ -205,7 +248,7 @@ entity createWaveEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{55.0f, 60.0f});
-    reg.add_component(enemy, damage_on_contact{35, false});
+    reg.add_component(enemy, damage_on_contact{scaled_damage, false});
     reg.add_component(enemy, enemy_tag{});
     reg.add_component(enemy, entity_tag{RType::EntityType::Enemy4});
 
@@ -214,6 +257,13 @@ entity createWaveEnemy(registry& reg, float x, float y) {
 
 entity createTankEnemy(registry& reg, float x, float y) {
     entity enemy = reg.spawn_entity();
+
+    float difficulty_mult = get_difficulty_multiplier(reg);
+    float level_mult = get_level_scaling_multiplier(reg);
+    float combined_mult = difficulty_mult * level_mult;
+    int scaled_health = static_cast<int>(50.0f * combined_mult);
+    int scaled_damage = static_cast<int>(18.0f * combined_mult);
+    int scaled_weapon_damage = static_cast<int>(15.0f * combined_mult);
 
     reg.register_component<position>();
     reg.register_component<velocity>();
@@ -228,9 +278,10 @@ entity createTankEnemy(registry& reg, float x, float y) {
 
     reg.add_component(enemy, position{x, y});
     reg.add_component(enemy, velocity{-150.0f, 0.0f});
-    reg.add_component(enemy, health{50});
+    reg.add_component(enemy, health{scaled_health});
 
-    reg.add_component(enemy, weapon{0.8f, 450.0f, 30});
+    float fire_rate_tank = (difficulty_mult < 0.8f) ? 0.4f : 0.8f;
+    reg.add_component(enemy, weapon{fire_rate_tank, 450.0f, scaled_weapon_damage});
 
     sprite_component sprite;
     sprite.texture_path = "assets/r-typesheet7.gif";
@@ -251,7 +302,7 @@ entity createTankEnemy(registry& reg, float x, float y) {
     reg.add_component(enemy, anim);
 
     reg.add_component(enemy, collision_box{60.0f, 60.0f});
-    reg.add_component(enemy, damage_on_contact{40, false});
+    reg.add_component(enemy, damage_on_contact{scaled_damage, false});
     reg.add_component(enemy, enemy_tag{});
     reg.add_component(enemy, entity_tag{RType::EntityType::Enemy5});
 
@@ -262,10 +313,13 @@ void spawnEnemyWave(registry& reg, int count, int level) {
     static std::random_device rd;
     static std::mt19937 gen(rd());
     std::uniform_real_distribution<float> dis_y(100.0f, 980.0f);
-    std::uniform_real_distribution<float> dis_x(2000.0f, 2300.0f);
+    std::uniform_real_distribution<float> dis_x(1950.0f, 2050.0f);
     std::uniform_real_distribution<float> dis_type(0.0f, 1.0f);
 
-    for (int i = 0; i < count; ++i) {
+    int actual_count = (level > 10) ? (count / 2) : count;
+    if (actual_count < 1) actual_count = 1;
+
+    for (int i = 0; i < actual_count; ++i) {
         float spawn_x = dis_x(gen);
         float spawn_y = dis_y(gen);
 

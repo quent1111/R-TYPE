@@ -9,7 +9,7 @@ TEST(WeaponUpgradeType, EnumValues) {
 
 TEST(Weapon, DefaultWeapon) {
     weapon w;
-    EXPECT_FLOAT_EQ(w.fire_rate, 5.0f);
+    EXPECT_FLOAT_EQ(w.fire_rate, 0.5f);
     EXPECT_FLOAT_EQ(w.time_since_shot, 0.0f);
     EXPECT_FLOAT_EQ(w.projectile_speed, 500.0f);
     EXPECT_EQ(w.damage, 10);
@@ -58,8 +58,8 @@ TEST(Weapon, TripleShotUpgrade) {
     w.apply_upgrade(WeaponUpgradeType::TripleShot);
     
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::TripleShot);
-    EXPECT_FLOAT_EQ(w.fire_rate, 4.0f);
-    EXPECT_LT(w.fire_rate, original_fire_rate);
+    EXPECT_FLOAT_EQ(w.fire_rate, 0.6f);
+    EXPECT_GT(w.fire_rate, original_fire_rate);
 }
 
 TEST(Weapon, UpgradeOverwrite) {
@@ -71,7 +71,7 @@ TEST(Weapon, UpgradeOverwrite) {
     
     w.apply_upgrade(WeaponUpgradeType::TripleShot);
     EXPECT_EQ(w.upgrade_type, WeaponUpgradeType::TripleShot);
-    EXPECT_FLOAT_EQ(w.fire_rate, 4.0f);
+    EXPECT_FLOAT_EQ(w.fire_rate, 0.6f);
 }
 
 TEST(Weapon, CustomWeaponConfig) {

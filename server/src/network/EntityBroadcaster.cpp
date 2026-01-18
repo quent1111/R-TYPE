@@ -9,11 +9,10 @@ namespace server {
 EntityBroadcaster::EntityBroadcaster() {
     broadcast_serializer_.reserve(65536);
 
-    // Configure compression
     RType::CompressionConfig config;
-    config.min_compress_size = 128;       // Compress packets >= 128 bytes
-    config.acceleration = 10;             // Balance between speed and ratio
-    config.use_high_compression = false;  // Fast mode for real-time
+    config.min_compress_size = 128;
+    config.acceleration = 10;
+    config.use_high_compression = false;
     broadcast_serializer_.set_config(config);
 }
 
@@ -45,7 +44,9 @@ void EntityBroadcaster::broadcast_entity_positions(
             broadcast_serializer_ << static_cast<uint32_t>(client_id);
             broadcast_serializer_ << static_cast<uint8_t>(RType::EntityType::Player);
 
-            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            uint8_t player_idx = player_idx_opt.has_value()
+                                     ? static_cast<uint8_t>(player_idx_opt->index)
+                                     : uint8_t{0};
             broadcast_serializer_ << player_idx;
 
             broadcast_serializer_.write_position(pos.x, pos.y);
@@ -100,7 +101,6 @@ void EntityBroadcaster::broadcast_entity_positions(
             float vy = vel_opt.has_value() ? vel_opt->vy : 0.0f;
             broadcast_serializer_.write_velocity(vx, vy);
 
-            // Send custom entity ID for custom entities (enemy, boss, projectile)
             if (tags[i]->type == RType::EntityType::CustomEnemy ||
                 tags[i]->type == RType::EntityType::CustomBoss ||
                 tags[i]->type == RType::EntityType::CustomProjectile) {
@@ -108,7 +108,6 @@ void EntityBroadcaster::broadcast_entity_positions(
                 std::string entity_id_str =
                     custom_id_opt.has_value() ? custom_id_opt->entity_id : "";
 
-                // Send string length (uint8_t) then string data
                 uint8_t id_length =
                     static_cast<uint8_t>(std::min(entity_id_str.length(), size_t(255)));
                 broadcast_serializer_ << id_length;
@@ -117,7 +116,6 @@ void EntityBroadcaster::broadcast_entity_positions(
                 }
             }
 
-            // Send health for boss and serpent parts
             if (tags[i]->type == RType::EntityType::Boss ||
                 tags[i]->type == RType::EntityType::CustomBoss ||
                 tags[i]->type == RType::EntityType::SerpentHead ||
@@ -132,12 +130,10 @@ void EntityBroadcaster::broadcast_entity_positions(
                 int max_health = health_opt.has_value() ? health_opt->maximum : 100;
                 broadcast_serializer_.write_quantized_health(current_health, max_health);
 
-                // Send grayscale flag for serpent parts
                 auto sprite_opt = reg.get_component<sprite_component>(entity_obj);
                 bool grayscale = sprite_opt.has_value() ? sprite_opt->grayscale : false;
                 broadcast_serializer_ << static_cast<uint8_t>(grayscale ? 1 : 0);
 
-                // Send rotation for serpent parts (head, body, tail follow movement, scale aims at player)
                 if (tags[i]->type == RType::EntityType::SerpentHead ||
                     tags[i]->type == RType::EntityType::SerpentBody ||
                     tags[i]->type == RType::EntityType::SerpentScale ||
@@ -146,7 +142,6 @@ void EntityBroadcaster::broadcast_entity_positions(
                     float rotation = part_opt.has_value() ? part_opt->rotation : 0.0f;
                     broadcast_serializer_ << rotation;
 
-                    // For scales, also send the body entity they're attached to
                     if (tags[i]->type == RType::EntityType::SerpentScale && part_opt.has_value()) {
                         uint32_t attached_id = 0;
                         if (part_opt->attached_body.has_value()) {
@@ -201,7 +196,9 @@ void EntityBroadcaster::send_full_game_state_to_client(
             serializer << static_cast<uint32_t>(other_client_id);
             serializer << static_cast<uint8_t>(RType::EntityType::Player);
 
-            uint8_t player_idx = player_idx_opt.has_value() ? player_idx_opt->index : 0;
+            uint8_t player_idx = player_idx_opt.has_value()
+                                     ? static_cast<uint8_t>(player_idx_opt->index)
+                                     : uint8_t{0};
             serializer << player_idx;
 
             serializer << pos.x;

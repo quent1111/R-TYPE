@@ -1,13 +1,11 @@
 #include "../include/ProjectileShapeRenderer.hpp"
+
 #include <cmath>
 
 namespace accessibility {
 
-void ProjectileShapeRenderer::drawProjectile(sf::RenderWindow& window,
-                                             float x, float y,
-                                             float size,
-                                             ProjectileShape shape,
-                                             const sf::Color& fillColor,
+void ProjectileShapeRenderer::drawProjectile(sf::RenderWindow& window, float x, float y, float size,
+                                             ProjectileShape shape, const sf::Color& fillColor,
                                              float outlineThickness,
                                              const sf::Color& outlineColor) {
     switch (shape) {
@@ -60,10 +58,8 @@ void ProjectileShapeRenderer::drawProjectile(sf::RenderWindow& window,
     }
 }
 
-void ProjectileShapeRenderer::drawPlayerProjectile(sf::RenderWindow& window,
-                                                   float x, float y,
-                                                   float size,
-                                                   const sf::Color& color) {
+void ProjectileShapeRenderer::drawPlayerProjectile(sf::RenderWindow& window, float x, float y,
+                                                   float size, const sf::Color& color) {
     drawProjectile(window, x, y, size, ProjectileShape::Circle, color, 2.0f, sf::Color::White);
 
     sf::CircleShape center(size * 0.3f);
@@ -73,19 +69,15 @@ void ProjectileShapeRenderer::drawPlayerProjectile(sf::RenderWindow& window,
     window.draw(center);
 }
 
-void ProjectileShapeRenderer::drawEnemyProjectile(sf::RenderWindow& window,
-                                                  float x, float y,
-                                                  float size,
-                                                  const sf::Color& color) {
+void ProjectileShapeRenderer::drawEnemyProjectile(sf::RenderWindow& window, float x, float y,
+                                                  float size, const sf::Color& color) {
     drawProjectile(window, x, y, size, ProjectileShape::Diamond, color, 2.0f, sf::Color::White);
 
     drawCross(window, x, y, size * 0.6f, sf::Color(255, 255, 255, 150), 2.0f);
 }
 
-void ProjectileShapeRenderer::drawProjectilePattern(sf::RenderWindow& window,
-                                                    float x, float y,
-                                                    float size,
-                                                    bool isPlayerProjectile) {
+void ProjectileShapeRenderer::drawProjectilePattern(sf::RenderWindow& window, float x, float y,
+                                                    float size, bool isPlayerProjectile) {
     if (isPlayerProjectile) {
         sf::CircleShape innerCircle(size * 0.4f);
         innerCircle.setOrigin(size * 0.4f, size * 0.4f);
@@ -131,11 +123,8 @@ sf::RectangleShape ProjectileShapeRenderer::createSquare(float x, float y, float
     return square;
 }
 
-void ProjectileShapeRenderer::drawCross(sf::RenderWindow& window,
-                                       float x, float y,
-                                       float size,
-                                       const sf::Color& color,
-                                       float thickness) {
+void ProjectileShapeRenderer::drawCross(sf::RenderWindow& window, float x, float y, float size,
+                                        const sf::Color& color, float thickness) {
     sf::RectangleShape vertical(sf::Vector2f(thickness, size * 2));
     vertical.setOrigin(thickness / 2, size);
     vertical.setPosition(x, y);

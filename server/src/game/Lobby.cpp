@@ -5,7 +5,8 @@
 
 namespace server {
 
-Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friendly_fire, uint8_t difficulty)
+Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friendly_fire,
+             uint8_t difficulty)
     : _lobby_id(lobby_id),
       _lobby_name(name),
       _game_session(std::make_unique<GameSession>()),
@@ -14,14 +15,13 @@ Lobby::Lobby(int lobby_id, const std::string& name, int max_players, bool friend
       _friendly_fire(friendly_fire),
       _difficulty(difficulty),
       _last_activity(std::chrono::steady_clock::now()) {
-    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name
-              << " (max " << _max_players << " players)"
+    std::cout << "[Lobby " << _lobby_id << "] Created: " << _lobby_name << " (max " << _max_players
+              << " players)"
               << " Friendly Fire: " << (_friendly_fire ? "ON" : "OFF")
               << " Difficulty: " << static_cast<int>(_difficulty) << std::endl;
 
     _game_session->set_game_reset_callback([this]() { this->reset_after_game_over(); });
 
-    // Pass lobby name to game session for level skip feature (e.g., "lvl9" starts at level 9)
     if (_game_session) {
         _game_session->set_lobby_name(_lobby_name);
         _game_session->set_difficulty(_difficulty);

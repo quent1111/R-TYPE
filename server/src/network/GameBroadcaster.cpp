@@ -15,7 +15,8 @@ void GameBroadcaster::broadcast_level_info(UDPServer& server, registry& reg,
             serializer << RType::OpCode::LevelProgress;
             serializer << static_cast<uint8_t>(lvl_mgr.current_level);
             serializer << static_cast<uint16_t>(lvl_mgr.enemies_killed_this_level);
-            serializer << static_cast<uint16_t>(lvl_mgr.enemies_needed_for_next_level);
+            uint16_t display_enemies_needed = static_cast<uint16_t>(std::max(1, lvl_mgr.enemies_needed_for_next_level));
+            serializer << display_enemies_needed;
             serializer.compress();
             server.send_to_clients(lobby_client_ids, serializer.data());
             break;
@@ -55,12 +56,12 @@ void GameBroadcaster::broadcast_level_start(UDPServer& server, uint8_t level,
     }
     serializer.compress();
     server.send_to_clients(lobby_client_ids, serializer.data());
-    std::cout << "[Game] Sent Level " << static_cast<int>(level)
-              << " start screen (opcode: 0x30, level: " << static_cast<int>(level);
+
+    std::cout << "[Game] Sent Level " << static_cast<int>(level) << " start";
     if (!custom_level_id.empty()) {
-        std::cout << ", custom: " << custom_level_id;
+        std::cout << " (custom: " << custom_level_id << ")";
     }
-    std::cout << ")" << std::endl;
+    std::cout << std::endl;
 }
 
 void GameBroadcaster::broadcast_boss_spawn(UDPServer& server,

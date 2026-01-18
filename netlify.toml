@@ -1,0 +1,38 @@
+# Netlify configuration for R-TYPE Documentation
+# MkDocs Material deployment
+
+[build]
+  # Command to build the documentation
+  # PYTHONDONTWRITEBYTECODE=1 prevents .pyc files which can cause issues
+  # Setting workers to 1 avoids multiprocessing semaphore issues on Netlify
+  command = "PYTHONDONTWRITEBYTECODE=1 pip install -r requirements.txt && PYTHONDONTWRITEBYTECODE=1 mkdocs build"
+  # Directory containing the built site
+  publish = "site"
+
+[build.environment]
+  # Python version for mkdocs
+  PYTHON_VERSION = "3.11"
+
+# Headers for caching
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Preview context (for pull requests) - DISABLED
+[context.deploy-preview]
+  ignore = "exit 1"
+
+# Branch deploy context - DISABLED  
+[context.branch-deploy]
+  ignore = "exit 1"

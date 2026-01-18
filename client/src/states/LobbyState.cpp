@@ -1,11 +1,11 @@
 #include "states/LobbyState.hpp"
 
-#include "common/Settings.hpp"
-#include "managers/AudioManager.hpp"
 #include "../../src/Common/CompressionSerializer.hpp"
 #include "../../src/Common/Opcodes.hpp"
+#include "common/Settings.hpp"
 #include "level/CustomLevelLoader.hpp"
 #include "managers/AudioManager.hpp"
+#include "rendering/ColorBlindShader.hpp"
 
 #include <filesystem>
 #include <iostream>
@@ -210,7 +210,7 @@ void LobbyState::send_start_game_request() {
     std::string level_id;
     if (m_selected_level_index >= 0 &&
         m_selected_level_index < static_cast<int>(m_available_level_ids.size())) {
-        level_id = m_available_level_ids[m_selected_level_index];
+        level_id = m_available_level_ids[static_cast<std::size_t>(m_selected_level_index)];
     }
     std::cout << "[LobbyState] Sending StartGame request with level_id: " << level_id << "\n";
 
@@ -253,6 +253,7 @@ void LobbyState::request_lobby_status() {
 
 void LobbyState::process_network_messages() {
     NetworkToGame::Message msg(NetworkToGame::MessageType::EntityUpdate);
+    std::vector<NetworkToGame::Message> postponed_messages;
 
     while (m_network_to_game_queue->try_pop(msg)) {
         switch (msg.type) {
@@ -280,14 +281,28 @@ void LobbyState::process_network_messages() {
                 }
                 break;
 
+            case NetworkToGame::MessageType::LevelStart:
+            case NetworkToGame::MessageType::LevelProgress:
+            case NetworkToGame::MessageType::LevelComplete:
+            case NetworkToGame::MessageType::PowerUpSelection:
+            case NetworkToGame::MessageType::PowerUpCards:
+            case NetworkToGame::MessageType::BossSpawn:
+                postponed_messages.push_back(msg);
+                break;
+
             default:
                 break;
         }
+    }
+
+    for (const auto& postponed_msg : postponed_messages) {
+        m_network_to_game_queue->push(postponed_msg);
     }
 }
 
 void LobbyState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
+        m_keyboard_navigation = false;
         sf::Vector2i pixel_pos(event.mouseMove.x, event.mouseMove.y);
         m_mouse_pos = m_window.mapPixelToCoords(pixel_pos);
         for (auto& button : m_buttons) {
@@ -308,6 +323,25 @@ void LobbyState::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::KeyPressed) {
         if (event.key.code == sf::Keyboard::Escape) {
             on_back_clicked();
+        } else if (event.key.code == sf::Keyboard::Up) {
+            m_keyboard_navigation = true;
+            if (m_selected_button > 0) {
+                m_selected_button--;
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Down) {
+            m_keyboard_navigation = true;
+            if (m_selected_button + 1 < m_buttons.size()) {
+                m_selected_button++;
+                managers::AudioManager::instance().play_sound(
+                    managers::AudioManager::SoundType::Plop);
+            }
+        } else if (event.key.code == sf::Keyboard::Return ||
+                   event.key.code == sf::Keyboard::Space) {
+            if (m_selected_button < m_buttons.size()) {
+                m_buttons[m_selected_button]->trigger();
+            }
         }
     }
 }
@@ -327,8 +361,11 @@ void LobbyState::update(float dt) {
     if (m_title) {
         m_title->update(dt);
     }
-    for (auto& button : m_buttons) {
-        button->update(dt);
+    for (size_t i = 0; i < m_buttons.size(); ++i) {
+        if (m_keyboard_navigation) {
+            m_buttons[i]->set_hovered(i == m_selected_button);
+        }
+        m_buttons[i]->update(dt);
     }
     for (auto& corner : m_corners) {
         corner->update(dt);
@@ -376,29 +413,7 @@ void LobbyState::render(sf::RenderWindow& window) {
         m_footer->render(window);
     }
 
-    ColorBlindMode mode = Settings::instance().colorblind_mode;
-    if (mode != ColorBlindMode::Normal) {
-        sf::RectangleShape overlay(sf::Vector2f(1920, 1080));
-
-        switch (mode) {
-            case ColorBlindMode::Protanopia:
-                overlay.setFillColor(sf::Color(255, 255, 0, 90));
-                break;
-            case ColorBlindMode::Deuteranopia:
-                overlay.setFillColor(sf::Color(255, 100, 255, 90));
-                break;
-            case ColorBlindMode::Tritanopia:
-                overlay.setFillColor(sf::Color(255, 100, 50, 90));
-                break;
-            case ColorBlindMode::HighContrast:
-                overlay.setFillColor(sf::Color(150, 150, 255, 110));
-                break;
-            default:
-                break;
-        }
-
-        window.draw(overlay);
-    }
+    rendering::ColorBlindShader::instance().apply(window);
 }
 
 }  // namespace rtype

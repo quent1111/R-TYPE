@@ -83,7 +83,7 @@ struct weapon {
     int damage;
     WeaponUpgradeType upgrade_type;
 
-    constexpr weapon(float rate = 5.0f, float proj_speed = 500.0f, int dmg = 10, 
+    constexpr weapon(float rate = 0.5f, float proj_speed = 500.0f, int dmg = 10, 
                      WeaponUpgradeType upgrade = WeaponUpgradeType::None) noexcept
         : fire_rate(rate), time_since_shot(0.0f), projectile_speed(proj_speed), 
           damage(dmg), upgrade_type(upgrade) {}
@@ -101,7 +101,7 @@ struct weapon {
         if (new_upgrade == WeaponUpgradeType::PowerShot) {
             damage = 25;
         } else if (new_upgrade == WeaponUpgradeType::TripleShot) {
-            fire_rate = 4.0f;
+            fire_rate = 0.6f;
         }
     }
 };
@@ -177,9 +177,10 @@ struct level_manager {
     int enemies_needed_for_next_level = 1;
     bool awaiting_upgrade_choice = false;
     bool level_completed = false;
-    bool is_custom_level = false;  // Flag to differentiate custom levels from standard game
+    bool is_custom_level = false;
     float level_start_delay = 3.0f;
     float level_start_timer = 0.0f;
+    float difficulty_multiplier = 1.0f;
     
     constexpr level_manager() noexcept = default;
     
@@ -196,7 +197,10 @@ struct level_manager {
         enemies_killed_this_level = 0;
         level_completed = false;
         awaiting_upgrade_choice = false;
-        enemies_needed_for_next_level = current_level;
+        enemies_needed_for_next_level = static_cast<int>(static_cast<float>(current_level) * difficulty_multiplier);
+        if (enemies_needed_for_next_level < 1) {
+            enemies_needed_for_next_level = 1;
+        }
         level_start_timer = 0.0f;
     }
     
@@ -501,6 +505,7 @@ struct serpent_boss_controller {
     int current_health = 5000;
     int num_body_parts = 12;
     int num_scale_parts = 3;
+    float cycle_multiplier = 1.0f;
 
     bool spawn_complete = false;
     bool nest_visible = false;
@@ -576,6 +581,7 @@ enum class CompilerState : uint8_t {
 struct compiler_boss_controller {
     int total_health = 3000;
     int current_health = 3000;
+    float cycle_multiplier = 1.0f;
 
     CompilerState state = CompilerState::Entering;
     float state_timer = 0.0f;

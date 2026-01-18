@@ -17,6 +17,7 @@ add_executable(r-type_client
     src/rendering/LaserParticleSystem.cpp
     src/rendering/SerpentLaserSystem.cpp
     src/rendering/SerpentEffectsSystem.cpp
+    src/rendering/ColorBlindShader.cpp
     src/input/InputHandler.cpp
     src/states/StateManager.cpp
     src/states/MenuState.cpp
