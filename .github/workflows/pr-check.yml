@@ -7,7 +7,7 @@ on:
 jobs:
   pr-quality:
     name: PR Quality Checks
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name:  Checkout PR
@@ -27,7 +27,7 @@ jobs:
           
   pr-build:
     name: PR Build Test
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - name:  Checkout PR
