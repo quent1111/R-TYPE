@@ -206,7 +206,7 @@ jobs:
 
   deploy-to-epitech:
     name: Deploy to Epitech Repo
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [build-and-test, build-matrix]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
@@ -250,7 +250,7 @@ jobs:
 
   summary:
     name:  CI/CD Summary
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     needs: [code-quality, build-and-test, build-matrix]
     if: always()
     steps:
