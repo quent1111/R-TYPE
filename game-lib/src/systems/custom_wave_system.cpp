@@ -131,11 +131,19 @@ void spawnCustomEnemy(registry& reg, const rtype::level::EnemyConfig& enemy_def,
               << " attack_type: " << enemy_def.attack.type << std::endl;
 }
 
-void spawnCustomBoss(registry& reg, const rtype::level::EnemyConfig& boss_def) {
+void spawnCustomBoss(registry& reg, const rtype::level::EnemyConfig& boss_def, const rtype::level::EnemySpawnConfig& spawn_config) {
     entity boss = reg.spawn_entity();
 
     float spawn_x = 1950.0f;
     float spawn_y = 540.0f;
+
+    if (spawn_config.spawn_point.position_type == "absolute") {
+        spawn_x = spawn_config.spawn_point.x;
+        spawn_y = spawn_config.spawn_point.y;
+    } else if (spawn_config.spawn_point.position_type == "screen_right") {
+        spawn_x = 1950.0f + spawn_config.spawn_point.offset_x;
+        spawn_y = 540.0f + spawn_config.spawn_point.offset_y;
+    }
 
     reg.add_component(boss, position{spawn_x, spawn_y});
     reg.add_component(boss, velocity{0.0f, 0.0f});
@@ -245,7 +253,7 @@ void updateCustomWaveSystem(registry& reg, custom_wave_state& state,
             auto it = config.enemy_definitions.find(boss_spawn.enemy_id);
             if (it != config.enemy_definitions.end()) {
                 std::cout << "[CustomWave] Spawning boss: " << boss_spawn.enemy_id << std::endl;
-                spawnCustomBoss(reg, it->second);
+                spawnCustomBoss(reg, it->second, boss_spawn);
                 state.enemies_spawned_in_group = 1;
             } else {
                 std::cerr << "[CustomWave] ERROR: Boss " << boss_spawn.enemy_id << " not found!" << std::endl;

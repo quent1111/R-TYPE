@@ -24,7 +24,7 @@ void updateCustomWaveSystem(registry& reg, custom_wave_state& state,
                             const rtype::level::LevelConfig& config, float dt);
 void spawnCustomEnemy(registry& reg, const rtype::level::EnemyConfig& enemy_def,
                       const rtype::level::EnemySpawnConfig& spawn_config, float spawn_y);
-void spawnCustomBoss(registry& reg, const rtype::level::EnemyConfig& boss_def);
+void spawnCustomBoss(registry& reg, const rtype::level::EnemyConfig& boss_def, const rtype::level::EnemySpawnConfig& spawn_config);
 bool isCustomLevelComplete(const custom_wave_state& state);
 void resetCustomWaveState(custom_wave_state& state);
 
