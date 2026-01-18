@@ -60,7 +60,8 @@ plugins:
 nav:
   - Home: index.md
   - Game Design:
-      - Game Design: game-design/game-design.md
+      - Overview: game-design/game-design.md
+      - Complete Game Design: game-design/GAME_DESIGN.md
       - Player Guide: game-design/player-guide.md
       - Game Systems Guide: game-design/game-systems.md
   - Getting Started:
@@ -71,6 +72,7 @@ nav:
       - Overview: architecture/overview.md
       - ECS System: architecture/ecs.md
       - Network: architecture/network.md
+      - Advanced Networking: network/ADVANCED_NETWORKING.md
       - Game Engine: architecture/engine.md
   - Developer Guide:
       - Contributing: developer-guide/contributing.md
