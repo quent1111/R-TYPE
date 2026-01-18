@@ -65,44 +65,58 @@ public:
               const std::string& bind_address, 
               unsigned short port);
     
-    // Game loop operations (called from main thread)
-    bool get_input_packet(NetworkPacket& packet);
-    void queue_output_packet(const NetworkPacket& packet);
-    void process_output_queue();
+    // Client management
+    int register_client(const asio::ip::udp::endpoint& endpoint);
+    std::vector<int> remove_inactive_clients(std::chrono::seconds timeout);
+    size_t get_client_count();
+    std::map<int, asio::ip::udp::endpoint> get_all_clients();
+    void disconnect_client(int client_id);
     
-    // Direct send operations
-    void send_to_endpoint(const asio::ip::udp::endpoint& endpoint, 
-                          const std::vector<uint8_t>& data);
+    // Send operations
+    void send_to_all(const std::vector<uint8_t>& data);
+    void send_to_clients(const std::vector<int>& client_ids, const std::vector<uint8_t>& data);
     void send_to_client(int client_id, const std::vector<uint8_t>& data);
+    void send_to_endpoint(const asio::ip::udp::endpoint& endpoint,
+                          const std::vector<uint8_t>& data);
+    
+    // Reliable delivery
+    void send_reliable(int client_id, uint8_t opcode, const std::vector<uint8_t>& payload);
+    void send_ack(int client_id, uint32_t sequence_id);
+    void handle_ack(int client_id, uint32_t sequence_id);
+    
+    // Queue operations
+    bool get_input_packet(NetworkPacket& packet);
+    void queue_output_packet(NetworkPacket packet);
+    size_t get_input_queue_size() const;
     
     // Lifecycle
+    void run_network_loop();
     void stop();
     
 private:
-    asio::ip::udp::socket socket_;
+    asio::io_context& io_context_;
+    std::unique_ptr<asio::ip::udp::socket> socket_;
     asio::ip::udp::endpoint remote_endpoint_;
-    
-    // Thread-safe queues
-    ThreadSafeQueue<NetworkPacket> input_queue_;
-    ThreadSafeQueue<NetworkPacket> output_queue_;
-    
-    // Client tracking
-    std::unordered_map<int, ClientEndpoint> clients_;
+    std::map<int, ClientEndpoint> clients_;
     std::mutex clients_mutex_;
+    ThreadSafeQueue<NetworkPacket> input_queue_;
+    std::map<int, RType::ClientReliabilityState> client_reliability_;
+    std::thread retry_thread_;
     
-    // Async receive
     void start_receive();
-    void handle_receive(const asio::error_code& error, size_t bytes_transferred);
+    void handle_receive(std::error_code ec, std::size_t bytes_received);
+    void retry_unacked_packets();
 };
 
 } // namespace server
 ```
 
 **Key Features:**
-- **Async Receive**: `start_receive()` + `handle_receive()` chain
-- **Client Tracking**: Maps client ID → UDP endpoint
-- **Thread Safety**: Mutexes protect shared state
-- **Queue-Based**: No blocking I/O in game loop
+- **Async I/O**: Boost.Asio for non-blocking UDP operations
+- **Client Tracking**: Maps client ID → UDP endpoint with timeout detection
+- **Thread-Safe Queue**: `ThreadSafeQueue<NetworkPacket>` for game/network thread communication
+- **Reliable Delivery**: Optional ACK-based reliability layer for critical messages
+- **Retry Mechanism**: Background thread retries unacknowledged packets
 
 **Usage Example:**
 
@@ -111,9 +125,9 @@ private:
 asio::io_context io_context;
 server::UDPServer server(io_context, "0.0.0.0", 12345);
 
-// Network thread
-std::thread network_thread([&io_context]() {
-    io_context.run();  // Run async I/O loop
+// Network thread runs async I/O
+std::thread network_thread([&server]() {
+    server.run_network_loop();  // Runs until stop() is called
 });
 
 // Game loop (main thread)
@@ -128,12 +142,10 @@ while (running) {
     update_game_logic(dt);
     
     // 3. Broadcast state to clients
-    broadcast_entity_positions(server);
+    std::vector<uint8_t> entity_data = serialize_entities();
+    server.send_to_all(entity_data);
     
-    // 4. Send queued packets
-    server.process_output_queue();
-    
-    // 5. Fixed timestep
+    // 4. Fixed timestep
     std::this_thread::sleep_for(16ms);  // 60 Hz
 }
 
@@ -148,57 +160,83 @@ Located in `client/include/network/NetworkClient.hpp`
 ```cpp
 class NetworkClient {
 public:
-    explicit NetworkClient(asio::io_context& io_context);
+    NetworkClient(const std::string& host, unsigned short port,
+                  ThreadSafeQueue<GameToNetwork::Message>& game_to_net,
+                  ThreadSafeQueue<NetworkToGame::Message>& net_to_game);
     
-    // Connection management
-    void connect(const std::string& server_address, const std::string& port);
-    void disconnect();
-    bool is_connected() const;
+    // Message handlers (called from network thread)
+    void decode_entities(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_login_ack(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_lobby_status(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_start_game(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_level_start(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_level_progress(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_powerup_selection(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_boss_spawn(const std::vector<uint8_t>& buffer, std::size_t received);
+    void decode_game_over(const std::vector<uint8_t>& buffer, std::size_t received);
     
-    // Send/Receive
-    void send(const std::vector<uint8_t>& data);
-    bool try_pop_message(std::vector<uint8_t>& out_message);
+    // Send operations (called from game thread via queues)
+    void send_login();
+    void send_input(uint8_t input_mask);
+    void send_ready(bool ready);
+    void send_powerup_choice(uint8_t choice);
+    void send_powerup_activate(uint8_t powerup_type);
+    
+    // Lifecycle
+    void run();
+    void stop();
+    
+    uint32_t get_my_network_id() const;
     
 private:
+    asio::io_context io_context_;
     asio::ip::udp::socket socket_;
     asio::ip::udp::endpoint server_endpoint_;
+    std::array<uint8_t, 65536> recv_buffer_;
+    std::thread network_thread_;
     
-    // Thread-safe queue for received messages
-    ThreadSafeQueue<std::vector<uint8_t>> incoming_messages_;
+    // Thread-safe queues for communication
+    ThreadSafeQueue<GameToNetwork::Message>& game_to_network_queue_;
+    ThreadSafeQueue<NetworkToGame::Message>& network_to_game_queue_;
     
-    std::atomic<bool> connected_{false};
+    uint32_t my_network_id_ = 0;
+    std::atomic<bool> running_;
     
-    // Async operations
     void start_receive();
-    void handle_receive(const asio::error_code& error, size_t bytes_transferred);
+    void handle_receive(std::error_code ec, std::size_t bytes_received);
+    void receive_loop();
+    void send_loop();
 };
 ```
 
 **Usage Example:**
 
 ```cpp
-// In client
-asio::io_context io_context;
-NetworkClient network_client(io_context);
+// In client main
+ThreadSafeQueue<GameToNetwork::Message> game_to_net;
+ThreadSafeQueue<NetworkToGame::Message> net_to_game;
 
-// Connect to server
-network_client.connect("127.0.0.1", "12345");
+NetworkClient network_client("127.0.0.1", 12345, game_to_net, net_to_game);
 
-// Network thread
-std::thread network_thread([&io_context]() {
-    io_context.run();
+// Start network thread
+std::thread network_thread([&network_client]() {
+    network_client.run();  // Handles send/receive loops
 });
 
 // Game loop
 while (running) {
-    // 1. Send input to server
-    std::vector<uint8_t> input_packet = create_input_packet(input_mask);
-    network_client.send(input_packet);
+    // 1. Send input to network thread
+    GameToNetwork::InputMessage input_msg;
+    input_msg.input_mask = calculate_input_mask();
+    game_to_net.push(input_msg);
     
-    // 2. Receive server updates
-    std::vector<uint8_t> message;
-    while (network_client.try_pop_message(message)) {
-        process_server_message(message);
+    // 2. Receive server updates from network thread
+    NetworkToGame::Message message;
+    while (net_to_game.try_pop(message)) {
+        if (message.type == NetworkToGame::MessageType::EntityUpdate) {
+            update_entities(message.entities);
+        }
+        // Handle other message types...
     }
     
     // 3. Update local state
@@ -208,9 +246,14 @@ while (running) {
     render();
 }
 
-network_client.disconnect();
+network_client.stop();
 network_thread.join();
 ```
+
+**Key Features:**
+- **Queue-Based Communication**: Game thread and network thread never share direct state
+- **Typed Messages**: `GameToNetwork::Message` and `NetworkToGame::Message` structs
+- **Magic Number Validation**: All packets start with 0xB542 (MAGIC_NUMBER)
 
 ### NetworkPacket Structure
 
@@ -230,6 +273,32 @@ struct NetworkPacket {
 - Server needs to know who to reply to (unicast)
 - Enables per-client tracking and responses
 - Prevents broadcast storms
+
+### ThreadSafeQueue
+
+Located in `client/include/common/SafeQueue.hpp` and `server/include/common/SafeQueue.hpp`
+
+```cpp
+template <typename T>
+class ThreadSafeQueue {
+public:
+    void push(const T& item);
+    void push(T&& item);
+    bool try_pop(T& item);
+    bool empty() const;
+    size_t size() const;
+    
+private:
+    std::queue<T> queue_;
+    mutable std::mutex mutex_;
+    std::condition_variable cv_;
+};
+```
+
+**Thread-safe operations:**
+- `push()`: Adds item and notifies waiting threads
+- `try_pop()`: Non-blocking pop, returns false if empty
+- Used for game-to-network and network-to-game communication
 
 ##  Protocol Specification
 
@@ -516,66 +585,126 @@ Example Payload Sizes:
 Defined in `src/Common/Opcodes.hpp`:
 
 ```cpp
-enum class Opcode : uint8_t {
-    // Lobby Phase
-    JOIN_LOBBY = 0x01,
-    LOBBY_STATUS = 0x02,
-    READY_TO_PLAY = 0x03,
-    GAME_START = 0x04,
+enum class OpCode : uint8_t {
+    // Authentication
+    Login = 0x01,
+    LoginAck = 0x02,
+    Keepalive = 0x03,
     
-    // Game Phase
-    PLAYER_INPUT = 0x10,
-    ENTITY_POSITIONS = 0x11,
-    GAME_INFO = 0x12,
+    // Input
+    Input = 0x10,
+    
+    // Entities
+    EntitySpawn = 0x11,
+    EntityDestroy = 0x12,
+    EntityPosition = 0x13,
+    
+    // Lobby Phase
+    PlayerReady = 0x20,
+    LobbyStatus = 0x21,
+    StartGame = 0x22,
+    ListLobbies = 0x23,
+    CreateLobby = 0x24,
+    JoinLobby = 0x25,
+    LeaveLobby = 0x26,
+    LobbyJoined = 0x27,
+    LobbyLeft = 0x28,
+    SelectLevel = 0x29,
+    ListLevels = 0x2A,
+    LevelList = 0x2B,
     
     // Level Events
-    LEVEL_INFO = 0x20,
-    BOSS_SPAWNED = 0x21,
-    GAME_OVER = 0x22,
+    LevelStart = 0x30,
+    LevelComplete = 0x31,
+    WeaponUpgradeChoice = 0x32,
+    LevelProgress = 0x33,
     
     // Powerups
-    POWERUP_SPAWNED = 0x30,
-    POWERUP_CHOICE = 0x31,
-    POWERUP_STATUS = 0x32,
+    PowerUpChoice = 0x34,
+    PowerUpActivate = 0x35,
+    PowerUpStatus = 0x36,
+    PowerUpCards = 0x37,
+    ActivableSlots = 0x38,
+    RequestGameState = 0x39,
     
-    // Weapons
-    WEAPON_UPGRADE_AVAILABLE = 0x40,
-    WEAPON_UPGRADE_CHOICE = 0x41,
-    WEAPON_UPGRADE_CONFIRM = 0x42,
+    // Game Over
+    GameOver = 0x40,
     
-    // Utility
-    PING = 0xFE,
-    ERROR = 0xFF
+    // Boss
+    BossSpawn = 0x50,
+    
+    // Admin
+    AdminLogin = 0xA0,
+    AdminLoginAck = 0xA1,
+    AdminCommand = 0xA2,
+    AdminResponse = 0xA3,
+    AdminLogout = 0xA4,
+    
+    // Magic bytes
+    MagicByte1 = 0x42,
+    MagicByte2 = 0xB5
+};
+
+enum class EntityType : uint8_t {
+    Player       = 0x01,
+    Enemy        = 0x02,
+    Projectile   = 0x03,
+    Powerup      = 0x04,
+    Obstacle     = 0x05,
+    Enemy2       = 0x06,
+    Enemy3       = 0x07,
+    Boss         = 0x08,
+    HomingEnemy  = 0x09,
+    Ally         = 0x0A,
+    LaserBeam    = 0x0B,
+    SupportDrone = 0x0C,
+    MissileDrone = 0x0D,
+    Enemy4       = 0x0E,
+    Enemy5       = 0x0F,
+    SerpentNest  = 0x10,
+    SerpentHead  = 0x11,
+    SerpentBody  = 0x12,
+    SerpentScale = 0x13,
+    SerpentTail  = 0x14,
+    SerpentHoming = 0x15,
+    SerpentLaser  = 0x16,
+    SerpentLaserSegment = 0x17,
+    SerpentScream = 0x18,
+    SerpentLaserCharge = 0x19,
+    FlyingEnemy = 0x1A,
+    CompilerBoss = 0x1B,
+    CompilerPart1 = 0x1C,
+    CompilerPart2 = 0x1D,
+    CompilerPart3 = 0x1E,
+    CompilerExplosion = 0x1F,
+    CustomEnemy = 0x30,
+    CustomBoss = 0x31,
+    CustomProjectile = 0x32
+};
+
+struct MagicNumber {
+    static constexpr uint16_t VALUE = 0xB542;
+    static constexpr uint8_t BYTE1 = static_cast<uint8_t>(OpCode::MagicByte1);
+    static constexpr uint8_t BYTE2 = static_cast<uint8_t>(OpCode::MagicByte2);
 };
 ```
 
 ### Message Examples
 
-#### JOIN_LOBBY (Client → Server)
+#### Login (Client → Server)
 
 ```cpp
-struct JoinLobbyPacket {
-    uint8_t opcode = static_cast<uint8_t>(Opcode::JOIN_LOBBY);
-    uint16_t payload_size = 0;  // No payload
-};
-
-// Send
+// Send login request
 std::vector<uint8_t> packet(3);
-packet[0] = static_cast<uint8_t>(Opcode::JOIN_LOBBY);
+packet[0] = static_cast<uint8_t>(OpCode::Login);
 packet[1] = 0;  // payload_size low byte
 packet[2] = 0;  // payload_size high byte
-network_client.send(packet);
+// Sent via game_to_network queue
 ```
 
-#### PLAYER_INPUT (Client → Server)
+#### Input (Client → Server)
 
 ```cpp
-struct PlayerInputPacket {
-    uint8_t opcode = static_cast<uint8_t>(Opcode::PLAYER_INPUT);
-    uint16_t payload_size = 1;
-    uint8_t input_mask;  // Bit flags for keys
-};
-
 // Input mask bits
 constexpr uint8_t INPUT_UP    = 0x01;
 constexpr uint8_t INPUT_DOWN  = 0x02;
@@ -583,70 +712,57 @@ constexpr uint8_t INPUT_LEFT  = 0x04;
 constexpr uint8_t INPUT_RIGHT = 0x08;
 constexpr uint8_t INPUT_SHOOT = 0x10;
 
-// Create and send
+// Create and send input
 uint8_t input_mask = INPUT_UP | INPUT_RIGHT | INPUT_SHOOT;
-std::vector<uint8_t> packet = {
-    static_cast<uint8_t>(Opcode::PLAYER_INPUT),
-    1, 0,  // payload_size = 1
-    input_mask
-};
-network_client.send(packet);
+network_client.send_input(input_mask);
 ```
 
-#### ENTITY_POSITIONS (Server → Clients)
+#### EntityPosition (Server → Clients)
 
 ```cpp
-struct EntityPositionPacket {
-    uint8_t opcode = static_cast<uint8_t>(Opcode::ENTITY_POSITIONS);
-    uint16_t payload_size;
-    uint32_t entity_count;
-    // For each entity:
-    struct EntityData {
-        uint32_t network_id;
-        float x, y;
-        float vx, vy;
-        uint8_t entity_type;
-    } entities[entity_count];
-};
-
-// Serialize
-BinarySerializer serializer;
-serializer.write<uint8_t>(Opcode::ENTITY_POSITIONS);
+// Serialize entity positions
+RType::CompressionSerializer serializer;
+serializer.write<uint8_t>(static_cast<uint8_t>(OpCode::EntityPosition));
 serializer.write<uint16_t>(payload_size);
 serializer.write<uint32_t>(entity_count);
-for (const auto& [id, pos, vel, type] : entities) {
+
+for (const auto& [id, entity] : entities) {
     serializer.write<uint32_t>(id);
-    serializer.write<float>(pos.x);
-    serializer.write<float>(pos.y);
-    serializer.write<float>(vel.vx);
-    serializer.write<float>(vel.vy);
-    serializer.write<uint8_t>(type);
+    serializer.write<float>(entity.position.x);
+    serializer.write<float>(entity.position.y);
+    serializer.write<float>(entity.velocity.vx);
+    serializer.write<float>(entity.velocity.vy);
+    serializer.write<uint8_t>(static_cast<uint8_t>(entity.type));
 }
-server.send_to_client(client_id, serializer.data());
+
+server.send_to_all(serializer.data());
 ```
 
-##  Communication Flow
+### Communication Flow
 
 ### Lobby Phase
 
 ```
 Client                          Server
   │                               │
-  ├──► JOIN_LOBBY ───────────────>│
-  │                               ├─> Add client to session
-  │                               ├─> Assign network ID
-  │<────── LOBBY_STATUS ──────────┤
+  ├──► Login ────────────────────>│
+  │                               ├─> Register client, assign network ID
+  │<────── LoginAck ──────────────┤
+  │        (your_id: 1)           │
+  │                               │
+  ├──► JoinLobby ────────────────>│
+  │                               ├─> Add to lobby
+  │<────── LobbyStatus ───────────┤
   │        (players: 1/4)         │
   │                               │
-  ├──► READY_TO_PLAY ────────────>│
+  ├──► PlayerReady ──────────────>│
   │                               ├─> Mark player ready
-  │<────── LOBBY_STATUS ──────────┤
+  │<────── LobbyStatus ───────────┤
   │        (ready: 1/4)           │
   │                               │
   │    [All players ready]        │
   │                               │
-  │<────── GAME_START ─────────────┤
-  │        (your_id: 1)           │
+  │<────── StartGame ──────────────┤
   │                               │
 ```
 
@@ -655,26 +771,25 @@ Client                          Server
 ```
 Client (60 FPS)                 Server (60 Hz)
   │                               │
-  ├──► PLAYER_INPUT ─────────────>│
+  ├──► Input ────────────────────>│
   │    (every frame)              ├─> InputHandler
   │                               ├─> Update game logic
   │                               ├─> Collision detection
-  │<────── ENTITY_POSITIONS ──────┤
+  │<────── EntityPosition ────────┤
   │    (all entities)             │
-  │<────── GAME_INFO ─────────────┤
-  │    (score, health, etc.)      │
+  │<────── LevelProgress ─────────┤
+  │    (score, enemies left)      │
   │                               │
   │    [Enemy killed]             │
   │                               │
-  │<────── POWERUP_SPAWNED ────────┤
-  ├──► POWERUP_CHOICE ───────────>│
+  │<────── PowerUpCards ───────────┤
+  ├──► PowerUpChoice ────────────>│
   │                               ├─> PowerupHandler
-  │<────── POWERUP_STATUS ─────────┤
+  │<────── PowerUpStatus ──────────┤
   │                               │
   │    [Level complete]           │
   │                               │
-  │<────── LEVEL_INFO ─────────────┤
-  │    (next level)               │
+  │<────── LevelComplete ──────────┤
   │                               │
 ```
 
@@ -691,15 +806,23 @@ public:
     void broadcast_entity_positions(
         UDPServer& server,
         registry& reg,
-        const std::unordered_map<int, entity>& client_entity_ids
+        const std::unordered_map<int, std::size_t>& client_entity_ids,
+        const std::vector<int>& lobby_client_ids
+    );
+    
+    void send_full_game_state_to_client(
+        UDPServer& server,
+        registry& reg,
+        const std::unordered_map<int, std::size_t>& client_entity_ids,
+        int client_id
     );
 };
 ```
 
 **What it does:**
 1. Iterates over all entities with `position`, `velocity`, `network_id`
-2. Serializes data into binary packet
-3. Sends unicast to each connected client
+2. Serializes data into compressed binary packet using `CompressionSerializer`
+3. Sends to all clients in lobby or specific client for full state sync
 
 ### LobbyBroadcaster
 
@@ -709,7 +832,8 @@ class LobbyBroadcaster {
 public:
     void broadcast_lobby_status(
         UDPServer& server,
-        const std::unordered_map<int, bool>& client_ready_status
+        const std::unordered_map<int, bool>& client_ready_status,
+        const std::vector<int>& lobby_client_ids
     );
 };
 ```
@@ -720,8 +844,16 @@ public:
 // server/include/network/GameBroadcaster.hpp
 class GameBroadcaster {
 public:
-    void broadcast_level_info(UDPServer& server, int level, float time_elapsed);
-    void broadcast_game_over(UDPServer& server);
+    void broadcast_level_info(UDPServer& server, registry& reg,
+                              const std::vector<int>& lobby_client_ids);
+    void broadcast_level_complete(UDPServer& server, registry& reg,
+                                  const std::vector<int>& lobby_client_ids);
+    void broadcast_level_start(UDPServer& server, uint8_t level,
+                               const std::string& custom_level_id,
+                               const std::vector<int>& lobby_client_ids);
+    void broadcast_boss_spawn(UDPServer& server, const std::vector<int>& lobby_client_ids);
+    void broadcast_start_game(UDPServer& server, const std::vector<int>& lobby_client_ids);
+    void broadcast_game_over(UDPServer& server, const std::vector<int>& lobby_client_ids);
 };
 ```
 
@@ -731,27 +863,33 @@ public:
 // server/include/network/PowerupBroadcaster.hpp
 class PowerupBroadcaster {
 public:
-    void broadcast_powerup_spawned(UDPServer& server, uint32_t powerup_id, 
-                                    float x, float y, uint8_t type);
-    void broadcast_powerup_status(UDPServer& server, registry& reg, 
-                                   const std::unordered_map<int, entity>& clients);
+    void broadcast_powerup_selection(UDPServer& server,
+                                    const std::vector<int>& lobby_client_ids);
+    void broadcast_powerup_cards(UDPServer& server, int client_id,
+                                const std::vector<powerup::PowerupCard>& cards);
+    void broadcast_powerup_status(UDPServer& server, registry& reg,
+                                 const std::unordered_map<int, std::size_t>& client_entity_ids,
+                                 const std::vector<int>& lobby_client_ids);
+    void broadcast_activable_slots(UDPServer& server, int client_id,
+                                  const powerup::PlayerPowerups::ActivableSlot slots[2]);
 };
 ```
 
 **Pattern Benefits:**
--  Separates networking from game logic
--  Reusable across different game modes
--  Easy to test independently
--  Clear responsibility (single purpose)
+- Separates networking from game logic
+- Reusable across different game modes
+- Easy to test independently
+- Uses `CompressionSerializer` for bandwidth optimization
+- Clear responsibility (single purpose)
 
 ##  Reliability & Error Handling
 
 ### UDP Challenges
 
 UDP is **unreliable** by design:
--  Packets can be lost
--  Packets can arrive out of order
--  No connection state
+- Packets can be lost
+- Packets can arrive out of order
+- No connection state
 
 **Our Solutions:**
 
@@ -763,32 +901,37 @@ void GameSession::update() {
     // ... game logic ...
     
     // Broadcast every tick (60Hz)
-    _entity_broadcaster.broadcast_entity_positions(server, _registry, _client_entity_ids);
-    _game_broadcaster.broadcast_game_info(server, score, health, level);
+    _entity_broadcaster.broadcast_entity_positions(server, _registry, 
+                                                  _client_entity_ids, _client_ids);
 }
 ```
 
-Even if 1-2 packets drop, next frame arrives quickly.
+Even if 1-2 packets drop, next frame arrives quickly (16ms later).
 
-### 2. Client-Side Prediction
+### 2. Reliable Delivery Layer
+
+For critical messages (level start, game over), the server uses ACK-based reliability:
 
 ```cpp
-// Client predicts movement locally
-void Game::update(float dt) {
-    // Apply input immediately (prediction)
-    update_local_player_position(dt);
-    
-    // Correct when server update arrives
-    if (server_update_received) {
-        reconcile_with_server_state();
-    }
-}
+// Send with reliability
+server.send_reliable(client_id, OpCode::LevelStart, payload);
+
+// Client sends ACK
+server.handle_ack(client_id, sequence_id);
+
+// Background thread retries unacked packets
+server.retry_unacked_packets();
 ```
 
-### 3. Interpolation
+**Retry mechanism:**
+- Packets stored in `ClientReliabilityState` until ACK received
+- Retry thread resends after timeout (100ms, 200ms, 400ms exponential backoff)
+- Max retries before considering client disconnected
+
+### 3. Client-Side Interpolation
 
 ```cpp
-// Smooth entity movement between updates
+// Client smooths entity movement between updates
 void Game::render() {
     for (auto& entity : entities_) {
         // Interpolate between last two server positions
@@ -798,21 +941,15 @@ void Game::render() {
 }
 ```
 
-### 4. Heartbeat (Ping)
+### 4. Keepalive / Timeout Detection
 
 ```cpp
-// Detect disconnections
-void NetworkClient::send_ping() {
-    std::vector<uint8_t> packet = {
-        static_cast<uint8_t>(Opcode::PING),
-        0, 0  // No payload
-    };
-    send(packet);
-}
+// Server: Disconnect if no packets for 10 seconds
+std::vector<int> inactive = server.remove_inactive_clients(std::chrono::seconds(10));
 
-// Server: Disconnect if no ping for 5 seconds
-if (time_since_last_packet > 5.0f) {
-    disconnect_client(client_id);
+// Client: Send keepalive if no input sent recently
+if (time_since_last_send > 2.0f) {
+    network_client.send_login();  // Acts as keepalive
 }
 ```
 
@@ -821,57 +958,55 @@ if (time_since_last_packet > 5.0f) {
 ### 1. Minimize Packet Size
 
 ```cpp
-//  Bad: Send full entity data every frame (50 bytes/entity)
-struct EntityFull {
-    uint32_t id;
-    float x, y, vx, vy;
-    uint8_t type;
-    uint8_t health;
-    uint32_t texture_id;
-    // ... many more fields
-};
-
-//  Good: Send only position delta (13 bytes/entity)
+// Good: Send only essential position data (21 bytes/entity)
 struct EntityPosition {
     uint32_t id;        // 4 bytes
     float x, y;         // 8 bytes
+    float vx, vy;       // 8 bytes
     uint8_t type;       // 1 byte
-};  // Total: 13 bytes
+};  // Total: 21 bytes
+
+// With compression (CompressionSerializer):
+// - Delta encoding for positions
+// - Quantization for velocities
+// - Reduces to ~15 bytes/entity average
 ```
 
 **For 100 entities:**
-- Bad: 5,000 bytes/frame × 60 FPS = 300 KB/s
-- Good: 1,300 bytes/frame × 60 FPS = 78 KB/s
+- Uncompressed: 2,100 bytes/frame × 60 FPS = 126 KB/s
+- Compressed: ~1,500 bytes/frame × 60 FPS = 90 KB/s
 
 ### 2. Batch Updates
 
 ```cpp
-//  Send all entities in one packet
+// Send all entities in one packet (not one packet per entity)
 void broadcast_entity_positions(...) {
-    BinarySerializer serializer;
-    serializer.write<uint8_t>(Opcode::ENTITY_POSITIONS);
+    RType::CompressionSerializer serializer;
+    serializer.write<uint8_t>(OpCode::EntityPosition);
     serializer.write<uint32_t>(entity_count);
     
     for (const auto& entity : entities) {
         serializer.write<uint32_t>(entity.id);
         serializer.write<float>(entity.pos.x);
         serializer.write<float>(entity.pos.y);
+        serializer.write<float>(entity.vel.x);
+        serializer.write<float>(entity.vel.y);
+        serializer.write<uint8_t>(entity.type);
     }
     
-    server.send_to_all_clients(serializer.data());  // One packet
+    server.send_to_all(serializer.data());  // One packet for all entities
 }
 ```
 
-### 3. Prioritization
+### 3. Selective Updates
 
 ```cpp
-// Update critical entities more frequently
-if (entity.is_player() || entity.is_boss()) {
-    send_every_frame();
-} else if (entity.is_enemy()) {
-    send_every_2_frames();
-} else {  // Background objects
-    send_every_5_frames();
+// Only send entities visible to player
+// (Implementation in EntityBroadcaster filters by screen bounds)
+for (const auto& entity : entities) {
+    if (is_visible_to_client(entity, client_viewport)) {
+        serialize_entity(entity);
+    }
 }
 ```
 
