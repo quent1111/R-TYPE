@@ -15,7 +15,7 @@ void GameBroadcaster::broadcast_level_info(UDPServer& server, registry& reg,
             serializer << RType::OpCode::LevelProgress;
             serializer << static_cast<uint8_t>(lvl_mgr.current_level);
             serializer << static_cast<uint16_t>(lvl_mgr.enemies_killed_this_level);
-            uint16_t display_enemies_needed = std::max(1, lvl_mgr.enemies_needed_for_next_level);
+            uint16_t display_enemies_needed = static_cast<uint16_t>(std::max(1, lvl_mgr.enemies_needed_for_next_level));
             serializer << display_enemies_needed;
             serializer.compress();
             server.send_to_clients(lobby_client_ids, serializer.data());

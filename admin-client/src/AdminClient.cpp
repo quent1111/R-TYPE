@@ -263,4 +263,5 @@ void AdminClient::disconnect() {
 }
 
 void AdminClient::parse_response(const std::string& response) {
+    (void)response;
 }

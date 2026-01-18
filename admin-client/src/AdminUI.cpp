@@ -58,7 +58,7 @@ void AdminUI::setup_ui() {
 
 void AdminUI::handle_event(const sf::Event& event) {
     if (event.type == sf::Event::MouseMoved) {
-        _mouse_pos = sf::Vector2f(event.mouseMove.x, event.mouseMove.y);
+        _mouse_pos = sf::Vector2f(static_cast<float>(event.mouseMove.x), static_cast<float>(event.mouseMove.y));
     }
 }
 

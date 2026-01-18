@@ -248,6 +248,7 @@ TEST(AccessibilityManagerTest, TransformColor_AppliesCurrentMode) {
     
     mgr.setColorBlindMode(ColorBlindnessMode::Protanopia);
     sf::Color protanopiaResult = mgr.transformColor(original);
+    (void)protanopiaResult;
     
     mgr.resetToDefaults();
 }
