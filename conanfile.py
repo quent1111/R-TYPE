@@ -15,6 +15,8 @@ class RTypeConan(ConanFile):
         self.requires("nlohmann_json/3.11.3")
 
     def configure(self):
+        self.options["boost"].header_only = True
+        
         if self.settings.os == "Macos" and self.settings.arch == "armv8":
             pass
         else:
